@@ -1,0 +1,101 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks: [callwe]
+
+  redis:
+    image: redis:7-alpine
+    restart: always
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', '-a', '${REDIS_PASSWORD}', 'ping']
+      interval: 10s
+      timeout: 3s
+      retries: 10
+    networks: [callwe]
+
+  migrate:
+    image: ghcr.io/${GHCR_OWNER}/callwe-migrate:${IMAGE_TAG:-latest}
+    restart: 'no'
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks: [callwe]
+
+  api:
+    image: ghcr.io/${GHCR_OWNER}/callwe-api:${IMAGE_TAG:-latest}
+    restart: always
+    env_file: .env
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD', 'curl', '-fsS', 'http://localhost:4000/health']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    networks: [callwe]
+
+  worker:
+    image: ghcr.io/${GHCR_OWNER}/callwe-worker:${IMAGE_TAG:-latest}
+    restart: always
+    env_file: .env
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    networks: [callwe]
+
+  web:
+    image: ghcr.io/${GHCR_OWNER}/callwe-web:${IMAGE_TAG:-latest}
+    restart: always
+    env_file: .env
+    depends_on:
+      api:
+        condition: service_healthy
+    networks: [callwe]
+
+  nginx:
+    image: nginx:1.27-alpine
+    restart: always
+    ports:
+      - '80:80'
+      - '443:443'
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./nginx/ssl:/etc/letsencrypt:ro
+      - nginx_cache:/var/cache/nginx
+    depends_on:
+      - web
+      - api
+    networks: [callwe]
+
+volumes:
+  postgres_data:
+  redis_data:
+  nginx_cache:
+
+networks:
+  callwe:
+    driver: bridge

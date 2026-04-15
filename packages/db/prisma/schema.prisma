@@ -1,0 +1,596 @@
+// CallWe — Prisma schema
+// Multi-tenant isolado por sub_account_id + RLS no Postgres.
+
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================
+// Enums
+// ============================================================
+
+enum AgencyStatus {
+  active
+  suspended
+}
+
+enum SubAccountStatus {
+  active
+  paused
+  archived
+}
+
+enum SubAccountPlan {
+  starter
+  pro
+  enterprise
+}
+
+enum UserStatus {
+  active
+  invited
+  disabled
+}
+
+enum MembershipRole {
+  super_admin
+  agency_admin
+  sub_account_admin
+  agent
+  client_viewer
+}
+
+enum LeadSource {
+  inbound_call
+  outbound_call
+  meta_ads
+  sms
+  manual
+  import
+  api
+}
+
+enum LeadStatus {
+  new
+  contacted
+  qualified
+  won
+  lost
+}
+
+enum InteractionType {
+  call
+  sms
+  voicemail
+  meta_form
+}
+
+enum InteractionDirection {
+  inbound
+  outbound
+}
+
+enum InteractionStatus {
+  initiated
+  ringing
+  answered
+  missed
+  failed
+  completed
+}
+
+enum TranscriptProvider {
+  cloudtalk_ai
+  whisper
+  none
+}
+
+enum Sentiment {
+  positive
+  neutral
+  negative
+}
+
+enum PhoneNumberStatus {
+  active
+  released
+}
+
+enum AgentAvailability {
+  online
+  offline
+  busy
+  away
+}
+
+enum IntegrationProvider {
+  meta_ads
+  whatsapp_cloud
+  google_ads
+  zapier
+}
+
+enum IntegrationStatus {
+  connected
+  disconnected
+  error
+}
+
+enum RoutingStrategy {
+  round_robin
+  least_busy
+  skill_based
+  sticky_owner
+}
+
+enum FallbackStrategy {
+  voicemail
+  overflow_group
+}
+
+enum WebhookProvider {
+  cloudtalk
+  meta
+  twilio
+}
+
+// ============================================================
+// Tenancy
+// ============================================================
+
+model Agency {
+  id                    String        @id @default(uuid()) @db.Uuid
+  name                  String
+  slug                  String        @unique
+  billingEmail          String        @map("billing_email")
+  status                AgencyStatus  @default(active)
+  cloudtalkWorkspaceId  String?       @map("cloudtalk_workspace_id")
+  settings              Json          @default("{}")
+  createdAt             DateTime      @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt             DateTime      @updatedAt @map("updated_at") @db.Timestamptz
+
+  subAccounts           SubAccount[]
+  memberships           Membership[]
+
+  @@map("agencies")
+}
+
+model SubAccount {
+  id                 String              @id @default(uuid()) @db.Uuid
+  agencyId           String              @map("agency_id") @db.Uuid
+  name               String
+  slug               String
+  cloudtalkTag       String              @unique @map("cloudtalk_tag")
+  cloudtalkGroupId   String?             @map("cloudtalk_group_id")
+  timezone           String              @default("America/Sao_Paulo")
+  status             SubAccountStatus    @default(active)
+  plan               SubAccountPlan      @default(starter)
+  settings           Json                @default("{}")
+  createdAt          DateTime            @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt          DateTime            @updatedAt @map("updated_at") @db.Timestamptz
+
+  agency             Agency              @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  memberships        Membership[]
+  leads              Lead[]
+  interactions       Interaction[]
+  phoneNumbers       PhoneNumber[]
+  cloudtalkAgents    CloudtalkAgent[]
+  briefing           Briefing?
+  briefingRevisions  BriefingRevision[]
+  integrations       Integration[]
+  metaLeadForms      MetaLeadForm[]
+  routingRules       RoutingRule[]
+  slaPolicies        SlaPolicy[]
+  usageCounters      UsageCounter[]
+  auditLogs          AuditLog[]
+
+  @@unique([agencyId, slug])
+  @@index([status])
+  @@map("sub_accounts")
+}
+
+model User {
+  id              String        @id @default(uuid()) @db.Uuid
+  email           String        @unique @db.Citext
+  passwordHash    String        @map("password_hash")
+  fullName        String        @map("full_name")
+  avatarUrl       String?       @map("avatar_url")
+  status          UserStatus    @default(invited)
+  mfaSecret       String?       @map("mfa_secret")
+  lastLoginAt     DateTime?     @map("last_login_at") @db.Timestamptz
+  createdAt       DateTime      @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt       DateTime      @updatedAt @map("updated_at") @db.Timestamptz
+
+  memberships     Membership[]
+  sessions        Session[]
+  cloudtalkAgents CloudtalkAgent[]
+  ownedLeads      Lead[]            @relation("LeadOwner")
+  handledInteractions Interaction[] @relation("InteractionAgent")
+  leadNotes       LeadNote[]
+  recordingAccess RecordingAccessLog[]
+  auditLogs       AuditLog[]
+  briefingUpdates Briefing[]        @relation("BriefingUpdatedBy")
+
+  @@map("users")
+}
+
+model Membership {
+  id                 String          @id @default(uuid()) @db.Uuid
+  userId             String          @map("user_id") @db.Uuid
+  agencyId           String?         @map("agency_id") @db.Uuid
+  subAccountId       String?         @map("sub_account_id") @db.Uuid
+  role               MembershipRole
+  cloudtalkAgentId   String?         @map("cloudtalk_agent_id")
+  createdAt          DateTime        @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt          DateTime        @updatedAt @map("updated_at") @db.Timestamptz
+
+  user               User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  agency             Agency?         @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  subAccount         SubAccount?     @relation(fields: [subAccountId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, agencyId, subAccountId, role])
+  @@index([subAccountId])
+  @@index([agencyId])
+  @@map("memberships")
+}
+
+model Session {
+  id                 String    @id @default(uuid()) @db.Uuid
+  userId             String    @map("user_id") @db.Uuid
+  refreshTokenHash   String    @map("refresh_token_hash")
+  ip                 String?   @db.Inet
+  userAgent          String?   @map("user_agent")
+  expiresAt          DateTime  @map("expires_at") @db.Timestamptz
+  revokedAt          DateTime? @map("revoked_at") @db.Timestamptz
+  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz
+
+  user               User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("sessions")
+}
+
+// ============================================================
+// CRM
+// ============================================================
+
+model Lead {
+  id             String       @id @default(uuid()) @db.Uuid
+  subAccountId   String       @map("sub_account_id") @db.Uuid
+  source         LeadSource
+  sourceRef      String?      @map("source_ref")
+  status         LeadStatus   @default(new)
+  lostReason     String?      @map("lost_reason")
+  ownerUserId    String?      @map("owner_user_id") @db.Uuid
+  name           String?
+  phoneE164      String?      @map("phone_e164")
+  email          String?
+  customFields   Json         @default("{}") @map("custom_fields")
+  utm            Json?
+  tags           String[]     @default([])
+  firstContactAt DateTime?    @map("first_contact_at") @db.Timestamptz
+  lastContactAt  DateTime?    @map("last_contact_at") @db.Timestamptz
+  createdAt      DateTime     @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime     @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt      DateTime?    @map("deleted_at") @db.Timestamptz
+
+  subAccount     SubAccount   @relation(fields: [subAccountId], references: [id], onDelete: Cascade)
+  owner          User?        @relation("LeadOwner", fields: [ownerUserId], references: [id])
+  interactions   Interaction[]
+  notes          LeadNote[]
+
+  @@index([subAccountId, phoneE164])
+  @@index([subAccountId, status])
+  @@index([subAccountId, createdAt(sort: Desc)])
+  @@map("leads")
+}
+
+model LeadNote {
+  id            String   @id @default(uuid()) @db.Uuid
+  leadId        String   @map("lead_id") @db.Uuid
+  authorUserId  String   @map("author_user_id") @db.Uuid
+  body          String
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  lead          Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  author        User     @relation(fields: [authorUserId], references: [id])
+
+  @@index([leadId])
+  @@map("lead_notes")
+}
+
+// ============================================================
+// Interações
+// ============================================================
+
+model Interaction {
+  id                  String                @id @default(uuid()) @db.Uuid
+  subAccountId        String                @map("sub_account_id") @db.Uuid
+  leadId              String?               @map("lead_id") @db.Uuid
+  type                InteractionType
+  direction           InteractionDirection
+  status              InteractionStatus
+  startedAt           DateTime              @map("started_at") @db.Timestamptz
+  endedAt             DateTime?             @map("ended_at") @db.Timestamptz
+  durationSeconds     Int?                  @map("duration_seconds")
+  fromNumber          String?               @map("from_number")
+  toNumber            String?               @map("to_number")
+  agentUserId         String?               @map("agent_user_id") @db.Uuid
+  cloudtalkCallId     String?               @unique @map("cloudtalk_call_id")
+  cloudtalkSmsId      String?               @unique @map("cloudtalk_sms_id")
+  recordingUrl        String?               @map("recording_url")
+  recordingSyncedAt   DateTime?             @map("recording_synced_at") @db.Timestamptz
+  transcript          String?
+  transcriptProvider  TranscriptProvider?   @map("transcript_provider")
+  sentiment           Sentiment?
+  aiSummary           String?               @map("ai_summary")
+  aiTopics            String[]              @default([]) @map("ai_topics")
+  aiScore             Int?                  @map("ai_score")
+  smsBody             String?               @map("sms_body")
+  metadata            Json                  @default("{}")
+  createdAt           DateTime              @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt           DateTime              @updatedAt @map("updated_at") @db.Timestamptz
+
+  subAccount          SubAccount            @relation(fields: [subAccountId], references: [id], onDelete: Cascade)
+  lead                Lead?                 @relation(fields: [leadId], references: [id])
+  agent               User?                 @relation("InteractionAgent", fields: [agentUserId], references: [id])
+  events              InteractionEvent[]
+  recordingAccess     RecordingAccessLog[]
+
+  @@index([subAccountId, startedAt(sort: Desc)])
+  @@index([leadId, startedAt])
+  @@index([agentUserId, startedAt])
+  @@index([type, status])
+  @@map("interactions")
+}
+
+model InteractionEvent {
+  id             String      @id @default(uuid()) @db.Uuid
+  interactionId  String      @map("interaction_id") @db.Uuid
+  event          String
+  payload        Json        @default("{}")
+  occurredAt     DateTime    @map("occurred_at") @db.Timestamptz
+
+  interaction    Interaction @relation(fields: [interactionId], references: [id], onDelete: Cascade)
+
+  @@index([interactionId, occurredAt])
+  @@map("interaction_events")
+}
+
+model RecordingAccessLog {
+  id             String      @id @default(uuid()) @db.Uuid
+  interactionId  String      @map("interaction_id") @db.Uuid
+  userId         String      @map("user_id") @db.Uuid
+  ip             String?     @db.Inet
+  accessedAt     DateTime    @default(now()) @map("accessed_at") @db.Timestamptz
+
+  interaction    Interaction @relation(fields: [interactionId], references: [id], onDelete: Cascade)
+  user           User        @relation(fields: [userId], references: [id])
+
+  @@index([interactionId])
+  @@index([userId])
+  @@map("recording_access_logs")
+}
+
+// ============================================================
+// Telefonia
+// ============================================================
+
+model PhoneNumber {
+  id                 String              @id @default(uuid()) @db.Uuid
+  subAccountId       String              @map("sub_account_id") @db.Uuid
+  cloudtalkNumberId  String              @unique @map("cloudtalk_number_id")
+  e164               String              @unique
+  country            String
+  label              String?
+  monthlyCostCents   Int?                @map("monthly_cost_cents")
+  status             PhoneNumberStatus   @default(active)
+  purchasedAt        DateTime            @map("purchased_at") @db.Timestamptz
+  createdAt          DateTime            @default(now()) @map("created_at") @db.Timestamptz
+
+  subAccount         SubAccount          @relation(fields: [subAccountId], references: [id], onDelete: Cascade)
+
+  @@index([subAccountId])
+  @@map("phone_numbers")
+}
+
+model CloudtalkAgent {
+  id                  String              @id @default(uuid()) @db.Uuid
+  userId              String              @map("user_id") @db.Uuid
+  subAccountId        String              @map("sub_account_id") @db.Uuid
+  cloudtalkAgentId    String              @unique @map("cloudtalk_agent_id")
+  cloudtalkExtension  String              @map("cloudtalk_extension")
+  availability        AgentAvailability   @default(offline)
+  updatedAt           DateTime            @updatedAt @map("updated_at") @db.Timestamptz
+
+  user                User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subAccount          SubAccount          @relation(fields: [subAccountId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, subAccountId])
+  @@map("cloudtalk_agents")
+}
+
+// ============================================================
+// Briefing
+// ============================================================
+
+model Briefing {
+  id                 String              @id @default(uuid()) @db.Uuid
+  subAccountId       String              @unique @map("sub_account_id") @db.Uuid
+  businessSummary    String              @map("business_summary")
+  targetAudience     String              @map("target_audience")
+  keyServices        Json                @default("[]") @map("key_services")
+  pricingGuidelines  String?             @map("pricing_guidelines")
+  faq                Json                @default("[]")
+  scripts            Json                @default("{}")
+  dosAndDonts        Json                @default("{}") @map("dos_and_donts")
+  updatedBy          String              @map("updated_by") @db.Uuid
+  version            Int                 @default(1)
+  createdAt          DateTime            @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt          DateTime            @updatedAt @map("updated_at") @db.Timestamptz
+
+  subAccount         SubAccount          @relation(fields: [subAccountId], references: [id], onDelete: Cascade)
+  updater            User                @relation("BriefingUpdatedBy", fields: [updatedBy], references: [id])
+
+  @@map("briefings")
+}
+
+model BriefingRevision {
+  id            String     @id @default(uuid()) @db.Uuid
+  subAccountId  String     @map("sub_account_id") @db.Uuid
+  version       Int
+  snapshot      Json
+  updatedBy     String     @map("updated_by") @db.Uuid
+  createdAt     DateTime   @default(now()) @map("created_at") @db.Timestamptz
+
+  subAccount    SubAccount @relation(fields: [subAccountId], references: [id], onDelete: Cascade)
+
+  @@unique([subAccountId, version])
+  @@map("briefing_revisions")
+}
+
+// ============================================================
+// Integrações
+// ============================================================
+
+model Integration {
+  id             String               @id @default(uuid()) @db.Uuid
+  subAccountId   String               @map("sub_account_id") @db.Uuid
+  provider       IntegrationProvider
+  status         IntegrationStatus    @default(connected)
+  credentials    Json
+  settings       Json                 @default("{}")
+  lastSyncAt     DateTime?            @map("last_sync_at") @db.Timestamptz
+  lastError      String?              @map("last_error")
+  createdAt      DateTime             @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime             @updatedAt @map("updated_at") @db.Timestamptz
+
+  subAccount     SubAccount           @relation(fields: [subAccountId], references: [id], onDelete: Cascade)
+  metaLeadForms  MetaLeadForm[]
+
+  @@unique([subAccountId, provider])
+  @@map("integrations")
+}
+
+model MetaLeadForm {
+  id             String      @id @default(uuid()) @db.Uuid
+  integrationId  String      @map("integration_id") @db.Uuid
+  subAccountId   String      @map("sub_account_id") @db.Uuid
+  pageId         String      @map("page_id")
+  formId         String      @map("form_id")
+  formName       String      @map("form_name")
+  enabled        Boolean     @default(true)
+  fieldMapping   Json        @default("{}") @map("field_mapping")
+  createdAt      DateTime    @default(now()) @map("created_at") @db.Timestamptz
+
+  integration    Integration @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+  subAccount     SubAccount  @relation(fields: [subAccountId], references: [id], onDelete: Cascade)
+
+  @@unique([pageId, formId])
+  @@map("meta_lead_forms")
+}
+
+// ============================================================
+// Routing / SLA
+// ============================================================
+
+model RoutingRule {
+  id                 String             @id @default(uuid()) @db.Uuid
+  subAccountId       String             @map("sub_account_id") @db.Uuid
+  name               String
+  priority           Int                @default(100)
+  conditions         Json               @default("{}")
+  strategy           RoutingStrategy
+  targetUserIds      String[]           @default([]) @map("target_user_ids") @db.Uuid
+  fallbackStrategy   FallbackStrategy?  @map("fallback_strategy")
+  enabled            Boolean            @default(true)
+  createdAt          DateTime           @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt          DateTime           @updatedAt @map("updated_at") @db.Timestamptz
+
+  subAccount         SubAccount         @relation(fields: [subAccountId], references: [id], onDelete: Cascade)
+
+  @@index([subAccountId, priority])
+  @@map("routing_rules")
+}
+
+model SlaPolicy {
+  id                String     @id @default(uuid()) @db.Uuid
+  subAccountId      String     @map("sub_account_id") @db.Uuid
+  name              String
+  firstResponseMin  Int        @map("first_response_min")
+  enabled           Boolean    @default(true)
+  createdAt         DateTime   @default(now()) @map("created_at") @db.Timestamptz
+
+  subAccount        SubAccount @relation(fields: [subAccountId], references: [id], onDelete: Cascade)
+
+  @@map("sla_policies")
+}
+
+// ============================================================
+// Webhooks
+// ============================================================
+
+model WebhookInbox {
+  id                String           @id @default(uuid()) @db.Uuid
+  provider          WebhookProvider
+  eventType         String           @map("event_type")
+  signatureValid    Boolean          @map("signature_valid")
+  headers           Json             @default("{}")
+  body              Json
+  processedAt       DateTime?        @map("processed_at") @db.Timestamptz
+  processingError   String?          @map("processing_error")
+  receivedAt        DateTime         @default(now()) @map("received_at") @db.Timestamptz
+
+  @@index([provider, receivedAt(sort: Desc)])
+  @@index([processedAt])
+  @@map("webhook_inbox")
+}
+
+// ============================================================
+// Billing / usage
+// ============================================================
+
+model UsageCounter {
+  subAccountId       String     @map("sub_account_id") @db.Uuid
+  period             DateTime   @db.Date
+  inboundMinutes     Int        @default(0) @map("inbound_minutes")
+  outboundMinutes    Int        @default(0) @map("outbound_minutes")
+  smsCount           Int        @default(0) @map("sms_count")
+  activeNumbers      Int        @default(0) @map("active_numbers")
+  aiMinutes          Int        @default(0) @map("ai_minutes")
+  updatedAt          DateTime   @updatedAt @map("updated_at") @db.Timestamptz
+
+  subAccount         SubAccount @relation(fields: [subAccountId], references: [id], onDelete: Cascade)
+
+  @@id([subAccountId, period])
+  @@map("usage_counters")
+}
+
+// ============================================================
+// Auditoria
+// ============================================================
+
+model AuditLog {
+  id            String      @id @default(uuid()) @db.Uuid
+  actorUserId   String?     @map("actor_user_id") @db.Uuid
+  subAccountId  String?     @map("sub_account_id") @db.Uuid
+  action        String
+  resourceType  String      @map("resource_type")
+  resourceId    String?     @map("resource_id") @db.Uuid
+  diff          Json?
+  ip            String?     @db.Inet
+  createdAt     DateTime    @default(now()) @map("created_at") @db.Timestamptz
+
+  actor         User?       @relation(fields: [actorUserId], references: [id])
+  subAccount    SubAccount? @relation(fields: [subAccountId], references: [id])
+
+  @@index([subAccountId, createdAt(sort: Desc)])
+  @@index([actorUserId])
+  @@map("audit_logs")
+}

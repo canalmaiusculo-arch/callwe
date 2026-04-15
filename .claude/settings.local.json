@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:www.cloudtalk.io)",
+      "WebFetch(domain:developers.cloudtalk.io)",
+      "WebSearch",
+      "WebFetch(domain:apitracker.io)",
+      "WebFetch(domain:help.cloudtalk.io)",
+      "WebFetch(domain:pipedream.com)",
+      "Bash(pnpm --version)",
+      "Bash(docker --version)",
+      "Bash(corepack --version)",
+      "Bash(corepack enable *)",
+      "Bash(corepack prepare *)",
+      "Bash(npm config *)",
+      "Bash(npm install *)",
+      "Bash(export PATH=\"/c/Users/User/AppData/Roaming/npm:$PATH\")"
+    ]
+  }
+}
