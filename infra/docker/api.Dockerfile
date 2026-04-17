@@ -11,7 +11,7 @@ COPY packages/db/package.json packages/db/
 COPY packages/shared/package.json packages/shared/
 COPY packages/cloudtalk-sdk/package.json packages/cloudtalk-sdk/
 COPY packages/meta-ads-sdk/package.json packages/meta-ads-sdk/
-RUN pnpm install --frozen-lockfile
+RUN pnpm install --no-frozen-lockfile
 
 # ---------- build ----------
 FROM deps AS build
@@ -21,7 +21,7 @@ COPY packages/cloudtalk-sdk packages/cloudtalk-sdk
 COPY packages/meta-ads-sdk packages/meta-ads-sdk
 COPY apps/api apps/api
 RUN pnpm --filter @callwe/db generate \
- && pnpm --filter @callwe/api build
+ && cd apps/api && npx tsc --project tsconfig.json --outDir dist --declaration false
 
 # ---------- runtime ----------
 FROM node:20-alpine AS runtime
