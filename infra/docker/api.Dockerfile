@@ -21,7 +21,7 @@ COPY packages/cloudtalk-sdk packages/cloudtalk-sdk
 COPY packages/meta-ads-sdk packages/meta-ads-sdk
 COPY apps/api apps/api
 RUN pnpm --filter @callwe/db generate \
- && cd apps/api && npx tsc --project tsconfig.json --outDir dist --declaration false
+ && cd apps/api && npx tsc --project tsconfig.json --outDir dist --skipLibCheck
 
 # ---------- runtime ----------
 FROM node:20-alpine AS runtime
