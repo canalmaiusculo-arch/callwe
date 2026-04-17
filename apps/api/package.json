@@ -12,6 +12,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@prisma/client": "^5.20.0",
     "@callwe/db": "workspace:*",
     "@callwe/shared": "workspace:*",
     "@callwe/cloudtalk-sdk": "workspace:*",

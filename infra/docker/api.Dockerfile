@@ -10,6 +10,7 @@ COPY apps/api/package.json apps/api/
 COPY packages/db/package.json packages/db/
 COPY packages/shared/package.json packages/shared/
 COPY packages/cloudtalk-sdk/package.json packages/cloudtalk-sdk/
+COPY packages/meta-ads-sdk/package.json packages/meta-ads-sdk/
 RUN pnpm install --frozen-lockfile
 
 # ---------- build ----------
@@ -17,6 +18,7 @@ FROM deps AS build
 COPY packages/db packages/db
 COPY packages/shared packages/shared
 COPY packages/cloudtalk-sdk packages/cloudtalk-sdk
+COPY packages/meta-ads-sdk packages/meta-ads-sdk
 COPY apps/api apps/api
 RUN pnpm --filter @callwe/db generate \
  && pnpm --filter @callwe/api build
