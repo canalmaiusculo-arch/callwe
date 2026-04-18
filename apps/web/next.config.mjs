@@ -3,9 +3,6 @@ const nextConfig = {
   reactStrictMode: true,
   output: 'standalone',
   transpilePackages: ['@callwe/shared'],
-  experimental: {
-    typedRoutes: true,
-  },
   async headers() {
     return [
       {
