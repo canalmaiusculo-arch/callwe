@@ -26,7 +26,7 @@ RUN pnpm --filter @callwe/db generate \
 # ---------- runtime ----------
 FROM node:20-alpine AS runtime
 RUN corepack enable && corepack prepare pnpm@9.12.0 --activate \
- && apk add --no-cache tini curl \
+ && apk add --no-cache tini curl openssl \
  && npm install -g tsx \
  && addgroup -g 1001 nodejs && adduser -u 1001 -G nodejs -D nestjs
 WORKDIR /app

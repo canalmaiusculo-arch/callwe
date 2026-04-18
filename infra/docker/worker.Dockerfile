@@ -22,7 +22,7 @@ RUN pnpm --filter @callwe/db generate \
  && cd apps/worker && npx tsc --skipLibCheck
 
 FROM node:20-alpine AS runtime
-RUN apk add --no-cache tini \
+RUN apk add --no-cache tini openssl \
  && npm install -g tsx \
  && addgroup -g 1001 nodejs && adduser -u 1001 -G nodejs -D worker
 WORKDIR /app
