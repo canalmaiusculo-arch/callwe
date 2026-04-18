@@ -123,7 +123,7 @@ export default function LeadsPage() {
             {leads.map((lead) => (
               <tr key={lead.id} className="border-b hover:bg-muted/20">
                 <td className="p-3">
-                  <Link href={`/workspace/leads/${lead.id}`} className="font-medium hover:underline">
+                  <Link href={`/workspace/leads/${lead.id}` as never} className="font-medium hover:underline">
                     {lead.name ?? '—'}
                   </Link>
                 </td>

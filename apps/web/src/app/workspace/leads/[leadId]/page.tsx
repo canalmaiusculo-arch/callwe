@@ -55,7 +55,7 @@ export default function LeadDetailPage({ params }: { params: Promise<{ leadId: s
     <div className="grid h-screen grid-cols-12 gap-4 p-8">
       <section className="col-span-8 space-y-4 overflow-auto">
         <header>
-          <Link href="/workspace/leads" className="text-sm text-muted-foreground hover:underline">
+          <Link href={"/workspace/leads" as never} className="text-sm text-muted-foreground hover:underline">
             ← Leads
           </Link>
           <h1 className="mt-2 text-3xl font-bold">{lead.name ?? lead.phoneE164 ?? '—'}</h1>

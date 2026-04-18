@@ -18,14 +18,14 @@ import { useAuthStore } from '@/stores/auth-store';
 import { useTenantStore } from '@/stores/tenant-store';
 
 const navItems = [
-  { href: '/workspace', icon: LayoutDashboard, label: 'Dashboard' },
-  { href: '/workspace/leads', icon: Users, label: 'Leads' },
-  { href: '/workspace/calls', icon: Phone, label: 'Chamadas' },
-  { href: '/workspace/sms', icon: MessageSquare, label: 'SMS' },
-  { href: '/workspace/voicemails', icon: Voicemail, label: 'Voicemails' },
-  { href: '/workspace/briefing', icon: FileText, label: 'Briefing' },
-  { href: '/workspace/integrations', icon: Link2, label: 'Integrações' },
-  { href: '/workspace/settings', icon: Settings, label: 'Configurações' },
+  { href: '/workspace' as const, icon: LayoutDashboard, label: 'Dashboard' },
+  { href: '/workspace/leads' as const, icon: Users, label: 'Leads' },
+  { href: '/workspace/calls' as const, icon: Phone, label: 'Chamadas' },
+  { href: '/workspace/sms' as const, icon: MessageSquare, label: 'SMS' },
+  { href: '/workspace/voicemails' as const, icon: Voicemail, label: 'Voicemails' },
+  { href: '/workspace/briefing' as const, icon: FileText, label: 'Briefing' },
+  { href: '/workspace/integrations' as const, icon: Link2, label: 'Integrações' },
+  { href: '/workspace/settings' as const, icon: Settings, label: 'Configurações' },
 ];
 
 export function WorkspaceSidebar() {

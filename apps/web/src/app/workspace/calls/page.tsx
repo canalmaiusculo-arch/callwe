@@ -72,7 +72,7 @@ function CallRow({ call }: { call: CallInteraction }) {
         <div>
           <p className="text-xs text-muted-foreground">Lead</p>
           {call.lead ? (
-            <Link href={`/workspace/leads/${call.lead.id}`} className="text-sm hover:underline">
+            <Link href={`/workspace/leads/${call.lead.id}` as never} className="text-sm hover:underline">
               {call.lead.name ?? '—'}
             </Link>
           ) : (
