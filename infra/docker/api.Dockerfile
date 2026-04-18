@@ -27,6 +27,7 @@ RUN pnpm --filter @callwe/db generate \
 FROM node:20-alpine AS runtime
 RUN corepack enable && corepack prepare pnpm@9.12.0 --activate \
  && apk add --no-cache tini curl \
+ && npm install -g tsx \
  && addgroup -g 1001 nodejs && adduser -u 1001 -G nodejs -D nestjs
 WORKDIR /app
 ENV NODE_ENV=production
@@ -46,4 +47,4 @@ EXPOSE 4000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
   CMD curl -fsS http://localhost:4000/health || exit 1
 ENTRYPOINT ["/sbin/tini", "--"]
-CMD ["node", "apps/api/dist/main.js"]
+CMD ["tsx", "apps/api/dist/main.js"]

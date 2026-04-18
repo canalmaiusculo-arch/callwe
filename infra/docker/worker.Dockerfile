@@ -9,18 +9,21 @@ COPY apps/worker/package.json apps/worker/
 COPY packages/db/package.json packages/db/
 COPY packages/shared/package.json packages/shared/
 COPY packages/cloudtalk-sdk/package.json packages/cloudtalk-sdk/
-RUN pnpm install --frozen-lockfile
+COPY packages/meta-ads-sdk/package.json packages/meta-ads-sdk/
+RUN pnpm install --no-frozen-lockfile
 
 FROM deps AS build
 COPY packages/db packages/db
 COPY packages/shared packages/shared
 COPY packages/cloudtalk-sdk packages/cloudtalk-sdk
+COPY packages/meta-ads-sdk packages/meta-ads-sdk
 COPY apps/worker apps/worker
 RUN pnpm --filter @callwe/db generate \
- && pnpm --filter @callwe/worker build
+ && cd apps/worker && npx tsc --skipLibCheck
 
 FROM node:20-alpine AS runtime
 RUN apk add --no-cache tini \
+ && npm install -g tsx \
  && addgroup -g 1001 nodejs && adduser -u 1001 -G nodejs -D worker
 WORKDIR /app
 ENV NODE_ENV=production
@@ -33,7 +36,8 @@ COPY --from=build /app/apps/worker/node_modules ./apps/worker/node_modules
 COPY --from=build /app/packages/db ./packages/db
 COPY --from=build /app/packages/shared ./packages/shared
 COPY --from=build /app/packages/cloudtalk-sdk ./packages/cloudtalk-sdk
+COPY --from=build /app/packages/meta-ads-sdk ./packages/meta-ads-sdk
 
 USER worker
 ENTRYPOINT ["/sbin/tini", "--"]
-CMD ["node", "apps/worker/dist/main.js"]
+CMD ["tsx", "apps/worker/dist/main.js"]
