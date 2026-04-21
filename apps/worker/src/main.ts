@@ -1,4 +1,3 @@
-import 'dotenv/config';
 import { logger } from './lib/logger.js';
 import { startCloudtalkWebhookWorker } from './processors/cloudtalk-webhook.processor.js';
 import { startRecordingSyncWorker } from './processors/recording-sync.processor.js';
