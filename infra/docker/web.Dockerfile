@@ -26,7 +26,7 @@ FROM node:20-alpine AS runtime
 RUN apk add --no-cache tini curl \
  && addgroup -g 1001 nodejs && adduser -u 1001 -G nodejs -D nextjs
 WORKDIR /app
-ENV NODE_ENV=production NEXT_TELEMETRY_DISABLED=1
+ENV NODE_ENV=production NEXT_TELEMETRY_DISABLED=1 HOSTNAME=0.0.0.0 PORT=3000
 
 COPY --from=build --chown=nextjs:nodejs /app/apps/web/.next/standalone ./
 COPY --from=build --chown=nextjs:nodejs /app/apps/web/.next/static ./apps/web/.next/static
