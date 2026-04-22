@@ -1,11 +1,48 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@callwe/db';
 import { PrismaService } from '../prisma/prisma.service.js';
 import type { LeadSource, LeadStatus } from '@callwe/db';
+import { CloudtalkService } from '../cloudtalk/cloudtalk.service.js';
 
 @Injectable()
 export class LeadsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly cloudtalk: CloudtalkService,
+  ) {}
+
+  /** Dispara chamada via CloudTalk (click-to-call). */
+  async clickToCall(subAccountId: string, leadId: string, userEmail: string) {
+    const lead = await this.prisma.lead.findFirst({
+      where: { id: leadId, subAccountId, deletedAt: null },
+    });
+    if (!lead) throw new NotFoundException('Lead não encontrado');
+    if (!lead.phoneE164) throw new BadRequestException('Lead sem telefone');
+
+    // Encontra o agent_id no CloudTalk pelo email do usuário
+    const agentsRes = await this.cloudtalk.client.http.get('/agents/index.json', {
+      params: { limit: 200 },
+    });
+    const agents = (agentsRes.data?.responseData?.data ?? []) as Array<{
+      Agent: { id: string; email: string };
+    }>;
+    const match = agents.find(
+      (a) => a.Agent.email.toLowerCase() === userEmail.toLowerCase(),
+    );
+    if (!match) {
+      throw new BadRequestException(
+        `Atendente ${userEmail} não encontrado no CloudTalk. Cadastre o mesmo email lá.`,
+      );
+    }
+
+    // Dispara click-to-call
+    const res = await this.cloudtalk.client.http.post('/calls/create.json', {
+      agent_id: Number(match.Agent.id),
+      callee_number: lead.phoneE164,
+    });
+
+    return { ok: true, cloudtalkResponse: res.data, agentId: match.Agent.id };
+  }
 
   list(subAccountId: string, filters?: { status?: LeadStatus; search?: string }) {
     return this.prisma.lead.findMany({

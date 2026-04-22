@@ -2,7 +2,7 @@
 
 import { use, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Phone, MessageSquare, Voicemail, FormInput, Save } from 'lucide-react';
+import { Phone, MessageSquare, Voicemail, FormInput, Save, PhoneCall } from 'lucide-react';
 import Link from 'next/link';
 import { toast } from 'sonner';
 import { apiClient } from '@/lib/api-client';
@@ -84,6 +84,12 @@ export default function LeadDetailPage({ params }: { params: Promise<{ leadId: s
     },
   });
 
+  const callLead = useMutation({
+    mutationFn: () => apiClient.post(`/leads/${leadId}/call`, {}),
+    onSuccess: () => toast.success('Ligando... atenda no seu softphone'),
+    onError: (err: Error) => toast.error(err.message),
+  });
+
   if (isLoading) return <div className="p-8 text-muted-foreground">Carregando...</div>;
   if (!lead) return <div className="p-8">Lead não encontrado.</div>;
 
@@ -107,15 +113,25 @@ export default function LeadDetailPage({ params }: { params: Promise<{ leadId: s
                 {lead.email && <span>· {lead.email}</span>}
               </div>
             </div>
-            <select
-              value={lead.status}
-              onChange={(e) => update.mutate({ status: e.target.value as LeadStatus })}
-              className="h-9 rounded-md border border-border bg-background px-3 text-sm"
-            >
-              {(Object.keys(STATUS_LABELS) as LeadStatus[]).map((s) => (
-                <option key={s} value={s}>{STATUS_LABELS[s]}</option>
-              ))}
-            </select>
+            <div className="flex gap-2">
+              <Button
+                variant="default"
+                onClick={() => callLead.mutate()}
+                disabled={!lead.phoneE164 || callLead.isPending}
+              >
+                <PhoneCall className="h-4 w-4" />
+                {callLead.isPending ? 'Chamando...' : 'Ligar'}
+              </Button>
+              <select
+                value={lead.status}
+                onChange={(e) => update.mutate({ status: e.target.value as LeadStatus })}
+                className="h-9 rounded-md border border-border bg-background px-3 text-sm"
+              >
+                {(Object.keys(STATUS_LABELS) as LeadStatus[]).map((s) => (
+                  <option key={s} value={s}>{STATUS_LABELS[s]}</option>
+                ))}
+              </select>
+            </div>
           </div>
         </header>
 

@@ -64,4 +64,13 @@ export class LeadsController {
   ) {
     return this.svc.addNote(id, user.id, dto.body);
   }
+
+  @Post(':id/call')
+  callLead(
+    @Req() req: { tenant: { subAccountId: string } },
+    @Param('id') id: string,
+    @CurrentUser() user: AuthUser,
+  ) {
+    return this.svc.clickToCall(req.tenant.subAccountId, id, user.email);
+  }
 }
