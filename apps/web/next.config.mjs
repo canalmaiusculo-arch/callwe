@@ -3,6 +3,8 @@ const nextConfig = {
   reactStrictMode: true,
   output: 'standalone',
   transpilePackages: ['@callwe/shared'],
+  // Desliga telemetria e network calls durante build
+  productionBrowserSourceMaps: false,
   async headers() {
     return [
       {
