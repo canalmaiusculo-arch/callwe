@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Building2, Users, LayoutDashboard, Settings, LogOut, Phone } from 'lucide-react';
+import { Building2, Users, LayoutDashboard, LogOut } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores/auth-store';
 import { useTenantStore } from '@/stores/tenant-store';
@@ -11,8 +11,6 @@ const items = [
   { href: '/agency' as const, icon: LayoutDashboard, label: 'Visão geral' },
   { href: '/agency/clients' as const, icon: Building2, label: 'Clientes' },
   { href: '/agency/team' as const, icon: Users, label: 'Atendentes' },
-  { href: '/agency/numbers' as const, icon: Phone, label: 'Números' },
-  { href: '/agency/settings' as const, icon: Settings, label: 'Configurações' },
 ];
 
 export function AgencySidebar() {

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
-import { Building2, Users, Phone } from 'lucide-react';
+import { Building2, Users } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
@@ -27,10 +27,9 @@ export default function AgencyDashboard() {
         {clients.length} {clients.length === 1 ? 'cliente cadastrado' : 'clientes cadastrados'}
       </p>
 
-      <div className="mt-6 grid grid-cols-3 gap-4">
+      <div className="mt-6 grid grid-cols-2 gap-4">
         <ActionCard href="/agency/clients" icon={Building2} title="Clientes" desc="Adicionar e gerenciar clientes" />
         <ActionCard href="/agency/team" icon={Users} title="Atendentes" desc="Convidar e atribuir clientes" />
-        <ActionCard href="/agency/numbers" icon={Phone} title="Números" desc="Ver todos os números CloudTalk" />
       </div>
     </div>
   );

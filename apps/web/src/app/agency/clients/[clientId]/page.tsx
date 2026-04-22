@@ -2,13 +2,15 @@
 
 import { use, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Phone, Plus, Trash2 } from 'lucide-react';
+import { Phone, Plus, Trash2, ExternalLink } from 'lucide-react';
 import { toast } from 'sonner';
 import { apiClient } from '@/lib/api-client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { useTenantStore } from '@/stores/tenant-store';
 
 interface ClientDetail {
   id: string;
@@ -32,6 +34,8 @@ interface AvailableNumber {
 export default function ClientDetailPage({ params }: { params: Promise<{ clientId: string }> }) {
   const { clientId } = use(params);
   const qc = useQueryClient();
+  const router = useRouter();
+  const setTenant = useTenantStore((s) => s.setTenant);
   const [showAdd, setShowAdd] = useState(false);
 
   const { data: client } = useQuery<ClientDetail>({
@@ -80,10 +84,22 @@ export default function ClientDetailPage({ params }: { params: Promise<{ clientI
       <Link href={'/agency/clients' as never} className="text-sm text-muted-foreground hover:underline">
         ← Clientes
       </Link>
-      <h1 className="mt-2 text-3xl font-bold">{client.name}</h1>
-      <div className="mt-2 flex gap-2 text-sm">
-        <Badge variant={client.status === 'active' ? 'success' : 'secondary'}>{client.status}</Badge>
-        <Badge variant="outline">{client.plan}</Badge>
+      <div className="mt-2 flex items-start justify-between">
+        <div>
+          <h1 className="text-3xl font-bold">{client.name}</h1>
+          <div className="mt-2 flex gap-2 text-sm">
+            <Badge variant={client.status === 'active' ? 'success' : 'secondary'}>{client.status}</Badge>
+            <Badge variant="outline">{client.plan}</Badge>
+          </div>
+        </div>
+        <Button
+          onClick={() => {
+            setTenant(clientId, client.name);
+            router.push('/workspace');
+          }}
+        >
+          <ExternalLink className="h-4 w-4" /> Abrir workspace
+        </Button>
       </div>
 
       <div className="mt-6 grid grid-cols-3 gap-4">
