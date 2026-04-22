@@ -45,20 +45,20 @@ export default function AgencyDashboard() {
         <p className="mt-1 text-muted-foreground">{s.totalClients} clientes ativos</p>
       </header>
 
-      <div className="grid grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <KPI title="Leads hoje" value={s.totalLeadsToday} icon={Users} />
         <KPI title="Chamadas hoje" value={s.totalCallsToday} icon={Phone} />
         <KPI title="Perdidas hoje" value={s.totalMissedToday} icon={PhoneMissed} tone="warning" />
         <KPI title="Tempo ao telefone" value={formatDuration(s.totalTalkTodaySeconds)} icon={Clock} />
       </div>
 
-      <div className="mt-4 grid grid-cols-3 gap-3">
+      <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
         <KPI title="Leads (7d)" value={s.totalLeadsWeek} icon={TrendingUp} />
         <KPI title="Chamadas (7d)" value={s.totalCallsWeek} icon={TrendingUp} />
         <KPI title="Total clientes" value={s.totalClients} icon={Building2} />
       </div>
 
-      <div className="mt-6 grid grid-cols-2 gap-4">
+      <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
         <Card>
           <CardHeader>
             <CardTitle>Chamadas — últimos 7 dias</CardTitle>

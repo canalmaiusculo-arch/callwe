@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
@@ -12,6 +13,8 @@ import {
   LogOut,
   Link2,
   Building2,
+  Menu,
+  X,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores/auth-store';
@@ -28,19 +31,28 @@ const navItems = [
 ];
 
 export function WorkspaceSidebar() {
+  const [open, setOpen] = useState(false);
   const pathname = usePathname();
   const subAccountName = useTenantStore((s) => s.subAccountName);
   const clearAuth = useAuthStore((s) => s.clear);
   const clearTenant = useTenantStore((s) => s.clear);
 
-  return (
-    <aside className="flex h-screen w-60 flex-col border-r bg-muted/20">
-      <div className="border-b p-4">
-        <p className="text-xs uppercase text-muted-foreground">Subconta</p>
-        <p className="truncate text-sm font-semibold">{subAccountName ?? '—'}</p>
+  const content = (
+    <>
+      <div className="flex items-center justify-between border-b p-4">
+        <div className="flex-1 min-w-0">
+          <p className="text-xs uppercase text-muted-foreground">Subconta</p>
+          <p className="truncate text-sm font-semibold">{subAccountName ?? '—'}</p>
+        </div>
+        <button
+          className="md:hidden rounded-md p-2 hover:bg-muted"
+          onClick={() => setOpen(false)}
+        >
+          <X className="h-4 w-4" />
+        </button>
       </div>
 
-      <nav className="flex-1 space-y-1 p-2">
+      <nav className="flex-1 space-y-1 p-2 overflow-auto">
         {navItems.map((item) => {
           const active = pathname === item.href || pathname.startsWith(item.href + '/');
           const Icon = item.icon;
@@ -48,6 +60,7 @@ export function WorkspaceSidebar() {
             <Link
               key={item.href}
               href={item.href as never}
+              onClick={() => setOpen(false)}
               className={cn(
                 'flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors',
                 active ? 'bg-primary text-primary-foreground' : 'hover:bg-muted',
@@ -79,6 +92,38 @@ export function WorkspaceSidebar() {
         <LogOut className="h-4 w-4" />
         Sair
       </button>
-    </aside>
+    </>
+  );
+
+  return (
+    <>
+      {/* Botão de abrir no mobile */}
+      <button
+        className="md:hidden fixed top-3 left-3 z-30 rounded-md border bg-background p-2 shadow-sm"
+        onClick={() => setOpen(true)}
+      >
+        <Menu className="h-5 w-5" />
+      </button>
+
+      {/* Overlay mobile */}
+      {open && (
+        <div
+          className="md:hidden fixed inset-0 z-40 bg-black/30"
+          onClick={() => setOpen(false)}
+        />
+      )}
+
+      {/* Sidebar — desktop sempre visível, mobile deslizante */}
+      <aside
+        className={cn(
+          'flex h-screen w-60 flex-col border-r bg-muted/20 transition-transform',
+          'md:static md:translate-x-0',
+          'fixed inset-y-0 left-0 z-50 bg-background',
+          open ? 'translate-x-0' : '-translate-x-full md:translate-x-0',
+        )}
+      >
+        {content}
+      </aside>
+    </>
   );
 }

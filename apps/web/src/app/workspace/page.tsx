@@ -46,20 +46,20 @@ export default function WorkspaceDashboard() {
       <h1 className="text-3xl font-bold">Dashboard</h1>
       <p className="mt-1 text-muted-foreground">Visão geral do cliente</p>
 
-      <div className="mt-6 grid grid-cols-4 gap-3">
+      <div className="mt-6 grid grid-cols-2 gap-3 md:grid-cols-4">
         <KPI title="Leads hoje" value={s.leadsToday} icon={Users} />
         <KPI title="Chamadas hoje" value={s.callsToday} icon={Phone} />
         <KPI title="Perdidas hoje" value={s.missedCalls} icon={PhoneMissed} tone="warning" />
         <KPI title="TMA (hoje)" value={formatDuration(s.avgHandleTime)} icon={Clock} />
       </div>
 
-      <div className="mt-4 grid grid-cols-3 gap-3">
+      <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
         <KPI title="Chamadas (7d)" value={s.callsWeek} icon={TrendingUp} />
         <KPI title="Leads (7d)" value={s.leadsWeek} icon={TrendingUp} />
         <KPI title="Conversão (7d)" value={`${s.conversionRate}%`} icon={TrendingUp} tone={s.conversionRate > 0 ? 'success' : undefined} />
       </div>
 
-      <div className="mt-6 grid grid-cols-2 gap-4">
+      <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
         <Card>
           <CardHeader>
             <CardTitle>Chamadas — últimos 7 dias</CardTitle>

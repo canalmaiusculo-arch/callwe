@@ -171,8 +171,8 @@ export default function LeadsPage() {
         </div>
       )}
 
-      <div className="rounded-lg border">
-        <table className="w-full text-sm">
+      <div className="overflow-x-auto rounded-lg border">
+        <table className="w-full min-w-[700px] text-sm">
           <thead className="border-b bg-muted/40 text-left text-xs uppercase text-muted-foreground">
             <tr>
               <th className="p-3">Nome</th>
