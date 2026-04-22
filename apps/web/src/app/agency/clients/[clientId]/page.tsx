@@ -73,6 +73,7 @@ export default function ClientDetailPage({ params }: { params: Promise<{ clientI
   if (!client) return <div className="p-8 text-muted-foreground">Carregando...</div>;
 
   const free = available.filter((n) => !n.assignedTo);
+  const taken = available.filter((n) => n.assignedTo);
 
   return (
     <div className="p-8">
@@ -141,29 +142,52 @@ export default function ClientDetailPage({ params }: { params: Promise<{ clientI
       </Card>
 
       {showAdd && (
-        <Card className="mt-4">
-          <CardHeader>
-            <CardTitle className="text-base">Números disponíveis no CloudTalk</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            {free.length === 0 && (
-              <p className="text-sm text-muted-foreground">
-                Nenhum número disponível (todos já estão associados a algum cliente).
-              </p>
-            )}
-            {free.map((n) => (
-              <div key={n.cloudtalkNumberId} className="flex items-center justify-between rounded-md border p-3">
-                <div>
-                  <p className="font-mono text-sm">{n.e164}</p>
-                  {n.label && <p className="text-xs text-muted-foreground">{n.label}</p>}
+        <>
+          <Card className="mt-4">
+            <CardHeader>
+              <CardTitle className="text-base">
+                Números disponíveis no CloudTalk ({free.length})
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {free.length === 0 && (
+                <p className="text-sm text-muted-foreground">
+                  Todos os números já estão associados — veja abaixo.
+                </p>
+              )}
+              {free.map((n) => (
+                <div key={n.cloudtalkNumberId} className="flex items-center justify-between rounded-md border p-3">
+                  <div>
+                    <p className="font-mono text-sm">{n.e164}</p>
+                    {n.label && <p className="text-xs text-muted-foreground">{n.label}</p>}
+                  </div>
+                  <Button size="sm" onClick={() => attach.mutate(n)} disabled={attach.isPending}>
+                    Atribuir
+                  </Button>
                 </div>
-                <Button size="sm" onClick={() => attach.mutate(n)} disabled={attach.isPending}>
-                  Atribuir
-                </Button>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
+              ))}
+            </CardContent>
+          </Card>
+
+          {taken.length > 0 && (
+            <Card className="mt-4 opacity-70">
+              <CardHeader>
+                <CardTitle className="text-base">Números já em uso ({taken.length})</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {taken.map((n) => (
+                  <div key={n.cloudtalkNumberId} className="flex items-center justify-between rounded-md border p-3">
+                    <div>
+                      <p className="font-mono text-sm">{n.e164}</p>
+                      {n.label && <p className="text-xs text-muted-foreground">{n.label}</p>}
+                    </div>
+                    <Badge variant="secondary">{n.assignedTo}</Badge>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          )}
+        </>
       )}
     </div>
   );

@@ -18,10 +18,20 @@ export class PhoneNumbersService {
 
   /** Lista TODOS os números do CloudTalk (já cadastrados ou não em alguma subconta). */
   async listAvailable() {
-    const ctNumbers = await this.cloudtalk.client.http.get('/numbers/index.json');
-    const data = (ctNumbers.data?.responseData?.data ?? []) as Array<{ Number: { id: string; internal_name?: string; public_number: string; country_id?: string } }>;
+    const ctNumbers = await this.cloudtalk.client.http.get('/numbers/index.json', {
+      params: { limit: 200 },
+    });
+    type CtItem = {
+      CallNumber: {
+        id: string;
+        internal_name?: string;
+        caller_id_e164: string;
+        country_code?: string;
+      };
+    };
+    const data = (ctNumbers.data?.responseData?.data ?? []) as CtItem[];
 
-    const e164List = data.map((n) => normalizeE164(n.Number.public_number));
+    const e164List = data.map((n) => normalizeE164(n.CallNumber.caller_id_e164));
 
     const taken = await this.prisma.phoneNumber.findMany({
       where: { e164: { in: e164List }, status: 'active' },
@@ -30,12 +40,12 @@ export class PhoneNumbersService {
     const takenMap = new Map(taken.map((t) => [t.e164, t.subAccount.name]));
 
     return data.map((n) => {
-      const e164 = normalizeE164(n.Number.public_number);
+      const e164 = normalizeE164(n.CallNumber.caller_id_e164);
       return {
-        cloudtalkNumberId: n.Number.id,
+        cloudtalkNumberId: n.CallNumber.id,
         e164,
-        label: n.Number.internal_name ?? null,
-        country: n.Number.country_id ?? null,
+        label: n.CallNumber.internal_name || null,
+        country: n.CallNumber.country_code ?? null,
         assignedTo: takenMap.get(e164) ?? null,
       };
     });
