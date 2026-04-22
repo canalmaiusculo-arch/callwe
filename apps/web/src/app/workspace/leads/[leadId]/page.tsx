@@ -6,6 +6,7 @@ import { Phone, MessageSquare, Voicemail, FormInput, Save } from 'lucide-react';
 import Link from 'next/link';
 import { toast } from 'sonner';
 import { apiClient } from '@/lib/api-client';
+import { RecordingPlayer } from '@/components/recording-player';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -210,7 +211,9 @@ function InteractionRow({ interaction }: { interaction: Interaction }) {
           <p className="mt-2 rounded bg-muted/40 p-2 text-xs italic">{interaction.aiSummary}</p>
         )}
         {interaction.recordingUrl && (
-          <audio controls className="mt-2 w-full" src={interaction.recordingUrl} />
+          <div className="mt-2">
+            <RecordingPlayer interactionId={interaction.id} />
+          </div>
         )}
       </div>
     </div>

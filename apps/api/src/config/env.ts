@@ -28,6 +28,12 @@ const schema = z.object({
   META_WEBHOOK_VERIFY_TOKEN: z.string().optional(),
   META_SYSTEM_USER_TOKEN: z.string().optional(),
   META_OAUTH_STATE_SECRET: z.string().min(32).optional(),
+
+  S3_ENDPOINT: z.string().url().optional(),
+  S3_REGION: z.string().default('auto'),
+  S3_BUCKET: z.string().optional(),
+  S3_ACCESS_KEY_ID: z.string().optional(),
+  S3_SECRET_ACCESS_KEY: z.string().optional(),
 });
 
 const parsed = schema.safeParse(process.env);

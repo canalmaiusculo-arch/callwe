@@ -9,7 +9,6 @@ import {
   MessageSquare,
   Voicemail,
   FileText,
-  Settings,
   LogOut,
   Link2,
   Building2,
@@ -26,7 +25,6 @@ const navItems = [
   { href: '/workspace/voicemails' as const, icon: Voicemail, label: 'Voicemails' },
   { href: '/workspace/briefing' as const, icon: FileText, label: 'Briefing' },
   { href: '/workspace/integrations' as const, icon: Link2, label: 'Integrações' },
-  { href: '/workspace/settings' as const, icon: Settings, label: 'Configurações' },
 ];
 
 export function WorkspaceSidebar() {

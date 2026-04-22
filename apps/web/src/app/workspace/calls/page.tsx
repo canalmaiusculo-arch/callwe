@@ -2,9 +2,10 @@
 
 import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
-import { PhoneIncoming, PhoneOutgoing, PhoneMissed, Play } from 'lucide-react';
+import { PhoneIncoming, PhoneOutgoing, PhoneMissed } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
 import { Badge } from '@/components/ui/badge';
+import { RecordingPlayer } from '@/components/recording-player';
 
 interface CallInteraction {
   id: string;
@@ -94,17 +95,7 @@ function CallRow({ call }: { call: CallInteraction }) {
       </div>
       <div className="flex items-center gap-2">
         {call.sentiment && <Badge variant={SENTIMENT_VARIANT[call.sentiment]}>{call.sentiment}</Badge>}
-        {call.recordingUrl && (
-          <a
-            href={call.recordingUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="rounded-md border p-1.5 hover:bg-muted"
-            title="Ouvir gravação"
-          >
-            <Play className="h-4 w-4" />
-          </a>
-        )}
+        {call.recordingUrl && <RecordingPlayer interactionId={call.id} />}
       </div>
     </div>
   );
