@@ -16,6 +16,7 @@ import { IntegrationsModule } from './modules/integrations/integrations.module.j
 import { QueuesModule } from './modules/queues/queues.module.js';
 import { PhoneNumbersModule } from './modules/phone-numbers/phone-numbers.module.js';
 import { TeamModule } from './modules/team/team.module.js';
+import { ReportsModule } from './modules/reports/reports.module.js';
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { TeamModule } from './modules/team/team.module.js';
     SubAccountsModule,
     PhoneNumbersModule,
     TeamModule,
+    ReportsModule,
     LeadsModule,
     InteractionsModule,
     BriefingsModule,

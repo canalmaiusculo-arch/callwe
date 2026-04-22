@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
-import { Download, Filter } from 'lucide-react';
+import { Download, Filter, LayoutGrid } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -110,7 +110,12 @@ export default function LeadsPage() {
           <h1 className="text-3xl font-bold">Leads</h1>
           <p className="mt-1 text-muted-foreground">{leads.length} leads {hasFilters && '(filtrados)'}</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          <Link href={'/workspace/leads/kanban' as never}>
+            <Button variant="outline">
+              <LayoutGrid className="h-4 w-4" /> Kanban
+            </Button>
+          </Link>
           <Button variant="outline" onClick={handleExport} disabled={leads.length === 0}>
             <Download className="h-4 w-4" /> Exportar CSV
           </Button>

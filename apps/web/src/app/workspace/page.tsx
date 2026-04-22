@@ -2,9 +2,12 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Phone, PhoneMissed, Users, Clock, TrendingUp } from 'lucide-react';
+import { Phone, PhoneMissed, Users, Clock, TrendingUp, FileDown } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
 import { MiniLineChart } from '@/components/line-chart';
+import { Button } from '@/components/ui/button';
+import { useAuthStore } from '@/stores/auth-store';
+import { useTenantStore } from '@/stores/tenant-store';
 
 interface DashboardStats {
   leadsToday: number;
@@ -21,11 +24,33 @@ interface DashboardStats {
 }
 
 export default function WorkspaceDashboard() {
+  const token = useAuthStore((s) => s.accessToken);
+  const subAccountId = useTenantStore((s) => s.subAccountId);
+
   const { data } = useQuery<DashboardStats>({
     queryKey: ['dashboard-stats'],
     queryFn: () => apiClient.get<DashboardStats>('/dashboard/stats'),
     refetchInterval: 60_000,
   });
+
+  function downloadMonthlyReport() {
+    if (!token || !subAccountId) return;
+    const now = new Date();
+    const url = `${process.env.NEXT_PUBLIC_API_URL}/api/reports/monthly.pdf?year=${now.getFullYear()}&month=${now.getMonth() + 1}`;
+    fetch(url, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'X-Sub-Account-Id': subAccountId,
+      },
+    })
+      .then((r) => r.blob())
+      .then((blob) => {
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `relatorio-${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}.pdf`;
+        a.click();
+      });
+  }
 
   const s = data ?? {
     leadsToday: 0,
@@ -43,8 +68,15 @@ export default function WorkspaceDashboard() {
 
   return (
     <div className="p-8">
-      <h1 className="text-3xl font-bold">Dashboard</h1>
-      <p className="mt-1 text-muted-foreground">Visão geral do cliente</p>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="text-3xl font-bold">Dashboard</h1>
+          <p className="mt-1 text-muted-foreground">Visão geral do cliente</p>
+        </div>
+        <Button variant="outline" onClick={downloadMonthlyReport}>
+          <FileDown className="h-4 w-4" /> Relatório do mês
+        </Button>
+      </div>
 
       <div className="mt-6 grid grid-cols-2 gap-3 md:grid-cols-4">
         <KPI title="Leads hoje" value={s.leadsToday} icon={Users} />
