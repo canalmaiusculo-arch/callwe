@@ -103,12 +103,22 @@ async function handleCallEvent(subAccountId: string, body: Record<string, unknow
   const fromNumber = direction === 'inbound' ? externalNumber : internalNumber;
   const toNumber = direction === 'inbound' ? internalNumber : externalNumber;
 
+  const duration = body.duration ?? body.talking_time ? Number(body.duration ?? body.talking_time) : null;
+
+  // Call.ended com duration 0 (ou talking_time 0) = chamada perdida
+  const isMissed =
+    body.event_type === 'call.ended' &&
+    (duration === null || duration === 0) &&
+    direction === 'inbound';
+
+  const status = isMissed ? ('missed' as const) : mapCallStatus(body.event_type as string);
+
   const interaction = await prisma.interaction.upsert({
     where: { cloudtalkCallId: callUuid },
     update: {
-      status: mapCallStatus(body.event_type as string),
+      status,
       endedAt: body.ended_at ? new Date(String(body.ended_at)) : null,
-      durationSeconds: body.duration ?? body.talking_time ? Number(body.duration ?? body.talking_time) : null,
+      durationSeconds: duration,
       metadata: body as Prisma.InputJsonValue,
     },
     create: {
@@ -117,10 +127,10 @@ async function handleCallEvent(subAccountId: string, body: Record<string, unknow
       cloudtalkCallId: callUuid,
       type: 'call',
       direction,
-      status: mapCallStatus(body.event_type as string),
+      status,
       startedAt: new Date(String(body.started_at ?? Date.now())),
       endedAt: body.ended_at ? new Date(String(body.ended_at)) : null,
-      durationSeconds: body.duration ?? body.talking_time ? Number(body.duration ?? body.talking_time) : null,
+      durationSeconds: duration,
       fromNumber,
       toNumber,
       metadata: body as Prisma.InputJsonValue,
