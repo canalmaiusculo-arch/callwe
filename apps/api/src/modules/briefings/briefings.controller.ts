@@ -1,4 +1,4 @@
-import { Controller, Get, Put, Req, UseGuards } from '@nestjs/common';
+import { Controller, Get, Param, Put, Req, UseGuards, ForbiddenException } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { z } from 'zod';
 import { BriefingsService } from './briefings.service.js';
@@ -17,16 +17,28 @@ const UpsertDto = z.object({
 });
 
 @Controller('briefings')
-@UseGuards(AuthGuard('jwt'), TenantGuard)
 export class BriefingsController {
   constructor(private readonly svc: BriefingsService) {}
 
+  /** Briefing por subAccountId — autenticado, valida que user tem acesso à subconta. */
+  @Get('by-sub-account/:id')
+  @UseGuards(AuthGuard('jwt'))
+  byId(@CurrentUser() user: AuthUser, @Param('id') id: string) {
+    const hasAccess = user.memberships.some(
+      (m) => m.subAccountId === id || m.role === 'agency_admin' || m.role === 'super_admin',
+    );
+    if (!hasAccess) throw new ForbiddenException('No access to this sub-account');
+    return this.svc.get(id);
+  }
+
   @Get()
+  @UseGuards(AuthGuard('jwt'), TenantGuard)
   get(@Req() req: { tenant: { subAccountId: string } }) {
     return this.svc.get(req.tenant.subAccountId);
   }
 
   @Put()
+  @UseGuards(AuthGuard('jwt'), TenantGuard)
   upsert(
     @Req() req: { tenant: { subAccountId: string } },
     @CurrentUser() user: AuthUser,

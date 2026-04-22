@@ -94,17 +94,36 @@ export default function AgentPage() {
   );
 }
 
+interface CallPayload {
+  from_number?: string;
+  external_number?: string;
+  internal_number?: string;
+  direction?: string;
+  subAccountId?: string;
+  subAccountName?: string;
+}
+
+interface Briefing {
+  businessSummary?: string;
+  targetAudience?: string;
+  pricingGuidelines?: string | null;
+  faq?: Array<{ q: string; a: string }>;
+  scripts?: { opening?: string; objectionHandling?: string; closing?: string };
+}
+
 function ActiveCallView({ call }: { call: unknown }) {
-  if (!call) {
+  const c = call as CallPayload | null;
+
+  const { data: briefing } = useQuery<Briefing | null>({
+    queryKey: ['briefing', c?.subAccountId],
+    queryFn: () => apiClient.get<Briefing | null>(`/briefings/by-sub-account/${c!.subAccountId}`),
+    enabled: !!c?.subAccountId,
+  });
+
+  if (!c) {
     return <RecentCallsView />;
   }
 
-  const c = call as {
-    from_number?: string;
-    external_number?: string;
-    internal_number?: string;
-    direction?: string;
-  };
   const externalNumber = c.external_number ?? c.from_number ?? '—';
 
   return (
@@ -114,34 +133,77 @@ function ActiveCallView({ call }: { call: unknown }) {
           <div className="rounded-full bg-emerald-100 p-3">
             <PhoneIncoming className="h-6 w-6 text-emerald-700" />
           </div>
-          <div>
-            <p className="text-xs uppercase text-muted-foreground">Chamada entrante</p>
+          <div className="flex-1">
+            <p className="text-xs uppercase text-muted-foreground">
+              Chamada entrante {c.subAccountName && `· ${c.subAccountName}`}
+            </p>
             <CardTitle className="text-2xl">{externalNumber}</CardTitle>
           </div>
         </div>
       </CardHeader>
-      <CardContent className="space-y-4">
-        <Card className="bg-muted/30">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm">Briefing do cliente</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground">
-              Briefing aparecerá aqui quando configurado para esse cliente.
-            </p>
-          </CardContent>
-        </Card>
+      <CardContent className="space-y-3 overflow-auto" style={{ maxHeight: 'calc(100vh - 220px)' }}>
+        {briefing ? (
+          <>
+            <Card className="bg-muted/30">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm">Sobre o cliente</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2 text-sm">
+                {briefing.businessSummary && (
+                  <div>
+                    <p className="text-xs font-medium uppercase text-muted-foreground">Negócio</p>
+                    <p>{briefing.businessSummary}</p>
+                  </div>
+                )}
+                {briefing.targetAudience && (
+                  <div>
+                    <p className="text-xs font-medium uppercase text-muted-foreground">Público</p>
+                    <p>{briefing.targetAudience}</p>
+                  </div>
+                )}
+                {briefing.pricingGuidelines && (
+                  <div>
+                    <p className="text-xs font-medium uppercase text-muted-foreground">Preços</p>
+                    <p>{briefing.pricingGuidelines}</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
 
-        <Card className="bg-muted/30">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm">Histórico do lead</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground">
-              Sem histórico anterior — primeiro contato.
-            </p>
-          </CardContent>
-        </Card>
+            {briefing.scripts?.opening && (
+              <Card className="bg-blue-50">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm">Script de abertura</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm">{briefing.scripts.opening}</p>
+                </CardContent>
+              </Card>
+            )}
+
+            {briefing.faq && briefing.faq.length > 0 && (
+              <Card className="bg-muted/30">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm">FAQ ({briefing.faq.length})</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  {briefing.faq.map((q, i) => (
+                    <div key={i}>
+                      <p className="text-xs font-medium">{q.q}</p>
+                      <p className="text-xs text-muted-foreground">{q.a}</p>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            )}
+          </>
+        ) : (
+          <Card className="bg-amber-50">
+            <CardContent className="p-4 text-sm text-amber-700">
+              Briefing não cadastrado para esse cliente.
+            </CardContent>
+          </Card>
+        )}
       </CardContent>
     </Card>
   );

@@ -73,4 +73,35 @@ export class LeadsService {
     if (existing) return existing;
     return this.create(subAccountId, { phoneE164, ...defaults });
   }
+
+  update(
+    subAccountId: string,
+    id: string,
+    input: {
+      name?: string;
+      email?: string;
+      phoneE164?: string;
+      status?: LeadStatus;
+      lostReason?: string;
+      tags?: string[];
+      ownerUserId?: string | null;
+    },
+  ) {
+    return this.prisma.lead.update({
+      where: { id },
+      data: {
+        ...input,
+        ...(input.status === 'contacted' || input.status === 'qualified'
+          ? { lastContactAt: new Date() }
+          : {}),
+        ...(input.status && !input.tags ? { firstContactAt: new Date() } : {}),
+      },
+    });
+  }
+
+  async addNote(leadId: string, authorUserId: string, body: string) {
+    return this.prisma.leadNote.create({
+      data: { leadId, authorUserId, body },
+    });
+  }
 }

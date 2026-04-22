@@ -1,5 +1,6 @@
 import { Worker } from 'bullmq';
 import { prisma } from '@callwe/db';
+import type { Prisma } from '@callwe/db';
 import { connection } from '../lib/redis.js';
 import { logger } from '../lib/logger.js';
 import { QUEUES, recordingSyncQueue } from '../queues.js';
@@ -102,13 +103,13 @@ async function handleCallEvent(subAccountId: string, body: Record<string, unknow
   const fromNumber = direction === 'inbound' ? externalNumber : internalNumber;
   const toNumber = direction === 'inbound' ? internalNumber : externalNumber;
 
-  await prisma.interaction.upsert({
+  const interaction = await prisma.interaction.upsert({
     where: { cloudtalkCallId: callUuid },
     update: {
       status: mapCallStatus(body.event_type as string),
       endedAt: body.ended_at ? new Date(String(body.ended_at)) : null,
       durationSeconds: body.duration ?? body.talking_time ? Number(body.duration ?? body.talking_time) : null,
-      metadata: body as object,
+      metadata: body as Prisma.InputJsonValue,
     },
     create: {
       subAccountId,
@@ -122,9 +123,19 @@ async function handleCallEvent(subAccountId: string, body: Record<string, unknow
       durationSeconds: body.duration ?? body.talking_time ? Number(body.duration ?? body.talking_time) : null,
       fromNumber,
       toNumber,
-      metadata: body as object,
+      metadata: body as Prisma.InputJsonValue,
     },
   });
+
+  // Se a chamada terminou e veio recording_url, enfileira o download.
+  const recordingUrl = String(body.recording_url ?? '').trim();
+  if (recordingUrl && body.event_type === 'call.ended' && !interaction.recordingSyncedAt) {
+    await recordingSyncQueue.add('sync', {
+      interactionId: interaction.id,
+      cloudtalkRecordingUrl: recordingUrl,
+      subAccountId,
+    });
+  }
 }
 
 function trimStrings(obj: Record<string, unknown>): Record<string, unknown> {

@@ -42,21 +42,38 @@ export class CloudtalkWebhooksController {
 
     // Realtime imediato: chamada entrante → painel do atendente já vê.
     if (body.event_type === 'call.started' || body.event_type === 'call_started') {
-      const subTag = await this.resolveSubTagFromBody(body);
-      if (subTag) this.realtime.emitIncomingCall(subTag, body);
+      const sub = await this.resolveSubAccountFromBody(body);
+      if (sub) {
+        this.realtime.emitIncomingCall(sub.cloudtalkTag, {
+          ...body,
+          subAccountId: sub.id,
+          subAccountName: sub.name,
+        });
+      }
     }
 
     return { received: true };
   }
 
-  private async resolveSubTagFromBody(body: Record<string, unknown>): Promise<string | null> {
-    const numberRaw = String(body.internal_number ?? body.to_number ?? '');
-    if (!numberRaw) return null;
-    const e164 = numberRaw.startsWith('+') ? numberRaw : `+${numberRaw.replace(/[^\d]/g, '')}`;
+  private async resolveSubAccountFromBody(body: Record<string, unknown>) {
+    // Para inbound, internal_number é o número que recebeu. Para outbound, internal_number é o que discou.
+    // Tentamos os dois (external_number também) porque o Melo General pode aparecer como external em outbound.
+    const candidates = [
+      normalizeE164(String(body.internal_number ?? body.to_number ?? '')),
+      normalizeE164(String(body.external_number ?? body.from_number ?? '')),
+    ].filter(Boolean);
+    if (candidates.length === 0) return null;
     const pn = await this.prisma.phoneNumber.findFirst({
-      where: { e164, status: 'active' },
+      where: { e164: { in: candidates }, status: 'active' },
       include: { subAccount: true },
     });
-    return pn?.subAccount?.cloudtalkTag ?? null;
+    return pn?.subAccount ?? null;
   }
+}
+
+function normalizeE164(num: string): string {
+  if (!num) return '';
+  const digits = num.trim().replace(/[^\d+]/g, '');
+  if (!digits) return '';
+  return digits.startsWith('+') ? digits : `+${digits}`;
 }
