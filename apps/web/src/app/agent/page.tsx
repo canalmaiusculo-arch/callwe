@@ -19,6 +19,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { SoftphoneFrame } from '@/components/agent/softphone-frame';
 import { InteractionDrawer } from '@/components/interaction-drawer';
+import { NotificationBanner } from '@/components/agent/notification-banner';
 import { useAuthStore } from '@/stores/auth-store';
 import { useRealtimeCalls } from '@/hooks/use-realtime-calls';
 
@@ -110,7 +111,8 @@ export default function AgentPage() {
         </button>
       </aside>
 
-      <section className="col-span-7 overflow-auto">
+      <section className="col-span-7 space-y-3 overflow-auto">
+        <NotificationBanner />
         {activeCall ? (
           <ActiveCallView call={activeCall} onDismiss={() => setActiveCall(null)} />
         ) : tab === 'dashboard' ? (
