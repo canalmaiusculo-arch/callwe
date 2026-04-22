@@ -10,16 +10,41 @@ import { CurrentUser, AuthUser } from '../../common/decorators/current-user.deco
 import { env } from '../../config/env.js';
 
 @Controller('interactions')
-@UseGuards(AuthGuard('jwt'), TenantGuard)
+@UseGuards(AuthGuard('jwt'))
 export class InteractionsController {
   constructor(private readonly svc: InteractionsService) {}
 
+  /** Lista interações do atendente logado (todas as subcontas que ele atende). */
+  @Get('mine')
+  async mine(
+    @CurrentUser() user: AuthUser,
+    @Query('type') type?: string,
+    @Query('onlyMine') onlyMine?: string,
+  ) {
+    const subAccountIds = user.memberships
+      .map((m) => m.subAccountId)
+      .filter((v): v is string => !!v);
+    if (subAccountIds.length === 0) return [];
+    return this.svc.list(subAccountIds, {
+      type,
+      agentUserId: onlyMine === 'true' ? user.id : undefined,
+    });
+  }
+
+  /** KPIs do atendente logado. */
+  @Get('mine/stats')
+  agentStats(@CurrentUser() user: AuthUser) {
+    return this.svc.agentStats(user.id);
+  }
+
   @Get()
+  @UseGuards(TenantGuard)
   list(@Req() req: { tenant: { subAccountId: string } }, @Query('type') type?: string) {
     return this.svc.list(req.tenant.subAccountId, { type });
   }
 
   @Get(':id')
+  @UseGuards(TenantGuard)
   async get(
     @Req() req: { tenant: { subAccountId: string }; ip?: string },
     @Param('id') id: string,
@@ -34,6 +59,7 @@ export class InteractionsController {
 
   /** Streams a gravação pro navegador (proxy R2 ou CloudTalk). */
   @Get(':id/recording')
+  @UseGuards(TenantGuard)
   async recording(
     @Req() req: { tenant: { subAccountId: string }; ip?: string },
     @Param('id') id: string,
@@ -53,7 +79,6 @@ export class InteractionsController {
       (url.includes('.r2.cloudflarestorage.com') || url.includes(env.S3_BUCKET));
 
     if (!isR2) {
-      // Stream do CloudTalk com Basic auth
       const upstream = await axios.get<Readable>(url, {
         responseType: 'stream',
         auth: {
@@ -67,7 +92,6 @@ export class InteractionsController {
       return;
     }
 
-    // R2 — stream via SDK
     const u = new URL(url);
     let key = u.pathname.replace(/^\//, '');
     if (env.S3_BUCKET && key.startsWith(env.S3_BUCKET + '/')) {
@@ -85,8 +109,7 @@ export class InteractionsController {
     });
 
     const obj = await s3.send(new GetObjectCommand({ Bucket: env.S3_BUCKET!, Key: key }));
-    const contentType =
-      obj.ContentType ?? (key.endsWith('.wav') ? 'audio/wav' : 'audio/mpeg');
+    const contentType = obj.ContentType ?? (key.endsWith('.wav') ? 'audio/wav' : 'audio/mpeg');
     res.setHeader('Content-Type', contentType);
     res.setHeader('Accept-Ranges', 'bytes');
     if (obj.ContentLength) res.setHeader('Content-Length', String(obj.ContentLength));

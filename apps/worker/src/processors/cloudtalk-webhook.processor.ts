@@ -4,6 +4,7 @@ import type { Prisma } from '@callwe/db';
 import { connection } from '../lib/redis.js';
 import { logger } from '../lib/logger.js';
 import { QUEUES, recordingSyncQueue } from '../queues.js';
+import { resolveUserIdByCloudtalkAgent } from '../lib/agent-cache.js';
 
 interface WebhookJob {
   inboxId: string;
@@ -79,6 +80,12 @@ async function handleCallEvent(subAccountId: string, body: Record<string, unknow
   const internalNumber = normalizeE164(String(body.internal_number ?? body.to_number ?? ''));
   const externalNumber = normalizeE164(String(body.external_number ?? body.from_number ?? ''));
 
+  // Resolve agente: CloudTalk envia agent_id, resolvemos via email → user CallWe
+  let agentUserId: string | null = null;
+  if (body.agent_id) {
+    agentUserId = await resolveUserIdByCloudtalkAgent(String(body.agent_id));
+  }
+
   // Lead é sempre criado com base no número EXTERNO (cliente).
   const customerPhone = externalNumber;
   let leadId: string | undefined;
@@ -119,6 +126,7 @@ async function handleCallEvent(subAccountId: string, body: Record<string, unknow
       status,
       endedAt: body.ended_at ? new Date(String(body.ended_at)) : null,
       durationSeconds: duration,
+      agentUserId: agentUserId ?? undefined,
       metadata: body as Prisma.InputJsonValue,
     },
     create: {
@@ -133,6 +141,7 @@ async function handleCallEvent(subAccountId: string, body: Record<string, unknow
       durationSeconds: duration,
       fromNumber,
       toNumber,
+      agentUserId,
       metadata: body as Prisma.InputJsonValue,
     },
   });
