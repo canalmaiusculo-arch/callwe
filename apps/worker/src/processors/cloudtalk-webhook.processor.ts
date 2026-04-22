@@ -18,13 +18,16 @@ export function startCloudtalkWebhookWorker() {
       const body = inbox.body as Record<string, unknown>;
       const eventType = inbox.eventType;
 
-      // CloudTalk envia internal_number (seu número) e external_number (cliente).
-      // O internal_number sempre identifica a subconta, independente da direção.
-      const lookupNumber = normalizeE164(
-        String(body.internal_number ?? body.to_number ?? ''),
-      );
+      // CloudTalk envia internal_number e external_number.
+      // Para chamadas inbound, internal = nosso número (cliente).
+      // Para outbound, external = número discado (cliente).
+      // Olhamos os dois e procuramos qual existe na tabela phone_numbers.
+      const candidates = [
+        normalizeE164(String(body.internal_number ?? body.to_number ?? '')),
+        normalizeE164(String(body.external_number ?? body.from_number ?? '')),
+      ].filter(Boolean);
 
-      if (!lookupNumber) {
+      if (candidates.length === 0) {
         await prisma.webhookInbox.update({
           where: { id: inbox.id },
           data: { processedAt: new Date(), processingError: 'no phone number to resolve sub-account' },
@@ -33,14 +36,14 @@ export function startCloudtalkWebhookWorker() {
       }
 
       const phoneRecord = await prisma.phoneNumber.findFirst({
-        where: { e164: lookupNumber, status: 'active' },
+        where: { e164: { in: candidates }, status: 'active' },
         include: { subAccount: true },
       });
 
       if (!phoneRecord) {
         await prisma.webhookInbox.update({
           where: { id: inbox.id },
-          data: { processedAt: new Date(), processingError: `unknown number ${lookupNumber}` },
+          data: { processedAt: new Date(), processingError: `unknown numbers: ${candidates.join(', ')}` },
         });
         return;
       }
@@ -125,7 +128,9 @@ async function handleCallEvent(subAccountId: string, body: Record<string, unknow
 
 function normalizeE164(num: string): string {
   if (!num) return '';
-  const digits = num.replace(/[^\d+]/g, '');
+  const trimmed = num.trim();
+  const digits = trimmed.replace(/[^\d+]/g, '');
+  if (!digits) return '';
   return digits.startsWith('+') ? digits : `+${digits}`;
 }
 
