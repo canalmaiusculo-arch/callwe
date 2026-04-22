@@ -1,5 +1,6 @@
-import { Controller, Get, Param, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
+import { Controller, Get, Header, Param, Patch, Post, Query, Req, Res, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
+import type { Response } from 'express';
 import { z } from 'zod';
 import { LeadsService } from './leads.service.js';
 import { TenantGuard } from '../../common/guards/tenant.guard.js';
@@ -27,14 +28,40 @@ const UpdateLeadDto = z.object({
 
 const NoteDto = z.object({ body: z.string().min(1) });
 
+function parseFilters(q: Record<string, string | undefined>) {
+  return {
+    status: q.status as never,
+    source: q.source as never,
+    search: q.search,
+    ownerUserId: q.ownerUserId,
+    tags: q.tags ? q.tags.split(',').filter(Boolean) : undefined,
+    from: q.from ? new Date(q.from) : undefined,
+    to: q.to ? new Date(q.to) : undefined,
+  };
+}
+
 @Controller('leads')
 @UseGuards(AuthGuard('jwt'), TenantGuard)
 export class LeadsController {
   constructor(private readonly svc: LeadsService) {}
 
   @Get()
-  list(@Req() req: { tenant: { subAccountId: string } }, @Query('status') status?: string, @Query('search') search?: string) {
-    return this.svc.list(req.tenant.subAccountId, { status: status as never, search });
+  list(@Req() req: { tenant: { subAccountId: string } }, @Query() q: Record<string, string>) {
+    return this.svc.list(req.tenant.subAccountId, parseFilters(q));
+  }
+
+  /** Export CSV com os mesmos filtros aplicados. */
+  @Get('export.csv')
+  @Header('Content-Type', 'text/csv; charset=utf-8')
+  async exportCsv(
+    @Req() req: { tenant: { subAccountId: string } },
+    @Query() q: Record<string, string>,
+    @Res() res: Response,
+  ) {
+    const csv = await this.svc.exportCsv(req.tenant.subAccountId, parseFilters(q));
+    const stamp = new Date().toISOString().slice(0, 10);
+    res.setHeader('Content-Disposition', `attachment; filename="leads-${stamp}.csv"`);
+    res.send('﻿' + csv); // BOM pra Excel abrir UTF-8 certinho
   }
 
   @Get(':id')
