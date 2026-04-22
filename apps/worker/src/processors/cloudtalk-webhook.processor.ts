@@ -17,23 +17,35 @@ export function startCloudtalkWebhookWorker() {
 
       const body = inbox.body as Record<string, unknown>;
       const eventType = inbox.eventType;
-      const tag = (body.tags as string[] | undefined)?.find((t) => t.startsWith('sub:'));
-      if (!tag) {
+
+      // Resolve sub-account by phone number (lookup table phone_numbers)
+      const isInbound = body.type === 'incoming' || body.type === 'inbound';
+      const lookupNumber = normalizeE164(
+        String((isInbound ? body.to_number : body.from_number) ?? ''),
+      );
+
+      if (!lookupNumber) {
         await prisma.webhookInbox.update({
           where: { id: inbox.id },
-          data: { processedAt: new Date(), processingError: 'no sub-account tag' },
+          data: { processedAt: new Date(), processingError: 'no phone number to resolve sub-account' },
         });
         return;
       }
 
-      const subAccount = await prisma.subAccount.findUnique({ where: { cloudtalkTag: tag } });
-      if (!subAccount) {
+      const phoneRecord = await prisma.phoneNumber.findFirst({
+        where: { e164: lookupNumber, status: 'active' },
+        include: { subAccount: true },
+      });
+
+      if (!phoneRecord) {
         await prisma.webhookInbox.update({
           where: { id: inbox.id },
-          data: { processedAt: new Date(), processingError: 'unknown tag' },
+          data: { processedAt: new Date(), processingError: `unknown number ${lookupNumber}` },
         });
         return;
       }
+
+      const subAccount = phoneRecord.subAccount;
 
       if (eventType === 'call.started' || eventType === 'call.ended' || eventType === 'call.missed') {
         await handleCallEvent(subAccount.id, body);
@@ -98,6 +110,12 @@ async function handleCallEvent(subAccountId: string, body: Record<string, unknow
       metadata: body as object,
     },
   });
+}
+
+function normalizeE164(num: string): string {
+  if (!num) return '';
+  const digits = num.replace(/[^\d+]/g, '');
+  return digits.startsWith('+') ? digits : `+${digits}`;
 }
 
 function mapCallStatus(event: string) {

@@ -35,21 +35,29 @@ export class CloudtalkWebhooksController {
       },
     });
 
-    if (valid) {
-      await this.queue.add('process', { inboxId: inbox.id });
-    }
+    // Sempre enfileira — worker é responsável por descobrir a subconta pelo número.
+    // Se assinatura inválida, marcamos no inbox mas processamos mesmo assim
+    // (CloudTalk pode estar configurado sem secret durante setup inicial).
+    await this.queue.add('process', { inboxId: inbox.id });
 
     // Realtime imediato: chamada entrante → painel do atendente já vê.
     if (body.event_type === 'call.started' || body.event_type === 'call_started') {
-      const tag = this.extractSubAccountTag(body);
-      if (tag) this.realtime.emitIncomingCall(tag, body);
+      const subTag = await this.resolveSubTagFromBody(body);
+      if (subTag) this.realtime.emitIncomingCall(subTag, body);
     }
 
     return { received: true };
   }
 
-  private extractSubAccountTag(body: Record<string, unknown>): string | null {
-    const tags = body.tags as string[] | undefined;
-    return tags?.find((t) => t.startsWith('sub:')) ?? null;
+  private async resolveSubTagFromBody(body: Record<string, unknown>): Promise<string | null> {
+    const isInbound = body.type === 'incoming' || body.type === 'inbound';
+    const numberRaw = String((isInbound ? body.to_number : body.from_number) ?? '');
+    if (!numberRaw) return null;
+    const e164 = numberRaw.startsWith('+') ? numberRaw : `+${numberRaw.replace(/[^\d]/g, '')}`;
+    const pn = await this.prisma.phoneNumber.findFirst({
+      where: { e164, status: 'active' },
+      include: { subAccount: true },
+    });
+    return pn?.subAccount?.cloudtalkTag ?? null;
   }
 }
