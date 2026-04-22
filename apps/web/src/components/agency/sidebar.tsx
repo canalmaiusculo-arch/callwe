@@ -2,48 +2,33 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import {
-  LayoutDashboard,
-  Users,
-  Phone,
-  MessageSquare,
-  Voicemail,
-  FileText,
-  Settings,
-  LogOut,
-  Link2,
-  Building2,
-} from 'lucide-react';
+import { Building2, Users, LayoutDashboard, Settings, LogOut, Phone } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores/auth-store';
 import { useTenantStore } from '@/stores/tenant-store';
 
-const navItems = [
-  { href: '/workspace' as const, icon: LayoutDashboard, label: 'Dashboard' },
-  { href: '/workspace/leads' as const, icon: Users, label: 'Leads' },
-  { href: '/workspace/calls' as const, icon: Phone, label: 'Chamadas' },
-  { href: '/workspace/sms' as const, icon: MessageSquare, label: 'SMS' },
-  { href: '/workspace/voicemails' as const, icon: Voicemail, label: 'Voicemails' },
-  { href: '/workspace/briefing' as const, icon: FileText, label: 'Briefing' },
-  { href: '/workspace/integrations' as const, icon: Link2, label: 'Integrações' },
-  { href: '/workspace/settings' as const, icon: Settings, label: 'Configurações' },
+const items = [
+  { href: '/agency' as const, icon: LayoutDashboard, label: 'Visão geral' },
+  { href: '/agency/clients' as const, icon: Building2, label: 'Clientes' },
+  { href: '/agency/team' as const, icon: Users, label: 'Atendentes' },
+  { href: '/agency/numbers' as const, icon: Phone, label: 'Números' },
+  { href: '/agency/settings' as const, icon: Settings, label: 'Configurações' },
 ];
 
-export function WorkspaceSidebar() {
+export function AgencySidebar() {
   const pathname = usePathname();
-  const subAccountName = useTenantStore((s) => s.subAccountName);
   const clearAuth = useAuthStore((s) => s.clear);
   const clearTenant = useTenantStore((s) => s.clear);
 
   return (
     <aside className="flex h-screen w-60 flex-col border-r bg-muted/20">
       <div className="border-b p-4">
-        <p className="text-xs uppercase text-muted-foreground">Subconta</p>
-        <p className="truncate text-sm font-semibold">{subAccountName ?? '—'}</p>
+        <p className="text-xs uppercase text-muted-foreground">Agência</p>
+        <p className="truncate text-sm font-semibold">CallWe</p>
       </div>
 
       <nav className="flex-1 space-y-1 p-2">
-        {navItems.map((item) => {
+        {items.map((item) => {
           const active = pathname === item.href || pathname.startsWith(item.href + '/');
           const Icon = item.icon;
           return (
@@ -61,14 +46,6 @@ export function WorkspaceSidebar() {
           );
         })}
       </nav>
-
-      <Link
-        href={'/agency' as never}
-        className="m-2 flex items-center gap-3 rounded-md border border-dashed px-3 py-2 text-sm text-muted-foreground hover:bg-muted"
-      >
-        <Building2 className="h-4 w-4" />
-        Painel da agência
-      </Link>
 
       <button
         onClick={() => {

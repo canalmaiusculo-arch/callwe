@@ -46,6 +46,16 @@ export class SubAccountsService {
     });
   }
 
+  get(id: string) {
+    return this.prisma.subAccount.findUnique({
+      where: { id },
+      include: {
+        phoneNumbers: { where: { status: 'active' }, orderBy: { createdAt: 'desc' } },
+        _count: { select: { leads: true, interactions: true } },
+      },
+    });
+  }
+
   create(agencyId: string, input: { name: string; slug: string }) {
     return this.prisma.subAccount.create({
       data: {
@@ -55,5 +65,9 @@ export class SubAccountsService {
         cloudtalkTag: `sub:${randomUUID()}`,
       },
     });
+  }
+
+  update(id: string, input: { name?: string; status?: 'active' | 'paused' | 'archived'; plan?: 'starter' | 'pro' | 'enterprise' }) {
+    return this.prisma.subAccount.update({ where: { id }, data: input });
   }
 }

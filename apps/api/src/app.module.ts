@@ -14,6 +14,7 @@ import { RealtimeModule } from './modules/realtime/realtime.module.js';
 import { DashboardModule } from './modules/dashboard/dashboard.module.js';
 import { IntegrationsModule } from './modules/integrations/integrations.module.js';
 import { QueuesModule } from './modules/queues/queues.module.js';
+import { PhoneNumbersModule } from './modules/phone-numbers/phone-numbers.module.js';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { QueuesModule } from './modules/queues/queues.module.js';
     QueuesModule,
     AuthModule,
     SubAccountsModule,
+    PhoneNumbersModule,
     LeadsModule,
     InteractionsModule,
     BriefingsModule,
