@@ -36,13 +36,17 @@ export default function LoginPage() {
 
       // Roteamento baseado no role
       const claims = decodeJwt(res.accessToken);
-      const isAdmin = claims.memberships.some((m) =>
-        ['agency_admin', 'super_admin'].includes(m.role),
-      );
+      const isSuperAdmin = claims.memberships.some((m) => m.role === 'super_admin');
+      const isAgencyAdmin = claims.memberships.some((m) => m.role === 'agency_admin');
       const isAgent = claims.memberships.some((m) => m.role === 'agent');
+      const isClient = claims.memberships.some((m) => m.role === 'client_viewer');
 
-      if (isAdmin) {
+      if (isSuperAdmin) {
+        router.push('/admin');
+      } else if (isAgencyAdmin) {
         router.push('/agency');
+      } else if (isClient) {
+        router.push('/client');
       } else if (isAgent) {
         router.push('/agent');
       } else {

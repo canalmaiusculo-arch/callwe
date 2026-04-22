@@ -51,12 +51,16 @@ export class TeamService {
     }));
   }
 
-  /** Cria um convite para um novo atendente. Retorna URL para o convite. */
-  async invite(agencyId: string, input: { email: string; fullName: string; subAccountIds?: string[] }) {
+  /** Cria um convite. Role padrão: 'agent'. Se role='client_viewer', user só vê suas subcontas. */
+  async invite(
+    agencyId: string,
+    input: { email: string; fullName: string; subAccountIds?: string[]; role?: 'agent' | 'client_viewer' },
+  ) {
     const existing = await this.prisma.user.findUnique({ where: { email: input.email } });
     if (existing) {
       throw new ConflictException('Email já cadastrado no sistema');
     }
+    const role = input.role ?? 'agent';
 
     // Gera token de aceite
     const token = randomBytes(32).toString('base64url');
@@ -85,11 +89,11 @@ export class TeamService {
       },
     });
 
-    // Cria memberships nas subcontas selecionadas (role agent)
+    // Cria memberships nas subcontas selecionadas
     if (input.subAccountIds && input.subAccountIds.length > 0) {
       for (const subAccountId of input.subAccountIds) {
         await this.prisma.membership.create({
-          data: { userId: user.id, subAccountId, role: 'agent' },
+          data: { userId: user.id, subAccountId, role },
         });
       }
     }

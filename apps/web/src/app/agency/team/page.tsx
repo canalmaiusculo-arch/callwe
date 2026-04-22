@@ -36,6 +36,7 @@ export default function TeamPage() {
   const [email, setEmail] = useState('');
   const [fullName, setFullName] = useState('');
   const [selectedSubs, setSelectedSubs] = useState<string[]>([]);
+  const [inviteRole, setInviteRole] = useState<'agent' | 'client_viewer'>('agent');
   const [inviteUrl, setInviteUrl] = useState<string | null>(null);
 
   const { data: team = [] } = useQuery<TeamMember[]>({
@@ -49,7 +50,7 @@ export default function TeamPage() {
   });
 
   const invite = useMutation({
-    mutationFn: (input: { email: string; fullName: string; subAccountIds: string[] }) =>
+    mutationFn: (input: { email: string; fullName: string; subAccountIds: string[]; role: 'agent' | 'client_viewer' }) =>
       apiClient.post<{ inviteUrl: string }>('/team/invite', input),
     onSuccess: (data) => {
       toast.success('Convite criado');
@@ -119,6 +120,25 @@ export default function TeamPage() {
             ) : (
               <>
                 <div>
+                  <label className="text-sm font-medium">Tipo de acesso</label>
+                  <div className="mt-1 flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setInviteRole('agent')}
+                      className={`flex-1 rounded-md border p-2 text-sm ${inviteRole === 'agent' ? 'border-primary bg-primary/10' : ''}`}
+                    >
+                      Atendente (faz/atende chamadas)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setInviteRole('client_viewer')}
+                      className={`flex-1 rounded-md border p-2 text-sm ${inviteRole === 'client_viewer' ? 'border-primary bg-primary/10' : ''}`}
+                    >
+                      Cliente final (só visualização)
+                    </button>
+                  </div>
+                </div>
+                <div>
                   <label className="text-sm font-medium">Nome completo</label>
                   <Input value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Pedro da Cruz" />
                 </div>
@@ -145,7 +165,7 @@ export default function TeamPage() {
                 </div>
                 <div className="flex gap-2">
                   <Button
-                    onClick={() => invite.mutate({ email, fullName, subAccountIds: selectedSubs })}
+                    onClick={() => invite.mutate({ email, fullName, subAccountIds: selectedSubs, role: inviteRole })}
                     disabled={!email || !fullName || invite.isPending}
                   >
                     {invite.isPending ? 'Criando...' : 'Gerar convite'}

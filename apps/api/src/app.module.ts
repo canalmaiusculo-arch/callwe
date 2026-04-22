@@ -17,6 +17,7 @@ import { QueuesModule } from './modules/queues/queues.module.js';
 import { PhoneNumbersModule } from './modules/phone-numbers/phone-numbers.module.js';
 import { TeamModule } from './modules/team/team.module.js';
 import { ReportsModule } from './modules/reports/reports.module.js';
+import { AgenciesModule } from './modules/agencies/agencies.module.js';
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { ReportsModule } from './modules/reports/reports.module.js';
     PhoneNumbersModule,
     TeamModule,
     ReportsModule,
+    AgenciesModule,
     LeadsModule,
     InteractionsModule,
     BriefingsModule,

@@ -12,6 +12,7 @@ const InviteDto = z.object({
   email: z.string().email(),
   fullName: z.string().min(2),
   subAccountIds: z.array(z.string().uuid()).optional(),
+  role: z.enum(['agent', 'client_viewer']).optional(),
 });
 
 const AcceptInviteDto = z.object({
