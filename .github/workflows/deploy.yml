@@ -4,71 +4,84 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
-
-env:
-  REGISTRY: ghcr.io
-  IMAGE_PREFIX: ${{ github.repository_owner }}/callwe
+    inputs:
+      target:
+        description: 'O que deployar'
+        required: true
+        default: 'auto'
+        type: choice
+        options: [auto, api, web, worker, all]
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-    strategy:
-      matrix:
-        include:
-          - name: api
-            dockerfile: infra/docker/api.Dockerfile
-          - name: web
-            dockerfile: infra/docker/web.Dockerfile
-          - name: worker
-            dockerfile: infra/docker/worker.Dockerfile
-          - name: migrate
-            dockerfile: infra/docker/migrate.Dockerfile
-    steps:
-      - uses: actions/checkout@v4
-      - uses: docker/setup-buildx-action@v3
-      - uses: docker/login-action@v3
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      - uses: docker/metadata-action@v5
-        id: meta
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-${{ matrix.name }}
-          tags: |
-            type=sha,prefix=,format=short
-            type=raw,value=latest
-      - uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: ${{ matrix.dockerfile }}
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha,scope=${{ matrix.name }}
-          cache-to: type=gha,mode=max,scope=${{ matrix.name }}
-          build-args: |
-            NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }}
-            NEXT_PUBLIC_CLOUDTALK_PARTNER_ID=${{ secrets.NEXT_PUBLIC_CLOUDTALK_PARTNER_ID }}
-
   deploy:
-    needs: build
     runs-on: ubuntu-latest
-    environment: production
     steps:
-      - name: Deploy over SSH
+      - name: Checkout (apenas para detectar arquivos alterados)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Detectar quais apps mudaram
+        id: changes
+        run: |
+          MANUAL_TARGET="${{ github.event.inputs.target }}"
+          if [[ -n "$MANUAL_TARGET" && "$MANUAL_TARGET" != "auto" ]]; then
+            echo "target=$MANUAL_TARGET" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          CHANGED=$(git diff --name-only HEAD^ HEAD || echo "")
+          API=false; WEB=false; WORKER=false
+
+          while IFS= read -r f; do
+            case "$f" in
+              apps/api/*|packages/db/*|packages/shared/*|packages/cloudtalk-sdk/*|packages/meta-ads-sdk/*|infra/docker/api.Dockerfile)
+                API=true ;;
+              apps/web/*|infra/docker/web.Dockerfile)
+                WEB=true ;;
+              apps/worker/*|infra/docker/worker.Dockerfile)
+                WORKER=true ;;
+              infra/docker-compose.prod.yml|infra/scripts/*|.env*)
+                API=true; WEB=true; WORKER=true ;;
+            esac
+          done <<< "$CHANGED"
+
+          # Packages compartilhados afetam api+worker
+          while IFS= read -r f; do
+            case "$f" in
+              packages/db/*|packages/shared/*|packages/cloudtalk-sdk/*|packages/meta-ads-sdk/*)
+                API=true; WORKER=true ;;
+            esac
+          done <<< "$CHANGED"
+
+          if $API && $WEB && $WORKER; then T=all
+          elif $API && $WORKER && ! $WEB; then T=api_worker
+          elif $API; then T=api
+          elif $WEB; then T=web
+          elif $WORKER; then T=worker
+          else T=none
+          fi
+          echo "Mudanças: api=$API web=$WEB worker=$WORKER → target=$T"
+          echo "target=$T" >> "$GITHUB_OUTPUT"
+
+      - name: Skip se nada mudou no app
+        if: steps.changes.outputs.target == 'none'
+        run: echo "Nenhuma mudança em apps/ ou packages/ — nada para deployar."
+
+      - name: Deploy via SSH
+        if: steps.changes.outputs.target != 'none'
         uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
+          command_timeout: 30m
           script: |
             set -e
-            cd /opt/callwe
-            git fetch --all --prune
-            git reset --hard origin/main
-            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-            bash infra/scripts/deploy.sh ${{ github.sha }}
+            TARGET="${{ steps.changes.outputs.target }}"
+            if [[ "$TARGET" == "api_worker" ]]; then
+              bash /opt/callwe/infra/scripts/deploy.sh api
+              bash /opt/callwe/infra/scripts/deploy.sh worker
+            else
+              bash /opt/callwe/infra/scripts/deploy.sh "$TARGET"
+            fi
