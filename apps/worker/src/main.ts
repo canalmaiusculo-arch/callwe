@@ -1,3 +1,12 @@
+import * as Sentry from '@sentry/node';
+if (process.env.SENTRY_DSN_WORKER) {
+  Sentry.init({
+    dsn: process.env.SENTRY_DSN_WORKER,
+    environment: process.env.SENTRY_ENV ?? process.env.NODE_ENV ?? 'production',
+    tracesSampleRate: 0.1,
+  });
+}
+
 import { logger } from './lib/logger.js';
 import { startCloudtalkWebhookWorker } from './processors/cloudtalk-webhook.processor.js';
 import { startRecordingSyncWorker } from './processors/recording-sync.processor.js';
@@ -26,6 +35,7 @@ async function main() {
 
 main().catch((err) => {
   logger.error({ err }, 'Worker boot failed');
+  Sentry.captureException(err);
   process.exit(1);
 });
 

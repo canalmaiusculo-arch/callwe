@@ -15,6 +15,7 @@
     "@callwe/shared": "workspace:*",
     "axios": "^1.7.7",
     "form-data": "^4.0.1",
+    "@sentry/node": "^8.38.0",
     "bullmq": "^5.21.2",
     "ioredis": "^5.4.1",
     "pino": "^9.4.0",

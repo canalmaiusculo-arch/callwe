@@ -1,4 +1,7 @@
 import 'reflect-metadata';
+import { initSentry } from './sentry.js';
+initSentry();
+
 import { NestFactory } from '@nestjs/core';
 import helmet from 'helmet';
 import { AppModule } from './app.module.js';
