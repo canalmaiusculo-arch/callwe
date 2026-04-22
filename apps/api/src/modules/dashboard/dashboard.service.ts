@@ -19,8 +19,16 @@ export class DashboardService {
       callsWeek,
       leadsWeek,
       wonWeek,
+      qualifiedWeek,
+      lostWeek,
+      inboundWeek,
+      outboundWeek,
+      coldCallsWeek,
+      followupCallsWeek,
       series,
+      hourlySeries,
       topAgents,
+      statusBreakdown,
     ] = await Promise.all([
       this.prisma.lead.count({
         where: { subAccountId, createdAt: { gte: startOfDay }, deletedAt: null },
@@ -28,7 +36,7 @@ export class DashboardService {
       this.prisma.interaction.aggregate({
         where: { subAccountId, type: 'call', startedAt: { gte: startOfDay } },
         _count: { _all: true },
-        _avg: { durationSeconds: true },
+        _avg: { durationSeconds: true, waitingSeconds: true },
         _sum: { durationSeconds: true },
       }),
       this.prisma.interaction.count({
@@ -43,23 +51,119 @@ export class DashboardService {
       this.prisma.lead.count({
         where: { subAccountId, status: 'won', createdAt: { gte: startOfWeek }, deletedAt: null },
       }),
+      this.prisma.lead.count({
+        where: {
+          subAccountId,
+          status: { in: ['qualified', 'won'] },
+          createdAt: { gte: startOfWeek },
+          deletedAt: null,
+        },
+      }),
+      this.prisma.lead.count({
+        where: { subAccountId, status: 'lost', createdAt: { gte: startOfWeek }, deletedAt: null },
+      }),
+      this.prisma.interaction.count({
+        where: { subAccountId, type: 'call', direction: 'inbound', startedAt: { gte: startOfWeek } },
+      }),
+      this.prisma.interaction.count({
+        where: { subAccountId, type: 'call', direction: 'outbound', startedAt: { gte: startOfWeek } },
+      }),
+      this.coldCallsCount(subAccountId, startOfWeek),
+      this.followupCallsCount(subAccountId, startOfWeek),
       this.callsSeries(subAccountId),
+      this.hourlySeries(subAccountId, startOfWeek),
       this.topAgents(subAccountId, startOfWeek),
+      this.leadStatusBreakdown(subAccountId),
     ]);
+
+    const avgWait = Math.round(callsTodayAgg._avg.waitingSeconds ?? 0);
+    const avgHandle = Math.round(callsTodayAgg._avg.durationSeconds ?? 0);
 
     return {
       leadsToday,
       callsToday: callsTodayAgg._count._all,
       missedCalls,
-      avgHandleTime: Math.round(callsTodayAgg._avg.durationSeconds ?? 0),
+      avgHandleTime: avgHandle,
+      avgWaitingTime: avgWait,
       totalTalkToday: callsTodayAgg._sum.durationSeconds ?? 0,
       callsWeek,
+      inboundWeek,
+      outboundWeek,
+      coldCallsWeek,
+      followupCallsWeek,
       leadsWeek,
       wonWeek,
-      conversionRate: leadsWeek > 0 ? Math.round((wonWeek / leadsWeek) * 100) : 0,
+      qualifiedWeek,
+      lostWeek,
+      conversionRateQualified:
+        leadsWeek > 0 ? Math.round((qualifiedWeek / leadsWeek) * 100) : 0,
+      conversionRateWon: leadsWeek > 0 ? Math.round((wonWeek / leadsWeek) * 100) : 0,
+      winRate: qualifiedWeek > 0 ? Math.round((wonWeek / qualifiedWeek) * 100) : 0,
       series,
+      hourlySeries,
       topAgents,
+      statusBreakdown,
     };
+  }
+
+  /** Chamadas frias: outbound pra lead status=new (nunca tinha sido contatado antes). */
+  private async coldCallsCount(subAccountId: string, since: Date): Promise<number> {
+    const rows = await this.prisma.$queryRaw<Array<{ c: bigint }>>`
+      SELECT COUNT(*)::bigint AS c
+      FROM interactions i
+      JOIN leads l ON l.id = i.lead_id
+      WHERE i.sub_account_id = ${subAccountId}::uuid
+        AND i.type = 'call'
+        AND i.direction = 'outbound'
+        AND i.started_at >= ${since}
+        AND l.status = 'new'
+    `;
+    return Number(rows[0]?.c ?? 0);
+  }
+
+  /** Follow-up: outbound pra lead status in (contacted, qualified). */
+  private async followupCallsCount(subAccountId: string, since: Date): Promise<number> {
+    const rows = await this.prisma.$queryRaw<Array<{ c: bigint }>>`
+      SELECT COUNT(*)::bigint AS c
+      FROM interactions i
+      JOIN leads l ON l.id = i.lead_id
+      WHERE i.sub_account_id = ${subAccountId}::uuid
+        AND i.type = 'call'
+        AND i.direction = 'outbound'
+        AND i.started_at >= ${since}
+        AND l.status IN ('contacted', 'qualified')
+    `;
+    return Number(rows[0]?.c ?? 0);
+  }
+
+  /** Volume por hora do dia nos últimos 7d. */
+  private async hourlySeries(subAccountId: string, since: Date) {
+    const rows = await this.prisma.$queryRaw<Array<{ hour: number; count: bigint }>>`
+      SELECT EXTRACT(HOUR FROM started_at)::int AS hour, COUNT(*)::bigint AS count
+      FROM interactions
+      WHERE sub_account_id = ${subAccountId}::uuid
+        AND type = 'call'
+        AND started_at >= ${since}
+      GROUP BY 1
+      ORDER BY 1
+    `;
+    // Preenche buracos
+    const map = new Map(rows.map((r) => [Number(r.hour), Number(r.count)]));
+    return Array.from({ length: 24 }, (_, h) => ({ hour: h, count: map.get(h) ?? 0 }));
+  }
+
+  private async leadStatusBreakdown(subAccountId: string) {
+    const rows = await this.prisma.lead.groupBy({
+      by: ['status'],
+      where: { subAccountId, deletedAt: null },
+      _count: { _all: true },
+    });
+    const total = rows.reduce((s, r) => s + r._count._all, 0);
+    return rows.map((r) => ({
+      status: r.status,
+      count: r._count._all,
+      percent: total > 0 ? Math.round((r._count._all / total) * 100) : 0,
+    }));
   }
 
   /** Série de chamadas dos últimos 7 dias, 1 bucket por dia. */

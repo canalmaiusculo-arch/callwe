@@ -319,6 +319,8 @@ model Interaction {
   startedAt           DateTime              @map("started_at") @db.Timestamptz
   endedAt             DateTime?             @map("ended_at") @db.Timestamptz
   durationSeconds     Int?                  @map("duration_seconds")
+  waitingSeconds      Int?                  @map("waiting_seconds")
+  wrapupSeconds       Int?                  @map("wrapup_seconds")
   fromNumber          String?               @map("from_number")
   toNumber            String?               @map("to_number")
   agentUserId         String?               @map("agent_user_id") @db.Uuid

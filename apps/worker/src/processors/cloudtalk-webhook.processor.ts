@@ -111,6 +111,8 @@ async function handleCallEvent(subAccountId: string, body: Record<string, unknow
   const toNumber = direction === 'inbound' ? internalNumber : externalNumber;
 
   const duration = body.duration ?? body.talking_time ? Number(body.duration ?? body.talking_time) : null;
+  const waiting = body.waiting_time ? Number(body.waiting_time) : null;
+  const wrapup = body.wrapup_time ? Number(body.wrapup_time) : null;
 
   // Call.ended com duration 0 (ou talking_time 0) = chamada perdida
   const isMissed =
@@ -126,6 +128,8 @@ async function handleCallEvent(subAccountId: string, body: Record<string, unknow
       status,
       endedAt: body.ended_at ? new Date(String(body.ended_at)) : null,
       durationSeconds: duration,
+      waitingSeconds: waiting,
+      wrapupSeconds: wrapup,
       agentUserId: agentUserId ?? undefined,
       metadata: body as Prisma.InputJsonValue,
     },
@@ -139,6 +143,8 @@ async function handleCallEvent(subAccountId: string, body: Record<string, unknow
       startedAt: new Date(String(body.started_at ?? Date.now())),
       endedAt: body.ended_at ? new Date(String(body.ended_at)) : null,
       durationSeconds: duration,
+      waitingSeconds: waiting,
+      wrapupSeconds: wrapup,
       fromNumber,
       toNumber,
       agentUserId,
