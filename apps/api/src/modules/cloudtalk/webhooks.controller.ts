@@ -50,8 +50,7 @@ export class CloudtalkWebhooksController {
   }
 
   private async resolveSubTagFromBody(body: Record<string, unknown>): Promise<string | null> {
-    const isInbound = body.type === 'incoming' || body.type === 'inbound';
-    const numberRaw = String((isInbound ? body.to_number : body.from_number) ?? '');
+    const numberRaw = String(body.internal_number ?? body.to_number ?? '');
     if (!numberRaw) return null;
     const e164 = numberRaw.startsWith('+') ? numberRaw : `+${numberRaw.replace(/[^\d]/g, '')}`;
     const pn = await this.prisma.phoneNumber.findFirst({

@@ -18,10 +18,10 @@ export function startCloudtalkWebhookWorker() {
       const body = inbox.body as Record<string, unknown>;
       const eventType = inbox.eventType;
 
-      // Resolve sub-account by phone number (lookup table phone_numbers)
-      const isInbound = body.type === 'incoming' || body.type === 'inbound';
+      // CloudTalk envia internal_number (seu número) e external_number (cliente).
+      // O internal_number sempre identifica a subconta, independente da direção.
       const lookupNumber = normalizeE164(
-        String((isInbound ? body.to_number : body.from_number) ?? ''),
+        String(body.internal_number ?? body.to_number ?? ''),
       );
 
       if (!lookupNumber) {
@@ -69,30 +69,41 @@ export function startCloudtalkWebhookWorker() {
 }
 
 async function handleCallEvent(subAccountId: string, body: Record<string, unknown>) {
-  const callUuid = String(body.call_uuid);
-  const phone = String(body.from_number ?? '');
+  const callUuid = String(body.call_uuid ?? body.call_id);
+  const direction = body.direction === 'outgoing' || body.type === 'outgoing' ? 'outbound' : 'inbound';
+  const internalNumber = normalizeE164(String(body.internal_number ?? body.to_number ?? ''));
+  const externalNumber = normalizeE164(String(body.external_number ?? body.from_number ?? ''));
 
+  // Lead é sempre criado com base no número EXTERNO (cliente).
+  const customerPhone = externalNumber;
   let leadId: string | undefined;
-  if (phone) {
+  if (customerPhone) {
     const existing = await prisma.lead.findFirst({
-      where: { subAccountId, phoneE164: phone, deletedAt: null },
+      where: { subAccountId, phoneE164: customerPhone, deletedAt: null },
     });
     if (existing) {
       leadId = existing.id;
     } else {
       const created = await prisma.lead.create({
-        data: { subAccountId, source: 'inbound_call', phoneE164: phone },
+        data: {
+          subAccountId,
+          source: direction === 'inbound' ? 'inbound_call' : 'outbound_call',
+          phoneE164: customerPhone,
+        },
       });
       leadId = created.id;
     }
   }
+
+  const fromNumber = direction === 'inbound' ? externalNumber : internalNumber;
+  const toNumber = direction === 'inbound' ? internalNumber : externalNumber;
 
   await prisma.interaction.upsert({
     where: { cloudtalkCallId: callUuid },
     update: {
       status: mapCallStatus(body.event_type as string),
       endedAt: body.ended_at ? new Date(String(body.ended_at)) : null,
-      durationSeconds: body.duration ? Number(body.duration) : null,
+      durationSeconds: body.duration ?? body.talking_time ? Number(body.duration ?? body.talking_time) : null,
       metadata: body as object,
     },
     create: {
@@ -100,13 +111,13 @@ async function handleCallEvent(subAccountId: string, body: Record<string, unknow
       leadId,
       cloudtalkCallId: callUuid,
       type: 'call',
-      direction: body.type === 'outgoing' ? 'outbound' : 'inbound',
+      direction,
       status: mapCallStatus(body.event_type as string),
       startedAt: new Date(String(body.started_at ?? Date.now())),
       endedAt: body.ended_at ? new Date(String(body.ended_at)) : null,
-      durationSeconds: body.duration ? Number(body.duration) : null,
-      fromNumber: String(body.from_number ?? ''),
-      toNumber: String(body.to_number ?? ''),
+      durationSeconds: body.duration ?? body.talking_time ? Number(body.duration ?? body.talking_time) : null,
+      fromNumber,
+      toNumber,
       metadata: body as object,
     },
   });
