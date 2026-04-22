@@ -37,6 +37,18 @@ export class InteractionsController {
     return this.svc.agentStats(user.id);
   }
 
+  /** Detalhe de uma interação — valida via memberships do usuário (não exige TenantGuard). */
+  @Get('mine/:id')
+  async mineDetail(@CurrentUser() user: AuthUser, @Param('id') id: string) {
+    const subAccountIds = user.memberships
+      .map((m) => m.subAccountId)
+      .filter((v): v is string => !!v);
+    const interaction = await this.svc.getAny(id);
+    if (!interaction) throw new NotFoundException();
+    if (!subAccountIds.includes(interaction.subAccountId)) throw new NotFoundException();
+    return interaction;
+  }
+
   @Get()
   @UseGuards(TenantGuard)
   list(@Req() req: { tenant: { subAccountId: string } }, @Query('type') type?: string) {

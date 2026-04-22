@@ -69,6 +69,18 @@ export class InteractionsService {
         lead: true,
         agent: { select: { id: true, fullName: true } },
         events: { orderBy: { occurredAt: 'asc' } },
+        subAccount: { select: { id: true, name: true } },
+      },
+    });
+  }
+
+  getAny(id: string) {
+    return this.prisma.interaction.findUnique({
+      where: { id },
+      include: {
+        lead: true,
+        agent: { select: { id: true, fullName: true } },
+        subAccount: { select: { id: true, name: true } },
       },
     });
   }

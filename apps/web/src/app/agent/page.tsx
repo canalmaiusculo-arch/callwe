@@ -18,6 +18,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { SoftphoneFrame } from '@/components/agent/softphone-frame';
+import { InteractionDrawer } from '@/components/interaction-drawer';
 import { useAuthStore } from '@/stores/auth-store';
 import { useRealtimeCalls } from '@/hooks/use-realtime-calls';
 
@@ -58,6 +59,7 @@ export default function AgentPage() {
   const [activeCall, setActiveCall] = useState<unknown>(null);
   const [tab, setTab] = useState<Tab>('calls');
   const [onlyMine, setOnlyMine] = useState(true);
+  const [drawerId, setDrawerId] = useState<string | null>(null);
   const clearAuth = useAuthStore((s) => s.clear);
 
   const { data: clients = [] } = useQuery<AssignedClient[]>({
@@ -114,9 +116,9 @@ export default function AgentPage() {
         ) : tab === 'dashboard' ? (
           <DashboardView />
         ) : tab === 'calls' ? (
-          <CallsView onlyMine={onlyMine} onToggleMine={() => setOnlyMine(!onlyMine)} />
+          <CallsView onlyMine={onlyMine} onToggleMine={() => setOnlyMine(!onlyMine)} onOpen={setDrawerId} />
         ) : (
-          <SmsView onlyMine={onlyMine} onToggleMine={() => setOnlyMine(!onlyMine)} />
+          <SmsView onlyMine={onlyMine} onToggleMine={() => setOnlyMine(!onlyMine)} onOpen={setDrawerId} />
         )}
       </section>
 
@@ -130,6 +132,8 @@ export default function AgentPage() {
           </CardContent>
         </Card>
       </aside>
+
+      <InteractionDrawer interactionId={drawerId} onClose={() => setDrawerId(null)} />
     </div>
   );
 }
@@ -205,7 +209,15 @@ function StatCard({
   );
 }
 
-function CallsView({ onlyMine, onToggleMine }: { onlyMine: boolean; onToggleMine: () => void }) {
+function CallsView({
+  onlyMine,
+  onToggleMine,
+  onOpen,
+}: {
+  onlyMine: boolean;
+  onToggleMine: () => void;
+  onOpen: (id: string) => void;
+}) {
   const { data: calls = [] } = useQuery<Interaction[]>({
     queryKey: ['my-calls', onlyMine],
     queryFn: () => apiClient.get(`/interactions/mine?type=call&onlyMine=${onlyMine}`),
@@ -228,14 +240,14 @@ function CallsView({ onlyMine, onToggleMine }: { onlyMine: boolean; onToggleMine
           </div>
         )}
         {calls.map((c) => (
-          <CallRow key={c.id} call={c} />
+          <CallRow key={c.id} call={c} onClick={() => onOpen(c.id)} />
         ))}
       </CardContent>
     </Card>
   );
 }
 
-function CallRow({ call }: { call: Interaction }) {
+function CallRow({ call, onClick }: { call: Interaction; onClick: () => void }) {
   const Icon = call.status === 'missed' ? PhoneMissed : call.direction === 'inbound' ? PhoneIncoming : PhoneOutgoing;
   const iconColor =
     call.status === 'missed'
@@ -245,7 +257,10 @@ function CallRow({ call }: { call: Interaction }) {
         : 'text-blue-600';
 
   return (
-    <div className="grid grid-cols-[auto_1fr_auto] items-center gap-3 rounded-md border p-3">
+    <button
+      onClick={onClick}
+      className="grid w-full grid-cols-[auto_1fr_auto] items-center gap-3 rounded-md border p-3 text-left transition-colors hover:bg-muted/40"
+    >
       <Icon className={`h-5 w-5 ${iconColor}`} />
       <div className="grid grid-cols-4 gap-2 text-xs">
         <div>
@@ -271,11 +286,19 @@ function CallRow({ call }: { call: Interaction }) {
         )}
         <Badge variant={call.status === 'missed' ? 'destructive' : 'secondary'}>{call.status}</Badge>
       </div>
-    </div>
+    </button>
   );
 }
 
-function SmsView({ onlyMine, onToggleMine }: { onlyMine: boolean; onToggleMine: () => void }) {
+function SmsView({
+  onlyMine,
+  onToggleMine,
+  onOpen,
+}: {
+  onlyMine: boolean;
+  onToggleMine: () => void;
+  onOpen: (id: string) => void;
+}) {
   const { data: messages = [] } = useQuery<Interaction[]>({
     queryKey: ['my-sms', onlyMine],
     queryFn: () => apiClient.get(`/interactions/mine?type=sms&onlyMine=${onlyMine}`),
@@ -295,7 +318,11 @@ function SmsView({ onlyMine, onToggleMine }: { onlyMine: boolean; onToggleMine: 
           <p className="py-8 text-center text-sm text-muted-foreground">Nenhuma mensagem.</p>
         )}
         {messages.map((m) => (
-          <div key={m.id} className="flex gap-3 rounded-md border p-3">
+          <button
+            key={m.id}
+            onClick={() => onOpen(m.id)}
+            className="flex w-full gap-3 rounded-md border p-3 text-left hover:bg-muted/40"
+          >
             <MessageSquare className="mt-0.5 h-4 w-4 text-muted-foreground" />
             <div className="flex-1">
               <div className="flex items-center justify-between text-xs text-muted-foreground">
@@ -311,7 +338,7 @@ function SmsView({ onlyMine, onToggleMine }: { onlyMine: boolean; onToggleMine: 
               </div>
               <p className="mt-1 text-sm">{m.smsBody}</p>
             </div>
-          </div>
+          </button>
         ))}
       </CardContent>
     </Card>
