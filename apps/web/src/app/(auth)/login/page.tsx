@@ -6,6 +6,20 @@ import { toast } from 'sonner';
 import { apiClient } from '@/lib/api-client';
 import { useAuthStore } from '@/stores/auth-store';
 
+interface LoginResponse {
+  accessToken: string;
+  refreshToken: string;
+}
+
+interface JwtClaims {
+  memberships: Array<{ role: string; agencyId?: string; subAccountId?: string }>;
+}
+
+function decodeJwt(token: string): JwtClaims {
+  const payload = token.split('.')[1] ?? '';
+  return JSON.parse(atob(payload.replace(/-/g, '+').replace(/_/g, '/')));
+}
+
 export default function LoginPage() {
   const router = useRouter();
   const setTokens = useAuthStore((s) => s.setTokens);
@@ -17,13 +31,24 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
     try {
-      const res = await apiClient.post<{ accessToken: string; refreshToken: string }>('/auth/login', {
-        email,
-        password,
-      });
+      const res = await apiClient.post<LoginResponse>('/auth/login', { email, password });
       setTokens(res.accessToken, res.refreshToken);
-      router.push('/select-sub-account');
-    } catch (err) {
+
+      // Roteamento baseado no role
+      const claims = decodeJwt(res.accessToken);
+      const isAdmin = claims.memberships.some((m) =>
+        ['agency_admin', 'super_admin'].includes(m.role),
+      );
+      const isAgent = claims.memberships.some((m) => m.role === 'agent');
+
+      if (isAdmin) {
+        router.push('/agency');
+      } else if (isAgent) {
+        router.push('/agent');
+      } else {
+        router.push('/select-sub-account');
+      }
+    } catch {
       toast.error('Credenciais inválidas');
     } finally {
       setLoading(false);

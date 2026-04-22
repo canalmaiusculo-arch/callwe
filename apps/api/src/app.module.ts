@@ -15,6 +15,7 @@ import { DashboardModule } from './modules/dashboard/dashboard.module.js';
 import { IntegrationsModule } from './modules/integrations/integrations.module.js';
 import { QueuesModule } from './modules/queues/queues.module.js';
 import { PhoneNumbersModule } from './modules/phone-numbers/phone-numbers.module.js';
+import { TeamModule } from './modules/team/team.module.js';
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { PhoneNumbersModule } from './modules/phone-numbers/phone-numbers.module
     AuthModule,
     SubAccountsModule,
     PhoneNumbersModule,
+    TeamModule,
     LeadsModule,
     InteractionsModule,
     BriefingsModule,
