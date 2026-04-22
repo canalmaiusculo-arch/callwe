@@ -15,8 +15,9 @@ export function startCloudtalkWebhookWorker() {
       const inbox = await prisma.webhookInbox.findUnique({ where: { id: job.data.inboxId } });
       if (!inbox) throw new Error(`Inbox ${job.data.inboxId} not found`);
 
-      const body = inbox.body as Record<string, unknown>;
-      const eventType = inbox.eventType;
+      const rawBody = inbox.body as Record<string, unknown>;
+      const body = trimStrings(rawBody);
+      const eventType = (inbox.eventType ?? '').trim();
 
       // CloudTalk envia internal_number e external_number.
       // Para chamadas inbound, internal = nosso número (cliente).
@@ -124,6 +125,15 @@ async function handleCallEvent(subAccountId: string, body: Record<string, unknow
       metadata: body as object,
     },
   });
+}
+
+function trimStrings(obj: Record<string, unknown>): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(obj)) {
+    const cleanKey = k.trim();
+    out[cleanKey] = typeof v === 'string' ? v.trim() : v;
+  }
+  return out;
 }
 
 function normalizeE164(num: string): string {
