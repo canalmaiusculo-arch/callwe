@@ -1,0 +1,57 @@
+{
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "new": "New",
+    "search": "Search",
+    "loading": "Loading...",
+    "empty": "No data",
+    "confirm": "Confirm",
+    "close": "Close",
+    "back": "Back",
+    "logout": "Log out"
+  },
+  "auth": {
+    "login": "Log in",
+    "loginTitle": "Log in to CallWe",
+    "email": "Email",
+    "password": "Password",
+    "invalidCredentials": "Invalid credentials"
+  },
+  "workspace": {
+    "dashboard": "Dashboard",
+    "leads": "Leads",
+    "calls": "Calls",
+    "sms": "SMS",
+    "voicemails": "Voicemails",
+    "briefing": "Briefing",
+    "integrations": "Integrations"
+  },
+  "agent": {
+    "title": "Live panel",
+    "myClients": "My clients",
+    "softphone": "Softphone",
+    "incomingCall": "Incoming call",
+    "dashboard": "Dashboard",
+    "onlyMine": "Only mine",
+    "viewAll": "View all"
+  },
+  "leadStatus": {
+    "new": "New",
+    "contacted": "Contacted",
+    "qualified": "Qualified",
+    "won": "Won",
+    "lost": "Lost"
+  },
+  "leadSource": {
+    "inbound_call": "Inbound call",
+    "outbound_call": "Outbound call",
+    "meta_ads": "Meta Ads",
+    "sms": "SMS",
+    "manual": "Manual",
+    "import": "Import",
+    "api": "API"
+  }
+}

@@ -1,0 +1,57 @@
+{
+  "common": {
+    "save": "Salvar",
+    "cancel": "Cancelar",
+    "delete": "Excluir",
+    "edit": "Editar",
+    "new": "Novo",
+    "search": "Buscar",
+    "loading": "Carregando...",
+    "empty": "Sem dados",
+    "confirm": "Confirmar",
+    "close": "Fechar",
+    "back": "Voltar",
+    "logout": "Sair"
+  },
+  "auth": {
+    "login": "Entrar",
+    "loginTitle": "Entrar no CallWe",
+    "email": "Email",
+    "password": "Senha",
+    "invalidCredentials": "Credenciais inválidas"
+  },
+  "workspace": {
+    "dashboard": "Dashboard",
+    "leads": "Leads",
+    "calls": "Chamadas",
+    "sms": "SMS",
+    "voicemails": "Voicemails",
+    "briefing": "Briefing",
+    "integrations": "Integrações"
+  },
+  "agent": {
+    "title": "Painel ao vivo",
+    "myClients": "Meus clientes",
+    "softphone": "Softphone",
+    "incomingCall": "Chamada entrante",
+    "dashboard": "Dashboard",
+    "onlyMine": "Só minhas",
+    "viewAll": "Ver todas"
+  },
+  "leadStatus": {
+    "new": "Novo",
+    "contacted": "Contatado",
+    "qualified": "Qualificado",
+    "won": "Ganho",
+    "lost": "Perdido"
+  },
+  "leadSource": {
+    "inbound_call": "Chamada entrante",
+    "outbound_call": "Chamada saída",
+    "meta_ads": "Meta Ads",
+    "sms": "SMS",
+    "manual": "Manual",
+    "import": "Importação",
+    "api": "API"
+  }
+}

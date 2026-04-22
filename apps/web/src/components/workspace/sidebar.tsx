@@ -19,15 +19,17 @@ import {
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores/auth-store';
 import { useTenantStore } from '@/stores/tenant-store';
+import { LanguageSwitcher } from '@/components/language-switcher';
+import { useTranslate } from '@/i18n/provider';
 
-const navItems = [
-  { href: '/workspace' as const, icon: LayoutDashboard, label: 'Dashboard' },
-  { href: '/workspace/leads' as const, icon: Users, label: 'Leads' },
-  { href: '/workspace/calls' as const, icon: Phone, label: 'Chamadas' },
-  { href: '/workspace/sms' as const, icon: MessageSquare, label: 'SMS' },
-  { href: '/workspace/voicemails' as const, icon: Voicemail, label: 'Voicemails' },
-  { href: '/workspace/briefing' as const, icon: FileText, label: 'Briefing' },
-  { href: '/workspace/integrations' as const, icon: Link2, label: 'Integrações' },
+const navDefs = [
+  { href: '/workspace' as const, icon: LayoutDashboard, key: 'workspace.dashboard' },
+  { href: '/workspace/leads' as const, icon: Users, key: 'workspace.leads' },
+  { href: '/workspace/calls' as const, icon: Phone, key: 'workspace.calls' },
+  { href: '/workspace/sms' as const, icon: MessageSquare, key: 'workspace.sms' },
+  { href: '/workspace/voicemails' as const, icon: Voicemail, key: 'workspace.voicemails' },
+  { href: '/workspace/briefing' as const, icon: FileText, key: 'workspace.briefing' },
+  { href: '/workspace/integrations' as const, icon: Link2, key: 'workspace.integrations' },
 ];
 
 export function WorkspaceSidebar() {
@@ -36,6 +38,7 @@ export function WorkspaceSidebar() {
   const subAccountName = useTenantStore((s) => s.subAccountName);
   const clearAuth = useAuthStore((s) => s.clear);
   const clearTenant = useTenantStore((s) => s.clear);
+  const { t } = useTranslate();
 
   const content = (
     <>
@@ -53,7 +56,7 @@ export function WorkspaceSidebar() {
       </div>
 
       <nav className="flex-1 space-y-1 p-2 overflow-auto">
-        {navItems.map((item) => {
+        {navDefs.map((item) => {
           const active = pathname === item.href || pathname.startsWith(item.href + '/');
           const Icon = item.icon;
           return (
@@ -67,7 +70,7 @@ export function WorkspaceSidebar() {
               )}
             >
               <Icon className="h-4 w-4" />
-              {item.label}
+              {t(item.key)}
             </Link>
           );
         })}
@@ -78,8 +81,12 @@ export function WorkspaceSidebar() {
         className="m-2 flex items-center gap-3 rounded-md border border-dashed px-3 py-2 text-sm text-muted-foreground hover:bg-muted"
       >
         <Building2 className="h-4 w-4" />
-        Painel da agência
+        {t('agent.title').includes('Live') ? 'Agency panel' : 'Painel da agência'}
       </Link>
+
+      <div className="mx-2 mt-1">
+        <LanguageSwitcher />
+      </div>
 
       <button
         onClick={() => {
@@ -90,14 +97,13 @@ export function WorkspaceSidebar() {
         className="m-2 flex items-center gap-3 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-muted"
       >
         <LogOut className="h-4 w-4" />
-        Sair
+        {t('common.logout')}
       </button>
     </>
   );
 
   return (
     <>
-      {/* Botão de abrir no mobile */}
       <button
         className="md:hidden fixed top-3 left-3 z-30 rounded-md border bg-background p-2 shadow-sm"
         onClick={() => setOpen(true)}
@@ -105,7 +111,6 @@ export function WorkspaceSidebar() {
         <Menu className="h-5 w-5" />
       </button>
 
-      {/* Overlay mobile */}
       {open && (
         <div
           className="md:hidden fixed inset-0 z-40 bg-black/30"
@@ -113,7 +118,6 @@ export function WorkspaceSidebar() {
         />
       )}
 
-      {/* Sidebar — desktop sempre visível, mobile deslizante */}
       <aside
         className={cn(
           'flex h-screen w-60 flex-col border-r bg-muted/20 transition-transform',
