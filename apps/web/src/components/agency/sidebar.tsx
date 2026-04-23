@@ -7,6 +7,7 @@ import { Building2, Users, LayoutDashboard, LogOut, Menu, X } from 'lucide-react
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores/auth-store';
 import { useTenantStore } from '@/stores/tenant-store';
+import { useAdminViewStore } from '@/stores/admin-view-store';
 
 const items = [
   { href: '/agency' as const, icon: LayoutDashboard, label: 'Visão geral' },
@@ -19,13 +20,14 @@ export function AgencySidebar() {
   const pathname = usePathname();
   const clearAuth = useAuthStore((s) => s.clear);
   const clearTenant = useTenantStore((s) => s.clear);
+  const viewAsAgencyName = useAdminViewStore((s) => s.viewAsAgencyName);
 
   const content = (
     <>
       <div className="flex items-center justify-between border-b p-4">
         <div className="flex-1 min-w-0">
           <p className="text-xs uppercase text-muted-foreground">Agência</p>
-          <p className="truncate text-sm font-semibold">CallWe</p>
+          <p className="truncate text-sm font-semibold">{viewAsAgencyName ?? 'CallWe'}</p>
         </div>
         <button className="md:hidden rounded-md p-2 hover:bg-muted" onClick={() => setOpen(false)}>
           <X className="h-4 w-4" />
