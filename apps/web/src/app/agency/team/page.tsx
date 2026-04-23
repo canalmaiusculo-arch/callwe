@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { useAdminViewStore } from '@/stores/admin-view-store';
 
 interface TeamMember {
   id: string;
@@ -38,15 +39,17 @@ export default function TeamPage() {
   const [selectedSubs, setSelectedSubs] = useState<string[]>([]);
   const [inviteRole, setInviteRole] = useState<'agent' | 'client_viewer'>('agent');
   const [inviteUrl, setInviteUrl] = useState<string | null>(null);
+  const viewAsAgencyId = useAdminViewStore((s) => s.viewAsAgencyId);
 
   const { data: team = [] } = useQuery<TeamMember[]>({
-    queryKey: ['team'],
-    queryFn: () => apiClient.get('/team'),
+    queryKey: ['team', viewAsAgencyId],
+    queryFn: () => apiClient.get(viewAsAgencyId ? `/team?agencyId=${viewAsAgencyId}` : '/team'),
   });
 
   const { data: subAccounts = [] } = useQuery<SubAccount[]>({
-    queryKey: ['agency-clients'],
-    queryFn: () => apiClient.get('/sub-accounts'),
+    queryKey: ['agency-clients', viewAsAgencyId],
+    queryFn: () =>
+      apiClient.get(viewAsAgencyId ? `/sub-accounts?agencyId=${viewAsAgencyId}` : '/sub-accounts'),
   });
 
   const invite = useMutation({

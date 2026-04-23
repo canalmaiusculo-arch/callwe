@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { z } from 'zod';
 import { TeamService } from './team.service.js';
@@ -40,8 +40,11 @@ export class TeamController {
   @Get()
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles(ROLES.AGENCY_ADMIN, ROLES.SUPER_ADMIN)
-  list(@CurrentUser() user: AuthUser) {
-    const agencyId = user.memberships.find((m) => m.agencyId)?.agencyId;
+  list(@CurrentUser() user: AuthUser, @Query('agencyId') queryAgencyId?: string) {
+    const isSuperAdmin = user.memberships.some((m) => m.role === 'super_admin');
+    const agencyId = isSuperAdmin && queryAgencyId
+      ? queryAgencyId
+      : user.memberships.find((m) => m.agencyId)?.agencyId;
     if (!agencyId) return [];
     return this.svc.list(agencyId);
   }
