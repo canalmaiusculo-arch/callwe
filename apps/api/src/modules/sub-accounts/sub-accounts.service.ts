@@ -77,4 +77,8 @@ export class SubAccountsService {
   update(id: string, input: { name?: string; status?: 'active' | 'paused' | 'archived'; plan?: 'starter' | 'pro' | 'enterprise' }) {
     return this.prisma.subAccount.update({ where: { id }, data: input });
   }
+
+  archive(id: string) {
+    return this.prisma.subAccount.update({ where: { id }, data: { status: 'archived' } });
+  }
 }
