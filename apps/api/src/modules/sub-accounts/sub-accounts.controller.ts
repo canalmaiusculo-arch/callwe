@@ -1,4 +1,4 @@
-import { BadRequestException, Body, Controller, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import { BadRequestException, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { z } from 'zod';
 import { SubAccountsService } from './sub-accounts.service.js';
@@ -25,13 +25,11 @@ const UpdateDto = z.object({
 export class SubAccountsController {
   constructor(private readonly svc: SubAccountsService) {}
 
-  /** Subcontas acessíveis pelo usuário (seletor pós-login). */
   @Get('mine')
   mine(@CurrentUser() user: AuthUser) {
     return this.svc.listForUser(user.id);
   }
 
-  /** Lista subcontas — agency_admin vê só da própria; super_admin pode filtrar por agencyId. */
   @Get()
   @Roles(ROLES.AGENCY_ADMIN, ROLES.SUPER_ADMIN)
   list(@CurrentUser() user: AuthUser, @Query('agencyId') agencyIdQuery?: string) {
@@ -49,7 +47,6 @@ export class SubAccountsController {
     return this.svc.get(id);
   }
 
-  /** Criar cliente: super_admin pode criar em qualquer agência; agency_admin só na sua. */
   @Post()
   @Roles(ROLES.SUPER_ADMIN)
   create(@CurrentUser() user: AuthUser, @ZodBody(CreateDto) dto: z.infer<typeof CreateDto>) {
@@ -66,5 +63,11 @@ export class SubAccountsController {
   @Roles(ROLES.SUPER_ADMIN, ROLES.AGENCY_ADMIN)
   update(@Param('id') id: string, @ZodBody(UpdateDto) dto: z.infer<typeof UpdateDto>) {
     return this.svc.update(id, dto);
+  }
+
+  @Delete(':id')
+  @Roles(ROLES.SUPER_ADMIN)
+  archive(@Param('id') id: string) {
+    return this.svc.archive(id);
   }
 }

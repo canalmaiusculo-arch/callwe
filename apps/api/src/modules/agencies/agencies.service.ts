@@ -64,6 +64,15 @@ export class AgenciesService {
     };
   }
 
+  /** Soft delete: suspende a agência e todas as sub-contas dela. */
+  async archive(id: string) {
+    await this.prisma.subAccount.updateMany({
+      where: { agencyId: id },
+      data: { status: 'archived' },
+    });
+    return this.prisma.agency.update({ where: { id }, data: { status: 'suspended' } });
+  }
+
   async get(id: string) {
     const agency = await this.prisma.agency.findUnique({
       where: { id },

@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { z } from 'zod';
 import { AgenciesService } from './agencies.service.js';
@@ -52,5 +52,10 @@ export class AgenciesController {
   @Post(':id/invite-admin')
   inviteAdmin(@Param('id') id: string, @ZodBody(InviteAdminDto) dto: z.infer<typeof InviteAdminDto>) {
     return this.svc.inviteAdmin(id, dto);
+  }
+
+  @Delete(':id')
+  archive(@Param('id') id: string) {
+    return this.svc.archive(id);
   }
 }
