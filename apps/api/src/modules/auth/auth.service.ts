@@ -85,4 +85,41 @@ export class AuthService {
       data: { revokedAt: new Date() },
     });
   }
+
+  async requestPasswordReset(email: string) {
+    const user = await this.prisma.user.findUnique({ where: { email } });
+    if (!user) return { ok: true };
+
+    const token = randomBytes(32).toString('base64url');
+    const tokenHash = createHash('sha256').update(token).digest('hex');
+
+    await this.prisma.session.create({
+      data: {
+        userId: user.id,
+        refreshTokenHash: tokenHash,
+        expiresAt: new Date(Date.now() + 60 * 60 * 1000),
+      },
+    });
+
+    return { ok: true, resetUrl: `${env.APP_URL}/reset-password?token=${token}` };
+  }
+
+  async resetPassword(token: string, newPassword: string) {
+    const tokenHash = createHash('sha256').update(token).digest('hex');
+    const session = await this.prisma.session.findFirst({
+      where: { refreshTokenHash: tokenHash, revokedAt: null, expiresAt: { gt: new Date() } },
+    });
+    if (!session) throw new UnauthorizedException('Link inválido ou expirado');
+
+    const passwordHash = await argon2.hash(newPassword, { type: argon2.argon2id });
+    await this.prisma.user.update({
+      where: { id: session.userId },
+      data: { passwordHash, status: 'active' },
+    });
+    await this.prisma.session.update({
+      where: { id: session.id },
+      data: { revokedAt: new Date() },
+    });
+    return { ok: true };
+  }
 }
