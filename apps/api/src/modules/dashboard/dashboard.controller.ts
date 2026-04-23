@@ -1,4 +1,4 @@
-import { Controller, Get, Req, UseGuards } from '@nestjs/common';
+import { Controller, Get, Query, Req, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { DashboardService } from './dashboard.service.js';
 import { TenantGuard } from '../../common/guards/tenant.guard.js';
@@ -16,8 +16,11 @@ export class DashboardController {
 
   @Get('agency-stats')
   @UseGuards(AuthGuard('jwt'))
-  agencyStats(@CurrentUser() user: AuthUser) {
-    const agencyId = user.memberships.find((m) => m.agencyId)?.agencyId;
+  agencyStats(@CurrentUser() user: AuthUser, @Query('agencyId') queryAgencyId?: string) {
+    const isSuperAdmin = user.memberships.some((m) => m.role === 'super_admin');
+    const agencyId = isSuperAdmin && queryAgencyId
+      ? queryAgencyId
+      : user.memberships.find((m) => m.agencyId)?.agencyId;
     if (!agencyId) return null;
     return this.svc.agencyStats(agencyId);
   }

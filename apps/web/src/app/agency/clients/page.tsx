@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { useAdminViewStore } from '@/stores/admin-view-store';
 
 interface Client {
   id: string;
@@ -25,9 +26,10 @@ export default function ClientsPage() {
   const [name, setName] = useState('');
   const [slug, setSlug] = useState('');
 
+  const viewAsAgencyId = useAdminViewStore((s) => s.viewAsAgencyId);
   const { data: clients = [] } = useQuery<Client[]>({
-    queryKey: ['agency-clients'],
-    queryFn: () => apiClient.get('/sub-accounts'),
+    queryKey: ['agency-clients', viewAsAgencyId],
+    queryFn: () => apiClient.get(viewAsAgencyId ? `/sub-accounts?agencyId=${viewAsAgencyId}` : '/sub-accounts'),
   });
 
   const create = useMutation({

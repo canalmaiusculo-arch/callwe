@@ -6,6 +6,7 @@ import { Building2, Users, Phone, PhoneMissed, TrendingUp, Clock } from 'lucide-
 import { apiClient } from '@/lib/api-client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { MiniLineChart } from '@/components/line-chart';
+import { useAdminViewStore } from '@/stores/admin-view-store';
 
 interface AgencyStats {
   totalClients: number;
@@ -20,9 +21,13 @@ interface AgencyStats {
 }
 
 export default function AgencyDashboard() {
+  const viewAsAgencyId = useAdminViewStore((s) => s.viewAsAgencyId);
   const { data } = useQuery<AgencyStats>({
-    queryKey: ['agency-stats'],
-    queryFn: () => apiClient.get<AgencyStats>('/dashboard/agency-stats'),
+    queryKey: ['agency-stats', viewAsAgencyId],
+    queryFn: () =>
+      apiClient.get<AgencyStats>(
+        viewAsAgencyId ? `/dashboard/agency-stats?agencyId=${viewAsAgencyId}` : '/dashboard/agency-stats',
+      ),
     refetchInterval: 60_000,
   });
 
