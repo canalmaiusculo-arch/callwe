@@ -29,15 +29,14 @@ const AssignDto = z.object({
 export class TeamController {
   constructor(private readonly svc: TeamService) {}
 
-  /** Aceitar convite — público, validado por token. */
+  /** Aceitar convite — público. */
   @Post('accept-invite')
   acceptInvite(@Body() body: z.infer<typeof AcceptInviteDto>) {
     const dto = AcceptInviteDto.parse(body);
     return this.svc.acceptInvite(dto.token, dto.password);
   }
 
-  // --------- endpoints autenticados ---------
-
+  // ---------- agency_admin (read-only) ----------
   @Get()
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles(ROLES.AGENCY_ADMIN, ROLES.SUPER_ADMIN)
@@ -47,35 +46,41 @@ export class TeamController {
     return this.svc.list(agencyId);
   }
 
+  // ---------- super_admin only ----------
+
+  @Get('all')
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(ROLES.SUPER_ADMIN)
+  listAll() {
+    return this.svc.listAllAgents();
+  }
+
   @Post('invite')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles(ROLES.AGENCY_ADMIN, ROLES.SUPER_ADMIN)
-  invite(@CurrentUser() user: AuthUser, @ZodBody(InviteDto) dto: z.infer<typeof InviteDto>) {
-    const agencyId = user.memberships.find((m) => m.agencyId)?.agencyId;
-    if (!agencyId) throw new Error('Sem agência');
-    return this.svc.invite(agencyId, dto);
+  @Roles(ROLES.SUPER_ADMIN)
+  invite(@ZodBody(InviteDto) dto: z.infer<typeof InviteDto>) {
+    return this.svc.invite('', dto);
   }
 
   @Post('assign')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles(ROLES.AGENCY_ADMIN, ROLES.SUPER_ADMIN)
+  @Roles(ROLES.SUPER_ADMIN)
   assign(@ZodBody(AssignDto) dto: z.infer<typeof AssignDto>) {
     return this.svc.assignSubAccount(dto.userId, dto.subAccountId);
   }
 
   @Delete('assign/:userId/:subAccountId')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles(ROLES.AGENCY_ADMIN, ROLES.SUPER_ADMIN)
+  @Roles(ROLES.SUPER_ADMIN)
   unassign(@Param('userId') userId: string, @Param('subAccountId') subAccountId: string) {
     return this.svc.unassignSubAccount(userId, subAccountId);
   }
 
   @Delete(':userId')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles(ROLES.AGENCY_ADMIN, ROLES.SUPER_ADMIN)
+  @Roles(ROLES.SUPER_ADMIN)
   remove(@CurrentUser() user: AuthUser, @Param('userId') userId: string) {
-    const agencyId = user.memberships.find((m) => m.agencyId)?.agencyId;
-    if (!agencyId) throw new Error('Sem agência');
+    const agencyId = user.memberships.find((m) => m.agencyId)?.agencyId ?? '';
     return this.svc.remove(userId, agencyId);
   }
 }

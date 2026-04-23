@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { z } from 'zod';
 import { SubAccountsService } from './sub-accounts.service.js';
@@ -11,7 +11,9 @@ import { ROLES } from '@callwe/shared';
 const CreateDto = z.object({
   name: z.string().min(2),
   slug: z.string().min(2).regex(/^[a-z0-9-]+$/, 'slug must be lowercase, hyphens only'),
+  agencyId: z.string().uuid().optional(),
 });
+
 const UpdateDto = z.object({
   name: z.string().min(2).optional(),
   status: z.enum(['active', 'paused', 'archived']).optional(),
@@ -23,15 +25,19 @@ const UpdateDto = z.object({
 export class SubAccountsController {
   constructor(private readonly svc: SubAccountsService) {}
 
-  /** Todas as subcontas que o usuário pode acessar (para o seletor após login). */
+  /** Subcontas acessíveis pelo usuário (seletor pós-login). */
   @Get('mine')
   mine(@CurrentUser() user: AuthUser) {
     return this.svc.listForUser(user.id);
   }
 
+  /** Lista subcontas — agency_admin vê só da própria; super_admin pode filtrar por agencyId. */
   @Get()
   @Roles(ROLES.AGENCY_ADMIN, ROLES.SUPER_ADMIN)
-  list(@CurrentUser() user: AuthUser) {
+  list(@CurrentUser() user: AuthUser, @Query('agencyId') agencyIdQuery?: string) {
+    const isSuperAdmin = user.memberships.some((m) => m.role === 'super_admin');
+    if (isSuperAdmin && agencyIdQuery) return this.svc.list(agencyIdQuery);
+    if (isSuperAdmin && !agencyIdQuery) return this.svc.listAll();
     const agencyId = user.memberships.find((m) => m.agencyId)?.agencyId;
     if (!agencyId) return [];
     return this.svc.list(agencyId);
@@ -43,16 +49,21 @@ export class SubAccountsController {
     return this.svc.get(id);
   }
 
+  /** Criar cliente: super_admin pode criar em qualquer agência; agency_admin só na sua. */
   @Post()
-  @Roles(ROLES.AGENCY_ADMIN, ROLES.SUPER_ADMIN)
+  @Roles(ROLES.SUPER_ADMIN)
   create(@CurrentUser() user: AuthUser, @ZodBody(CreateDto) dto: z.infer<typeof CreateDto>) {
-    const agencyId = user.memberships.find((m) => m.agencyId)?.agencyId;
-    if (!agencyId) throw new Error('Usuário sem agência');
-    return this.svc.create(agencyId, dto);
+    const isSuperAdmin = user.memberships.some((m) => m.role === 'super_admin');
+    let agencyId = dto.agencyId;
+    if (!isSuperAdmin) {
+      agencyId = user.memberships.find((m) => m.agencyId)?.agencyId;
+    }
+    if (!agencyId) throw new BadRequestException('agencyId obrigatório');
+    return this.svc.create(agencyId, { name: dto.name, slug: dto.slug });
   }
 
   @Patch(':id')
-  @Roles(ROLES.AGENCY_ADMIN, ROLES.SUPER_ADMIN)
+  @Roles(ROLES.SUPER_ADMIN, ROLES.AGENCY_ADMIN)
   update(@Param('id') id: string, @ZodBody(UpdateDto) dto: z.infer<typeof UpdateDto>) {
     return this.svc.update(id, dto);
   }

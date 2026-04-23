@@ -1,0 +1,245 @@
+'use client';
+
+import { use, useState } from 'react';
+import Link from 'next/link';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useRouter } from 'next/navigation';
+import { Check, ChevronRight } from 'lucide-react';
+import { toast } from 'sonner';
+import { apiClient } from '@/lib/api-client';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+
+interface AvailableNumber {
+  cloudtalkNumberId: string;
+  e164: string;
+  label: string | null;
+  country: string | null;
+  assignedTo: string | null;
+}
+
+interface Agent {
+  id: string;
+  fullName: string;
+  email: string;
+}
+
+export default function NewClientWizardPage({ params }: { params: Promise<{ agencyId: string }> }) {
+  const { agencyId } = use(params);
+  const router = useRouter();
+  const qc = useQueryClient();
+
+  const [step, setStep] = useState(1);
+  const [name, setName] = useState('');
+  const [slug, setSlug] = useState('');
+  const [chosenNumberId, setChosenNumberId] = useState<string | null>(null);
+  const [chosenAgentIds, setChosenAgentIds] = useState<string[]>([]);
+
+  const { data: numbers = [] } = useQuery<AvailableNumber[]>({
+    queryKey: ['available-numbers'],
+    queryFn: () => apiClient.get('/phone-numbers/available'),
+    enabled: step >= 2,
+  });
+  const free = numbers.filter((n) => !n.assignedTo);
+
+  const { data: agents = [] } = useQuery<Agent[]>({
+    queryKey: ['all-agents'],
+    queryFn: () => apiClient.get('/team/all'),
+    enabled: step >= 3,
+  });
+
+  function handleName(v: string) {
+    setName(v);
+    if (!slug || slug === slugify(name)) setSlug(slugify(v));
+  }
+
+  const submit = useMutation({
+    mutationFn: async () => {
+      const sub = await apiClient.post<{ id: string }>('/sub-accounts', { name, slug, agencyId });
+      const num = numbers.find((n) => n.cloudtalkNumberId === chosenNumberId);
+      if (num) {
+        await apiClient.post('/phone-numbers', {
+          subAccountId: sub.id,
+          cloudtalkNumberId: num.cloudtalkNumberId,
+          e164: num.e164,
+          label: num.label ?? name,
+          country: num.country ?? 'US',
+        });
+      }
+      for (const userId of chosenAgentIds) {
+        await apiClient.post('/team/assign', { userId, subAccountId: sub.id });
+      }
+      return sub;
+    },
+    onSuccess: () => {
+      toast.success('Cliente cadastrado');
+      qc.invalidateQueries({ queryKey: ['agency', agencyId] });
+      router.push(`/admin/agencies/${agencyId}`);
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+
+  return (
+    <div className="mx-auto max-w-2xl p-8">
+      <Link href={`/admin/agencies/${agencyId}` as never} className="text-sm text-muted-foreground hover:underline">
+        ← Voltar para a agência
+      </Link>
+
+      <h1 className="mt-2 text-3xl font-bold">Novo cliente</h1>
+      <p className="mt-1 text-muted-foreground">Em 3 passos: nome, número CloudTalk, atendentes designados</p>
+
+      <Stepper current={step} />
+
+      <Card className="mt-6">
+        {step === 1 && (
+          <>
+            <CardHeader>
+              <CardTitle className="text-base">1. Identificação do cliente</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div>
+                <label className="text-sm font-medium">Nome do cliente</label>
+                <Input value={name} onChange={(e) => handleName(e.target.value)} placeholder="Ex: Clínica Silva" />
+              </div>
+              <div>
+                <label className="text-sm font-medium">Slug</label>
+                <Input value={slug} onChange={(e) => setSlug(e.target.value)} placeholder="clinica-silva" />
+                <p className="mt-1 text-xs text-muted-foreground">Apenas minúsculas, números e hífens.</p>
+              </div>
+              <div className="flex justify-end">
+                <Button onClick={() => setStep(2)} disabled={!name || !slug}>
+                  Próximo <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </CardContent>
+          </>
+        )}
+
+        {step === 2 && (
+          <>
+            <CardHeader>
+              <CardTitle className="text-base">2. Atribuir número CloudTalk</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {free.length === 0 && (
+                <p className="text-sm text-muted-foreground">
+                  Nenhum número CloudTalk disponível. Compre um no painel CloudTalk e volte aqui.
+                </p>
+              )}
+              <div className="max-h-80 space-y-1 overflow-auto rounded-md border p-2">
+                {free.map((n) => (
+                  <label
+                    key={n.cloudtalkNumberId}
+                    className="flex cursor-pointer items-center gap-2 rounded p-2 hover:bg-muted/40"
+                  >
+                    <input
+                      type="radio"
+                      name="number"
+                      checked={chosenNumberId === n.cloudtalkNumberId}
+                      onChange={() => setChosenNumberId(n.cloudtalkNumberId)}
+                    />
+                    <span className="flex-1 text-sm">
+                      <span className="font-mono">{n.e164}</span>
+                      {n.label && <span className="ml-2 text-muted-foreground">— {n.label}</span>}
+                    </span>
+                    <span className="text-xs text-muted-foreground">{n.country}</span>
+                  </label>
+                ))}
+              </div>
+              <div className="flex justify-between">
+                <Button variant="outline" onClick={() => setStep(1)}>
+                  Voltar
+                </Button>
+                <Button onClick={() => setStep(3)} disabled={!chosenNumberId}>
+                  Próximo <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </CardContent>
+          </>
+        )}
+
+        {step === 3 && (
+          <>
+            <CardHeader>
+              <CardTitle className="text-base">3. Designar atendentes</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <p className="text-xs text-muted-foreground">
+                Escolha os atendentes que vão atender chamadas desse cliente.
+              </p>
+              {agents.length === 0 && (
+                <p className="text-sm text-muted-foreground">
+                  Nenhum atendente cadastrado. Vá em <Link href={'/admin/team' as never} className="underline">Atendentes</Link> primeiro.
+                </p>
+              )}
+              <div className="max-h-64 space-y-1 overflow-auto rounded-md border p-2">
+                {agents.map((a) => (
+                  <label key={a.id} className="flex cursor-pointer items-center gap-2 rounded p-2 hover:bg-muted/40">
+                    <input
+                      type="checkbox"
+                      checked={chosenAgentIds.includes(a.id)}
+                      onChange={() =>
+                        setChosenAgentIds((cur) =>
+                          cur.includes(a.id) ? cur.filter((i) => i !== a.id) : [...cur, a.id],
+                        )
+                      }
+                    />
+                    <div className="flex-1">
+                      <p className="text-sm font-medium">{a.fullName}</p>
+                      <p className="text-xs text-muted-foreground">{a.email}</p>
+                    </div>
+                  </label>
+                ))}
+              </div>
+              <div className="flex justify-between">
+                <Button variant="outline" onClick={() => setStep(2)}>
+                  Voltar
+                </Button>
+                <Button onClick={() => submit.mutate()} disabled={submit.isPending}>
+                  {submit.isPending ? 'Criando...' : 'Criar cliente'}
+                  <Check className="h-4 w-4" />
+                </Button>
+              </div>
+            </CardContent>
+          </>
+        )}
+      </Card>
+    </div>
+  );
+}
+
+function Stepper({ current }: { current: number }) {
+  const steps = ['Nome', 'Número', 'Atendentes'];
+  return (
+    <div className="mt-4 flex items-center gap-2">
+      {steps.map((label, i) => {
+        const n = i + 1;
+        const active = n === current;
+        const done = n < current;
+        return (
+          <div key={label} className="flex flex-1 items-center gap-2">
+            <div
+              className={`flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-xs font-bold ${
+                active ? 'bg-primary text-primary-foreground' : done ? 'bg-emerald-500 text-white' : 'bg-muted'
+              }`}
+            >
+              {done ? <Check className="h-4 w-4" /> : n}
+            </div>
+            <span className={`text-sm ${active ? 'font-medium' : 'text-muted-foreground'}`}>{label}</span>
+            {n < steps.length && <div className="ml-2 h-px flex-1 bg-border" />}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function slugify(s: string): string {
+  return s
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}

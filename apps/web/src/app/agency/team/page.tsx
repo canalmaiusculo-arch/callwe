@@ -86,17 +86,14 @@ export default function TeamPage() {
 
   return (
     <div className="p-8">
-      <header className="mb-6 flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Atendentes</h1>
-          <p className="mt-1 text-muted-foreground">{team.length} pessoas no time</p>
-        </div>
-        <Button onClick={() => { setShowInvite(!showInvite); setInviteUrl(null); }}>
-          <Plus className="h-4 w-4" /> Convidar atendente
-        </Button>
+      <header className="mb-6">
+        <h1 className="text-3xl font-bold">Time alocado</h1>
+        <p className="mt-1 text-muted-foreground">
+          {team.length} pessoas atendendo seus clientes. Para cadastrar novos atendentes, fale com a CallWe.
+        </p>
       </header>
 
-      {showInvite && (
+      {false && showInvite && (
         <Card className="mb-6">
           <CardHeader>
             <CardTitle className="text-base">Novo convite</CardTitle>
@@ -108,7 +105,7 @@ export default function TeamPage() {
                   Link de convite gerado. Envie para o atendente:
                 </p>
                 <div className="mt-2 flex gap-2">
-                  <Input value={inviteUrl} readOnly className="font-mono text-xs" />
+                  <Input value={inviteUrl ?? ''} readOnly className="font-mono text-xs" />
                   <Button variant="outline" onClick={copyInviteUrl}>
                     <Copy className="h-4 w-4" />
                   </Button>

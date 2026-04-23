@@ -13,6 +13,13 @@ export class SubAccountsService {
     });
   }
 
+  listAll() {
+    return this.prisma.subAccount.findMany({
+      orderBy: { createdAt: 'desc' },
+      include: { agency: { select: { id: true, name: true } } },
+    });
+  }
+
   /** Subcontas acessíveis pelo usuário (via memberships diretas + via agency_admin). */
   async listForUser(userId: string) {
     const memberships = await this.prisma.membership.findMany({

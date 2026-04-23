@@ -132,6 +132,32 @@ export class TeamService {
     return { ok: true, email: user.email };
   }
 
+  /** Lista TODOS os atendentes do sistema (super_admin only). */
+  async listAllAgents() {
+    const users = await this.prisma.user.findMany({
+      where: {
+        memberships: { some: { role: { in: ['agent', 'sub_account_admin'] } } },
+      },
+      include: {
+        memberships: {
+          where: { role: { in: ['agent', 'sub_account_admin'] } },
+          include: { subAccount: { select: { id: true, name: true } } },
+        },
+      },
+      orderBy: { fullName: 'asc' },
+    });
+    return users.map((u) => ({
+      id: u.id,
+      email: u.email,
+      fullName: u.fullName,
+      status: u.status,
+      lastLoginAt: u.lastLoginAt,
+      assignedSubAccounts: u.memberships
+        .filter((m) => m.subAccount)
+        .map((m) => ({ id: m.subAccount!.id, name: m.subAccount!.name })),
+    }));
+  }
+
   async assignSubAccount(userId: string, subAccountId: string) {
     const exists = await this.prisma.membership.findFirst({
       where: { userId, subAccountId, role: 'agent' },

@@ -29,6 +29,34 @@
     "briefing": "Briefing",
     "integrations": "Integrations"
   },
+  "admin": {
+    "title": "Super-admin",
+    "agencies": "Agencies",
+    "team": "Agents",
+    "newAgency": "New agency",
+    "newClient": "New client"
+  },
+  "agency": {
+    "title": "Agency",
+    "overview": "Overview",
+    "clients": "Clients",
+    "team": "Agents"
+  },
+  "kpi": {
+    "leadsToday": "Leads today",
+    "callsToday": "Calls today",
+    "missedToday": "Missed today",
+    "avgHandleTime": "AHT",
+    "avgWaitingTime": "Wait time",
+    "callsWeek": "Calls (7d)",
+    "leadsWeek": "Leads (7d)",
+    "conversion": "Conversion",
+    "inboundCalls": "Inbound",
+    "outboundCalls": "Outbound",
+    "coldCalls": "Cold calls",
+    "followUps": "Follow-ups",
+    "winRate": "Win rate"
+  },
   "agent": {
     "title": "Live panel",
     "myClients": "My clients",

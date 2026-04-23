@@ -35,13 +35,13 @@ export class PhoneNumbersController {
   }
 
   @Post()
-  @Roles(ROLES.AGENCY_ADMIN, ROLES.SUPER_ADMIN)
+  @Roles(ROLES.SUPER_ADMIN)
   create(@ZodBody(CreateDto) dto: z.infer<typeof CreateDto>) {
     return this.svc.create(dto.subAccountId, dto);
   }
 
   @Delete(':id')
-  @Roles(ROLES.AGENCY_ADMIN, ROLES.SUPER_ADMIN)
+  @Roles(ROLES.SUPER_ADMIN)
   release(@Param('id') id: string) {
     return this.svc.release(id);
   }

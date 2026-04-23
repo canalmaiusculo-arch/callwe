@@ -153,8 +153,13 @@ export default function AgencyDetailPage({ params }: { params: Promise<{ agencyI
         </Card>
 
         <Card>
-          <CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-base">Clientes ({agency.subAccounts.length})</CardTitle>
+            <Link href={`/admin/agencies/${agencyId}/new-client` as never}>
+              <Button size="sm">
+                <Plus className="h-4 w-4" /> Novo cliente
+              </Button>
+            </Link>
           </CardHeader>
           <CardContent className="space-y-2">
             {agency.subAccounts.length === 0 && (

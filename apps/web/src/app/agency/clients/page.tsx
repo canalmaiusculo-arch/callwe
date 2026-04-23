@@ -51,61 +51,20 @@ export default function ClientsPage() {
 
   return (
     <div className="p-8">
-      <header className="mb-6 flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Clientes</h1>
-          <p className="mt-1 text-muted-foreground">{clients.length} cadastrados</p>
-        </div>
-        <Button onClick={() => setShowForm(!showForm)}>
-          <Plus className="h-4 w-4" /> Novo cliente
-        </Button>
+      <header className="mb-6">
+        <h1 className="text-3xl font-bold">Clientes</h1>
+        <p className="mt-1 text-muted-foreground">
+          {clients.length} sob sua agência. Para cadastrar um novo cliente, fale com a CallWe.
+        </p>
       </header>
 
-      {showForm && (
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle className="text-base">Cadastrar novo cliente</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div>
-              <label className="text-sm font-medium">Nome</label>
-              <Input
-                placeholder="Ex: Clínica Silva"
-                value={name}
-                onChange={(e) => handleNameChange(e.target.value)}
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium">Slug (identificador)</label>
-              <Input
-                placeholder="clinica-silva"
-                value={slug}
-                onChange={(e) => setSlug(e.target.value)}
-              />
-              <p className="mt-1 text-xs text-muted-foreground">
-                Apenas letras minúsculas, números e hífens.
-              </p>
-            </div>
-            <div className="flex gap-2">
-              <Button
-                onClick={() => create.mutate({ name, slug })}
-                disabled={!name || !slug || create.isPending}
-              >
-                {create.isPending ? 'Criando...' : 'Criar cliente'}
-              </Button>
-              <Button variant="outline" onClick={() => setShowForm(false)}>
-                Cancelar
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      {/* Cadastro de novos clientes feito pelo super_admin */}
 
       <div className="space-y-2">
         {clients.length === 0 && (
           <Card>
             <CardContent className="p-6 text-center text-sm text-muted-foreground">
-              Nenhum cliente ainda. Clique em "Novo cliente" para começar.
+              Nenhum cliente atribuído à sua agência ainda.
             </CardContent>
           </Card>
         )}

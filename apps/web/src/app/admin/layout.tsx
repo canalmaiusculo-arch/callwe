@@ -2,19 +2,23 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Crown, Building2, LogOut } from 'lucide-react';
+import { Crown, Building2, LogOut, Users } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores/auth-store';
 import { useTenantStore } from '@/stores/tenant-store';
-
-const items = [
-  { href: '/admin' as const, label: 'Agências', icon: Building2 },
-];
+import { LanguageSwitcher } from '@/components/language-switcher';
+import { useTranslate } from '@/i18n/provider';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const clearAuth = useAuthStore((s) => s.clear);
   const clearTenant = useTenantStore((s) => s.clear);
+  const { t } = useTranslate();
+
+  const items = [
+    { href: '/admin' as const, label: t('admin.agencies'), icon: Building2 },
+    { href: '/admin/team' as const, label: t('admin.team'), icon: Users },
+  ];
 
   return (
     <div className="flex h-screen">
@@ -22,7 +26,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <div className="border-b p-4">
           <div className="flex items-center gap-2">
             <Crown className="h-4 w-4 text-amber-600" />
-            <p className="text-xs uppercase text-muted-foreground">Super-admin</p>
+            <p className="text-xs uppercase text-muted-foreground">{t('admin.title')}</p>
           </div>
           <p className="truncate text-sm font-semibold">CallWe</p>
         </div>
@@ -47,6 +51,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           })}
         </nav>
 
+        <div className="m-2">
+          <LanguageSwitcher />
+        </div>
+
         <button
           onClick={() => {
             clearAuth();
@@ -56,7 +64,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           className="m-2 flex items-center gap-3 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-muted"
         >
           <LogOut className="h-4 w-4" />
-          Sair
+          {t('common.logout')}
         </button>
       </aside>
       <main className="flex-1 overflow-auto">{children}</main>
