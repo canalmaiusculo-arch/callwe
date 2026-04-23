@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { ConflictException, Injectable } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import { PrismaService } from '../prisma/prisma.service.js';
 
@@ -63,7 +63,16 @@ export class SubAccountsService {
     });
   }
 
-  create(agencyId: string, input: { name: string; slug: string }) {
+  async create(agencyId: string, input: { name: string; slug: string }) {
+    // Se slug já existe (mesmo arquivado), sugere variante disponível
+    const existing = await this.prisma.subAccount.findFirst({
+      where: { agencyId, slug: input.slug },
+    });
+    if (existing) {
+      throw new ConflictException(
+        `Já existe um cliente com slug "${input.slug}" nessa agência (status: ${existing.status}). Use um slug diferente.`,
+      );
+    }
     return this.prisma.subAccount.create({
       data: {
         agencyId,
