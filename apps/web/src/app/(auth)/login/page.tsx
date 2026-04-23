@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { apiClient } from '@/lib/api-client';
@@ -86,6 +87,12 @@ export default function LoginPage() {
         >
           {loading ? 'Entrando...' : 'Entrar'}
         </button>
+        <Link
+          href="/forgot-password"
+          className="block text-center text-sm text-blue-600 hover:underline"
+        >
+          Esqueci minha senha
+        </Link>
       </form>
     </main>
   );
