@@ -88,8 +88,8 @@ export default function BriefingPage() {
             {briefing && <span className="ml-2">· versão {briefing.version}</span>}
           </p>
         </div>
-        <Button type="submit" disabled={isSubmitting}>
-          {isSubmitting ? 'Salvando...' : 'Salvar'}
+        <Button type="submit" disabled={isSubmitting || !subAccountId}>
+          {isSubmitting ? 'Salvando...' : !subAccountId ? 'Selecione um cliente' : 'Salvar'}
         </Button>
       </header>
 
