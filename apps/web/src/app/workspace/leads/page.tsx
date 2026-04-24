@@ -71,8 +71,9 @@ export default function LeadsPage() {
   if (to) query.set('to', new Date(to).toISOString());
 
   const { data: leads = [], isLoading } = useQuery<Lead[]>({
-    queryKey: ['leads', query.toString()],
+    queryKey: ['leads', subAccountId, query.toString()],
     queryFn: () => apiClient.get<Lead[]>(`/leads?${query.toString()}`),
+    enabled: !!subAccountId,
   });
 
   function handleExport() {

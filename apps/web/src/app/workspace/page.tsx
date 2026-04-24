@@ -68,7 +68,7 @@ export default function WorkspaceDashboard() {
   const subAccountId = useTenantStore((s) => s.subAccountId);
 
   const { data } = useQuery<DashboardStats>({
-    queryKey: ['dashboard-stats'],
+    queryKey: ['dashboard-stats', subAccountId],
     queryFn: () => apiClient.get<DashboardStats>('/dashboard/stats'),
     refetchInterval: 60_000,
   });

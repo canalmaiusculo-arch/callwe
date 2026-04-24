@@ -3,6 +3,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { MessageSquare } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
+import { useTenantStore } from '@/stores/tenant-store';
 
 interface SmsInteraction {
   id: string;
@@ -14,9 +15,11 @@ interface SmsInteraction {
 }
 
 export default function SmsPage() {
+  const subAccountId = useTenantStore((s) => s.subAccountId);
   const { data: messages = [], isLoading } = useQuery<SmsInteraction[]>({
-    queryKey: ['sms'],
+    queryKey: ['sms', subAccountId],
     queryFn: () => apiClient.get<SmsInteraction[]>('/interactions?type=sms'),
+    enabled: !!subAccountId,
   });
 
   return (

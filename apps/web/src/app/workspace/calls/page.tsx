@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
 import { PhoneIncoming, PhoneOutgoing, PhoneMissed } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
+import { useTenantStore } from '@/stores/tenant-store';
 import { Badge } from '@/components/ui/badge';
 import { RecordingPlayer } from '@/components/recording-player';
 
@@ -30,9 +31,11 @@ const SENTIMENT_VARIANT = {
 };
 
 export default function CallsPage() {
+  const subAccountId = useTenantStore((s) => s.subAccountId);
   const { data: calls = [], isLoading } = useQuery<CallInteraction[]>({
-    queryKey: ['calls'],
+    queryKey: ['calls', subAccountId],
     queryFn: () => apiClient.get<CallInteraction[]>('/interactions?type=call'),
+    enabled: !!subAccountId,
   });
 
   return (

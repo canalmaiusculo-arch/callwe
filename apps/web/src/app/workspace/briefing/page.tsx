@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { useTenantStore } from '@/stores/tenant-store';
 
 interface BriefingForm {
   businessSummary: string;
@@ -27,10 +28,12 @@ interface Briefing extends BriefingForm {
 
 export default function BriefingPage() {
   const qc = useQueryClient();
+  const subAccountId = useTenantStore((s) => s.subAccountId);
 
   const { data: briefing } = useQuery<Briefing | null>({
-    queryKey: ['briefing'],
+    queryKey: ['briefing', subAccountId],
     queryFn: () => apiClient.get<Briefing | null>('/briefings'),
+    enabled: !!subAccountId,
   });
 
   const { register, handleSubmit, control, reset, formState: { isSubmitting } } = useForm<BriefingForm>({
@@ -54,14 +57,23 @@ export default function BriefingPage() {
         faq: briefing.faq ?? [],
         scripts: briefing.scripts ?? { opening: '', objectionHandling: '', closing: '' },
       });
+    } else {
+      // Cliente sem briefing — limpa o form pra não aparecer dados de outro cliente
+      reset({
+        businessSummary: '',
+        targetAudience: '',
+        pricingGuidelines: '',
+        faq: [],
+        scripts: { opening: '', objectionHandling: '', closing: '' },
+      });
     }
-  }, [briefing, reset]);
+  }, [briefing, subAccountId, reset]);
 
   const save = useMutation({
     mutationFn: (data: BriefingForm) => apiClient.put('/briefings', data),
     onSuccess: () => {
       toast.success('Briefing salvo');
-      qc.invalidateQueries({ queryKey: ['briefing'] });
+      qc.invalidateQueries({ queryKey: ['briefing', subAccountId] });
     },
     onError: (err: Error) => toast.error(err.message),
   });

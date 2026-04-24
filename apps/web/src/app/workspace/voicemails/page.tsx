@@ -3,6 +3,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { Voicemail } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
+import { useTenantStore } from '@/stores/tenant-store';
 
 interface VoicemailInteraction {
   id: string;
@@ -13,9 +14,11 @@ interface VoicemailInteraction {
 }
 
 export default function VoicemailsPage() {
+  const subAccountId = useTenantStore((s) => s.subAccountId);
   const { data: items = [], isLoading } = useQuery<VoicemailInteraction[]>({
-    queryKey: ['voicemails'],
+    queryKey: ['voicemails', subAccountId],
     queryFn: () => apiClient.get<VoicemailInteraction[]>('/interactions?type=voicemail'),
+    enabled: !!subAccountId,
   });
 
   return (
