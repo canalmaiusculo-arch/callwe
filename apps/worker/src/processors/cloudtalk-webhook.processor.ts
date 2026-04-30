@@ -198,15 +198,27 @@ async function handleRecordingReady(subAccountId: string, body: Record<string, u
   });
 }
 
+function parseTimestamp(raw: unknown): Date {
+  if (!raw) return new Date();
+  const parsed = new Date(String(raw));
+  return isNaN(parsed.getTime()) ? new Date() : parsed;
+}
+
 async function handleSms(subAccountId: string, body: Record<string, unknown>) {
-  await prisma.interaction.create({
-    data: {
+  const eventType = String(body.event_type ?? '').trim();
+  await prisma.interaction.upsert({
+    where: { cloudtalkSmsId: String(body.message_id) },
+    update: {
+      smsBody: String(body.body ?? ''),
+      metadata: body as object,
+    },
+    create: {
       subAccountId,
       cloudtalkSmsId: String(body.message_id),
       type: 'sms',
-      direction: body.event_type === 'sms.sent' ? 'outbound' : 'inbound',
+      direction: eventType === 'sms.sent' ? 'outbound' : 'inbound',
       status: 'completed',
-      startedAt: new Date(String(body.received_at ?? Date.now())),
+      startedAt: parseTimestamp(body.received_at),
       fromNumber: String(body.from_number ?? ''),
       toNumber: String(body.to_number ?? ''),
       smsBody: String(body.body ?? ''),
@@ -222,7 +234,7 @@ async function handleVoicemail(subAccountId: string, body: Record<string, unknow
       type: 'voicemail',
       direction: 'inbound',
       status: 'completed',
-      startedAt: new Date(String(body.received_at ?? Date.now())),
+      startedAt: parseTimestamp(body.received_at),
       fromNumber: String(body.from_number ?? ''),
       toNumber: String(body.to_number ?? ''),
       recordingUrl: body.recording_url ? String(body.recording_url) : null,
