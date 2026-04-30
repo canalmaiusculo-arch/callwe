@@ -54,12 +54,14 @@ jobs:
             esac
           done <<< "$CHANGED"
 
-          if $API && $WEB && $WORKER; then T=all
-          elif $API && $WORKER && ! $WEB; then T=api_worker
-          elif $API; then T=api
-          elif $WEB; then T=web
-          elif $WORKER; then T=worker
-          else T=none
+          # Monta target como lista separada por espaço, ou "all"/"none"
+          TARGETS=()
+          $API && TARGETS+=(api)
+          $WEB && TARGETS+=(web)
+          $WORKER && TARGETS+=(worker)
+          if [[ ${#TARGETS[@]} -eq 0 ]]; then T=none
+          elif [[ ${#TARGETS[@]} -eq 3 ]]; then T=all
+          else T="${TARGETS[*]}"
           fi
           echo "Mudanças: api=$API web=$WEB worker=$WORKER → target=$T"
           echo "target=$T" >> "$GITHUB_OUTPUT"
@@ -79,9 +81,11 @@ jobs:
           script: |
             set -e
             TARGET="${{ steps.changes.outputs.target }}"
-            if [[ "$TARGET" == "api_worker" ]]; then
-              bash /opt/callwe/infra/scripts/deploy.sh api
-              bash /opt/callwe/infra/scripts/deploy.sh worker
-            else
+            if [[ "$TARGET" == "all" || "$TARGET" =~ ^(api|web|worker)$ ]]; then
               bash /opt/callwe/infra/scripts/deploy.sh "$TARGET"
+            else
+              # múltiplos apps separados por espaço (ex: "api web")
+              for t in $TARGET; do
+                bash /opt/callwe/infra/scripts/deploy.sh "$t"
+              done
             fi
