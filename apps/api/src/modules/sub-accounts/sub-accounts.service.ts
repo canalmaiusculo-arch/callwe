@@ -48,6 +48,7 @@ export class SubAccountsService {
         agencyId: true,
         plan: true,
         status: true,
+        cloudtalkTag: true,
       },
       orderBy: { name: 'asc' },
     });

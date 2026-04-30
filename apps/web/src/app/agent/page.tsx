@@ -26,6 +26,7 @@ import { useRealtimeCalls } from '@/hooks/use-realtime-calls';
 interface AssignedClient {
   id: string;
   name: string;
+  cloudtalkTag: string;
 }
 
 interface Interaction {
@@ -56,7 +57,6 @@ interface AgentStats {
 type Tab = 'dashboard' | 'calls' | 'sms';
 
 export default function AgentPage() {
-  const incoming = useRealtimeCalls();
   const [activeCall, setActiveCall] = useState<unknown>(null);
   const [tab, setTab] = useState<Tab>('calls');
   const [onlyMine, setOnlyMine] = useState(true);
@@ -67,6 +67,8 @@ export default function AgentPage() {
     queryKey: ['my-clients'],
     queryFn: () => apiClient.get('/sub-accounts/mine'),
   });
+
+  const incoming = useRealtimeCalls(clients.map((c) => c.cloudtalkTag));
 
   useEffect(() => {
     if (incoming) setActiveCall(incoming);

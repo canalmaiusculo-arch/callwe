@@ -25,10 +25,12 @@ export class CloudtalkWebhooksController {
     const raw = req.rawBody?.toString('utf8') ?? JSON.stringify(body);
     const valid = verifyCloudtalkSignature(raw, signature, env.CLOUDTALK_WEBHOOK_SECRET);
 
+    const eventType = String(body.event_type ?? body.type ?? 'unknown').trim();
+
     const inbox = await this.prisma.webhookInbox.create({
       data: {
         provider: 'cloudtalk',
-        eventType: String(body.event_type ?? body.type ?? 'unknown'),
+        eventType,
         signatureValid: valid,
         headers: { signature: signature ?? null },
         body: body as Prisma.InputJsonValue,
@@ -41,7 +43,7 @@ export class CloudtalkWebhooksController {
     await this.queue.add('process', { inboxId: inbox.id });
 
     // Realtime imediato: chamada entrante → painel do atendente já vê.
-    if (body.event_type === 'call.started' || body.event_type === 'call_started') {
+    if (eventType === 'call.started' || eventType === 'call_started') {
       const sub = await this.resolveSubAccountFromBody(body);
       if (sub) {
         this.realtime.emitIncomingCall(sub.cloudtalkTag, {

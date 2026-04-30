@@ -19,8 +19,9 @@ interface CallPayload {
   subAccountName?: string;
 }
 
-export function useRealtimeCalls() {
+export function useRealtimeCalls(subTags: string[]) {
   const [incoming, setIncoming] = useState<unknown>(null);
+  const tagsKey = subTags.join(',');
 
   useEffect(() => {
     const s = getSocket();
@@ -28,11 +29,20 @@ export function useRealtimeCalls() {
       setIncoming(payload);
       notifyIncomingCall(payload as CallPayload);
     };
+    const joinAll = () => {
+      for (const tag of subTags) s.emit('join:sub-account', tag);
+    };
+
     s.on('call:incoming', handler);
+    s.on('connect', joinAll);
+    if (s.connected) joinAll();
+
     return () => {
       s.off('call:incoming', handler);
+      s.off('connect', joinAll);
     };
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tagsKey]);
 
   return incoming;
 }
