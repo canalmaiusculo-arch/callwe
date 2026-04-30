@@ -21,6 +21,17 @@ export function startCloudtalkWebhookWorker() {
       const body = trimStrings(rawBody);
       const eventType = (inbox.eventType ?? '').trim();
 
+      // recording.ready não traz internal/external_number — resolve pelo
+      // call_uuid contra a interaction já persistida.
+      if (eventType === 'recording.ready') {
+        await handleRecordingReady(body);
+        await prisma.webhookInbox.update({
+          where: { id: inbox.id },
+          data: { processedAt: new Date(), processingError: null },
+        });
+        return;
+      }
+
       // CloudTalk envia internal_number e external_number.
       // Para chamadas inbound, internal = nosso número (cliente).
       // Para outbound, external = número discado (cliente).
@@ -55,8 +66,6 @@ export function startCloudtalkWebhookWorker() {
 
       if (eventType === 'call.started' || eventType === 'call.ended' || eventType === 'call.missed') {
         await handleCallEvent(subAccount.id, body);
-      } else if (eventType === 'recording.ready') {
-        await handleRecordingReady(subAccount.id, body);
       } else if (eventType === 'sms.received' || eventType === 'sms.sent') {
         await handleSms(subAccount.id, body);
       } else if (eventType === 'voicemail.received') {
@@ -67,7 +76,7 @@ export function startCloudtalkWebhookWorker() {
 
       await prisma.webhookInbox.update({
         where: { id: inbox.id },
-        data: { processedAt: new Date() },
+        data: { processedAt: new Date(), processingError: null },
       });
     },
     { connection, concurrency: 10 },
@@ -187,14 +196,21 @@ function mapCallStatus(event: string) {
   return 'initiated' as const;
 }
 
-async function handleRecordingReady(subAccountId: string, body: Record<string, unknown>) {
-  const callUuid = String(body.call_uuid);
+async function handleRecordingReady(body: Record<string, unknown>) {
+  const callUuid = String(body.call_uuid ?? '').trim();
+  if (!callUuid) {
+    logger.warn({ body }, 'recording.ready sem call_uuid');
+    return;
+  }
   const interaction = await prisma.interaction.findUnique({ where: { cloudtalkCallId: callUuid } });
-  if (!interaction) return;
+  if (!interaction) {
+    logger.warn({ callUuid }, 'recording.ready: interaction não encontrada (call ainda não chegou?)');
+    return;
+  }
   await recordingSyncQueue.add('sync', {
     interactionId: interaction.id,
-    cloudtalkRecordingUrl: String(body.recording_url ?? ''),
-    subAccountId,
+    cloudtalkRecordingUrl: String(body.recording_url ?? '').trim(),
+    subAccountId: interaction.subAccountId,
   });
 }
 
