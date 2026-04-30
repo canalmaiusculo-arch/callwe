@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useEffect, useMemo, useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Phone,
   PhoneIncoming,
@@ -12,6 +12,9 @@ import {
   LogOut,
   LayoutDashboard,
   Gauge,
+  Search,
+  Send,
+  X,
 } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -20,7 +23,6 @@ import { Badge } from '@/components/ui/badge';
 import { SoftphoneFrame } from '@/components/agent/softphone-frame';
 import { InteractionDrawer } from '@/components/interaction-drawer';
 import { NotificationBanner } from '@/components/agent/notification-banner';
-import { useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '@/stores/auth-store';
 import { useRealtimeCalls, useRealtimeSms } from '@/hooks/use-realtime-calls';
 
@@ -62,6 +64,8 @@ export default function AgentPage() {
   const [onlyMine, setOnlyMine] = useState(true);
   const [drawerId, setDrawerId] = useState<string | null>(null);
   const [smsBadge, setSmsBadge] = useState(0);
+  const [filterSubAccountId, setFilterSubAccountId] = useState<string | null>(null);
+  const [search, setSearch] = useState('');
   const clearAuth = useAuthStore((s) => s.clear);
   const queryClient = useQueryClient();
 
@@ -82,6 +86,9 @@ export default function AgentPage() {
     if (tab === 'sms') setSmsBadge(0);
   }, [tab]);
 
+  // Limpa busca ao trocar de tab
+  useEffect(() => setSearch(''), [tab]);
+
   return (
     <div className="grid h-screen grid-cols-12 gap-3 bg-muted/20 p-3">
       <aside className="col-span-2 flex flex-col rounded-lg border bg-background p-3">
@@ -96,15 +103,29 @@ export default function AgentPage() {
           <TabButton active={tab === 'sms'} onClick={() => setTab('sms')} icon={MessageSquare} label="SMS" badge={smsBadge} />
         </nav>
 
-        <div className="mt-2 flex-1 overflow-auto border-t pt-3">
+        <div className="mt-2 flex min-h-0 flex-1 flex-col border-t pt-3">
           <p className="mb-2 text-xs font-medium uppercase text-muted-foreground">
             Meus clientes ({clients.length})
           </p>
-          <div className="space-y-0.5">
+          <div className="flex-1 space-y-0.5 overflow-auto">
+            <button
+              onClick={() => setFilterSubAccountId(null)}
+              className={`w-full rounded px-2 py-1 text-left text-xs ${
+                filterSubAccountId === null ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted'
+              }`}
+            >
+              Todos os clientes
+            </button>
             {clients.map((c) => (
-              <div key={c.id} className="rounded px-2 py-1 text-xs text-muted-foreground">
+              <button
+                key={c.id}
+                onClick={() => setFilterSubAccountId(c.id)}
+                className={`w-full rounded px-2 py-1 text-left text-xs ${
+                  filterSubAccountId === c.id ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted'
+                }`}
+              >
                 {c.name}
-              </div>
+              </button>
             ))}
           </div>
         </div>
@@ -128,12 +149,27 @@ export default function AgentPage() {
             <ActiveCallView call={activeCall} onDismiss={dismissActiveCall} />
           </div>
         )}
+        {tab !== 'dashboard' && (
+          <SearchBar value={search} onChange={setSearch} placeholder={tab === 'calls' ? 'Buscar chamada (número, cliente, lead)...' : 'Buscar SMS (número, cliente, conteúdo)...'} />
+        )}
         {tab === 'dashboard' ? (
           <DashboardView />
         ) : tab === 'calls' ? (
-          <CallsView onlyMine={onlyMine} onToggleMine={() => setOnlyMine(!onlyMine)} onOpen={setDrawerId} />
+          <CallsView
+            onlyMine={onlyMine}
+            onToggleMine={() => setOnlyMine(!onlyMine)}
+            onOpen={setDrawerId}
+            filterSubAccountId={filterSubAccountId}
+            search={search}
+          />
         ) : (
-          <SmsView onlyMine={onlyMine} onToggleMine={() => setOnlyMine(!onlyMine)} onOpen={setDrawerId} />
+          <SmsView
+            onlyMine={onlyMine}
+            onToggleMine={() => setOnlyMine(!onlyMine)}
+            onOpen={setDrawerId}
+            filterSubAccountId={filterSubAccountId}
+            search={search}
+          />
         )}
       </section>
 
@@ -235,10 +271,14 @@ function CallsView({
   onlyMine,
   onToggleMine,
   onOpen,
+  filterSubAccountId,
+  search,
 }: {
   onlyMine: boolean;
   onToggleMine: () => void;
   onOpen: (id: string) => void;
+  filterSubAccountId: string | null;
+  search: string;
 }) {
   const { data: calls = [] } = useQuery<Interaction[]>({
     queryKey: ['my-calls', onlyMine],
@@ -246,26 +286,94 @@ function CallsView({
     refetchInterval: 15_000,
   });
 
+  const filtered = useMemo(
+    () => filterInteractions(calls, { filterSubAccountId, search }),
+    [calls, filterSubAccountId, search],
+  );
+
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle>Chamadas {onlyMine ? '(minhas)' : '(todos clientes)'}</CardTitle>
+        <CardTitle>
+          Chamadas {onlyMine ? '(minhas)' : '(todos clientes)'}
+          {(filterSubAccountId || search) && (
+            <span className="ml-2 text-xs text-muted-foreground">{filtered.length}/{calls.length}</span>
+          )}
+        </CardTitle>
         <Button size="sm" variant="outline" onClick={onToggleMine}>
           {onlyMine ? 'Ver todas' : 'Só minhas'}
         </Button>
       </CardHeader>
       <CardContent className="space-y-2">
-        {calls.length === 0 && (
+        {filtered.length === 0 && (
           <div className="flex flex-col items-center py-8 text-center text-muted-foreground">
             <Phone className="mb-2 h-8 w-8 opacity-30" />
-            <p className="text-sm">Nenhuma chamada.</p>
+            <p className="text-sm">{calls.length === 0 ? 'Nenhuma chamada.' : 'Nenhuma chamada bate com o filtro.'}</p>
           </div>
         )}
-        {calls.map((c) => (
+        {filtered.map((c) => (
           <CallRow key={c.id} call={c} onClick={() => onOpen(c.id)} />
         ))}
       </CardContent>
     </Card>
+  );
+}
+
+function filterInteractions(
+  list: Interaction[],
+  { filterSubAccountId, search }: { filterSubAccountId: string | null; search: string },
+): Interaction[] {
+  let out = list;
+  if (filterSubAccountId) out = out.filter((i) => i.subAccount?.id === filterSubAccountId);
+  const q = search.trim().toLowerCase();
+  if (q) {
+    out = out.filter((i) => {
+      const haystack = [
+        i.fromNumber,
+        i.toNumber,
+        i.subAccount?.name,
+        i.lead?.name,
+        i.smsBody,
+        i.agent?.fullName,
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+      return haystack.includes(q);
+    });
+  }
+  return out;
+}
+
+function SearchBar({
+  value,
+  onChange,
+  placeholder,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  placeholder: string;
+}) {
+  return (
+    <div className="relative">
+      <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+      <input
+        type="text"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        className="w-full rounded-md border bg-background py-2 pl-9 pr-9 text-sm outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring"
+      />
+      {value && (
+        <button
+          onClick={() => onChange('')}
+          aria-label="Limpar busca"
+          className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-muted-foreground hover:bg-muted"
+        >
+          <X className="h-3 w-3" />
+        </button>
+      )}
+    </div>
   );
 }
 
@@ -316,10 +424,14 @@ function SmsView({
   onlyMine,
   onToggleMine,
   onOpen,
+  filterSubAccountId,
+  search,
 }: {
   onlyMine: boolean;
   onToggleMine: () => void;
   onOpen: (id: string) => void;
+  filterSubAccountId: string | null;
+  search: string;
 }) {
   const { data: messages = [] } = useQuery<Interaction[]>({
     queryKey: ['my-sms', onlyMine],
@@ -327,43 +439,131 @@ function SmsView({
     refetchInterval: 15_000,
   });
 
+  const filtered = useMemo(
+    () => filterInteractions(messages, { filterSubAccountId, search }),
+    [messages, filterSubAccountId, search],
+  );
+
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle>SMS {onlyMine ? '(meus)' : '(todos clientes)'}</CardTitle>
+        <CardTitle>
+          SMS {onlyMine ? '(meus)' : '(todos clientes)'}
+          {(filterSubAccountId || search) && (
+            <span className="ml-2 text-xs text-muted-foreground">{filtered.length}/{messages.length}</span>
+          )}
+        </CardTitle>
         <Button size="sm" variant="outline" onClick={onToggleMine}>
           {onlyMine ? 'Ver todas' : 'Só minhas'}
         </Button>
       </CardHeader>
       <CardContent className="space-y-2">
-        {messages.length === 0 && (
-          <p className="py-8 text-center text-sm text-muted-foreground">Nenhuma mensagem.</p>
+        {filtered.length === 0 && (
+          <p className="py-8 text-center text-sm text-muted-foreground">
+            {messages.length === 0 ? 'Nenhuma mensagem.' : 'Nenhuma mensagem bate com o filtro.'}
+          </p>
         )}
-        {messages.map((m) => (
-          <button
-            key={m.id}
-            onClick={() => onOpen(m.id)}
-            className="flex w-full gap-3 rounded-md border p-3 text-left hover:bg-muted/40"
-          >
-            <MessageSquare className="mt-0.5 h-4 w-4 text-muted-foreground" />
-            <div className="flex-1">
-              <div className="flex items-center justify-between text-xs text-muted-foreground">
-                <span>
-                  {m.direction === 'inbound' ? 'De' : 'Para'}:{' '}
-                  <span className="font-mono">
-                    {m.direction === 'inbound' ? m.fromNumber : m.toNumber}
-                  </span>
-                  {' · '}
-                  {m.subAccount?.name}
-                </span>
-                <span>{new Date(m.startedAt).toLocaleString('pt-BR')}</span>
-              </div>
-              <p className="mt-1 text-sm">{m.smsBody}</p>
-            </div>
-          </button>
+        {filtered.map((m) => (
+          <SmsRow key={m.id} sms={m} onOpen={() => onOpen(m.id)} />
         ))}
       </CardContent>
     </Card>
+  );
+}
+
+function SmsRow({ sms, onOpen }: { sms: Interaction; onOpen: () => void }) {
+  const [showReply, setShowReply] = useState(false);
+  const [text, setText] = useState('');
+  const queryClient = useQueryClient();
+
+  const subAccountId = sms.subAccount?.id;
+  const replyTo = sms.direction === 'inbound' ? sms.fromNumber : sms.toNumber;
+
+  const sendSms = useMutation({
+    mutationFn: () =>
+      apiClient.post('/interactions/sms/send', {
+        subAccountId,
+        toNumber: replyTo,
+        text: text.trim(),
+      }),
+    onSuccess: () => {
+      setText('');
+      setShowReply(false);
+      queryClient.invalidateQueries({ queryKey: ['my-sms'] });
+    },
+  });
+
+  return (
+    <div className="rounded-md border">
+      <button
+        onClick={onOpen}
+        className="flex w-full gap-3 rounded-t-md p-3 text-left hover:bg-muted/40"
+      >
+        <MessageSquare className="mt-0.5 h-4 w-4 text-muted-foreground" />
+        <div className="flex-1">
+          <div className="flex items-center justify-between text-xs text-muted-foreground">
+            <span>
+              {sms.direction === 'inbound' ? 'De' : 'Para'}:{' '}
+              <span className="font-mono">{sms.direction === 'inbound' ? sms.fromNumber : sms.toNumber}</span>
+              {' · '}
+              {sms.subAccount?.name}
+            </span>
+            <span>{new Date(sms.startedAt).toLocaleString('pt-BR')}</span>
+          </div>
+          <p className="mt-1 text-sm">{sms.smsBody}</p>
+        </div>
+      </button>
+      <div className="border-t bg-muted/20 px-3 py-1.5">
+        {!showReply ? (
+          <button
+            onClick={() => setShowReply(true)}
+            disabled={!subAccountId || !replyTo}
+            className="text-xs text-muted-foreground hover:text-foreground disabled:opacity-50"
+          >
+            ↩ Responder {replyTo && `pra ${replyTo}`}
+          </button>
+        ) : (
+          <div className="space-y-2 py-1">
+            <textarea
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              placeholder="Digite a resposta..."
+              rows={2}
+              maxLength={1600}
+              className="w-full resize-none rounded-md border bg-background px-2 py-1.5 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            />
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-muted-foreground">{text.length}/1600</span>
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => {
+                    setShowReply(false);
+                    setText('');
+                  }}
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={() => sendSms.mutate()}
+                  disabled={!text.trim() || sendSms.isPending}
+                >
+                  <Send className="mr-1 h-3 w-3" />
+                  {sendSms.isPending ? 'Enviando...' : 'Enviar'}
+                </Button>
+              </div>
+            </div>
+            {sendSms.isError && (
+              <p className="text-xs text-red-600">
+                {(sendSms.error as Error)?.message ?? 'Erro ao enviar SMS'}
+              </p>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
 

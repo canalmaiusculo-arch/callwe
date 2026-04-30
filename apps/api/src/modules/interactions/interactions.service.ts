@@ -1,9 +1,44 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { CloudtalkService } from '../cloudtalk/cloudtalk.service.js';
 
 @Injectable()
 export class InteractionsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly cloudtalk: CloudtalkService,
+  ) {}
+
+  async sendSms(userId: string, input: { subAccountId: string; toNumber: string; text: string }) {
+    if (!input.text.trim()) throw new BadRequestException('Mensagem vazia');
+    const e164 = /^\+[1-9]\d{1,14}$/;
+    if (!e164.test(input.toNumber)) throw new BadRequestException('Número destino inválido (E.164)');
+
+    const membership = await this.prisma.membership.findFirst({
+      where: { userId, subAccountId: input.subAccountId, role: 'agent' },
+      select: { cloudtalkAgentId: true },
+    });
+    if (!membership) throw new NotFoundException('Você não atende essa subconta');
+    if (!membership.cloudtalkAgentId) {
+      throw new BadRequestException('Atendente sem cloudtalk_agent_id vinculado');
+    }
+
+    const agentId = Number(membership.cloudtalkAgentId);
+    if (!Number.isFinite(agentId)) {
+      throw new BadRequestException('cloudtalk_agent_id inválido');
+    }
+
+    await this.cloudtalk.client.sms.send({
+      agent_id: agentId,
+      to: input.toNumber,
+      text: input.text,
+    });
+
+    // O webhook sms.sent vai chegar em 1-3s e o worker persiste a Interaction.
+    // Aqui só retornamos sucesso — frontend invalida o cache e o refetch
+    // pega o registro quando ele aparecer.
+    return { sent: true };
+  }
 
   list(
     subAccountIds: string[] | string,

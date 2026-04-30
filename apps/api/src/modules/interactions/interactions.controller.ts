@@ -1,5 +1,7 @@
-import { Controller, Get, NotFoundException, Param, Query, Req, Res, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, NotFoundException, Param, Post, Query, Req, Res, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
+import { z } from 'zod';
+import { ZodBody } from '../../common/pipes/zod.pipe.js';
 import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3';
 import type { Response } from 'express';
 import type { Readable } from 'node:stream';
@@ -8,6 +10,12 @@ import { InteractionsService } from './interactions.service.js';
 import { TenantGuard } from '../../common/guards/tenant.guard.js';
 import { CurrentUser, AuthUser } from '../../common/decorators/current-user.decorator.js';
 import { env } from '../../config/env.js';
+
+const SendSmsDto = z.object({
+  subAccountId: z.string().uuid(),
+  toNumber: z.string().regex(/^\+[1-9]\d{1,14}$/, 'número em E.164 (ex: +15551234567)'),
+  text: z.string().min(1).max(1600),
+});
 
 @Controller('interactions')
 @UseGuards(AuthGuard('jwt'))
@@ -35,6 +43,15 @@ export class InteractionsController {
   @Get('mine/stats')
   agentStats(@CurrentUser() user: AuthUser) {
     return this.svc.agentStats(user.id);
+  }
+
+  /** Envia SMS via CloudTalk em nome do atendente logado. */
+  @Post('sms/send')
+  sendSms(
+    @CurrentUser() user: AuthUser,
+    @ZodBody(SendSmsDto) dto: z.infer<typeof SendSmsDto>,
+  ) {
+    return this.svc.sendSms(user.id, dto);
   }
 
   /** Detalhe de uma interação — valida via memberships do usuário (não exige TenantGuard). */
