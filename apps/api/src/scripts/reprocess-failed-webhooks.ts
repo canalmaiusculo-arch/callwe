@@ -15,10 +15,17 @@ import IORedis from 'ioredis';
 import { prisma } from '@callwe/db';
 
 async function main() {
+  // Pega tudo que não foi processado com sucesso:
+  //   (a) com processing_error setado (qualquer erro)
+  //   (b) stuck — processed_at NULL e processing_error NULL (worker deu throw e
+  //       BullMQ jogou em failed depois de 5 retries; webhook_inbox ficou orfão)
   const candidates = await prisma.webhookInbox.findMany({
     where: {
       provider: 'cloudtalk',
-      processingError: { contains: 'unknown numbers' },
+      OR: [
+        { processingError: { not: null } },
+        { AND: [{ processedAt: null }, { processingError: null }] },
+      ],
     },
     select: { id: true, eventType: true, receivedAt: true },
     orderBy: { receivedAt: 'asc' },
