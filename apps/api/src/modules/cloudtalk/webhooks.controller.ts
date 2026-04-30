@@ -42,15 +42,33 @@ export class CloudtalkWebhooksController {
     // (CloudTalk pode estar configurado sem secret durante setup inicial).
     await this.queue.add('process', { inboxId: inbox.id });
 
-    // Realtime imediato: chamada entrante → painel do atendente já vê.
-    if (eventType === 'call.started' || eventType === 'call_started') {
+    // Realtime imediato pros eventos que o painel do atendente reage em tempo real.
+    const realtimeEvents = new Set([
+      'call.started',
+      'call_started',
+      'call.ended',
+      'call_ended',
+      'sms.received',
+      'sms_received',
+    ]);
+    if (realtimeEvents.has(eventType)) {
       const sub = await this.resolveSubAccountFromBody(body);
       if (sub) {
-        this.realtime.emitIncomingCall(sub.cloudtalkTag, {
+        const enrichedPayload = {
           ...body,
           subAccountId: sub.id,
           subAccountName: sub.name,
-        });
+        };
+        if (eventType === 'call.started' || eventType === 'call_started') {
+          this.realtime.emitIncomingCall(sub.cloudtalkTag, enrichedPayload);
+        } else if (eventType === 'call.ended' || eventType === 'call_ended') {
+          this.realtime.emitCallEnded(sub.cloudtalkTag, {
+            call_uuid: String(body.call_uuid ?? body.call_id ?? '').trim(),
+            subAccountId: sub.id,
+          });
+        } else if (eventType === 'sms.received' || eventType === 'sms_received') {
+          this.realtime.emitSmsReceived(sub.cloudtalkTag, enrichedPayload);
+        }
       }
     }
 

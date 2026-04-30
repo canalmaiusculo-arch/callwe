@@ -20,8 +20,9 @@ import { Badge } from '@/components/ui/badge';
 import { SoftphoneFrame } from '@/components/agent/softphone-frame';
 import { InteractionDrawer } from '@/components/interaction-drawer';
 import { NotificationBanner } from '@/components/agent/notification-banner';
+import { useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '@/stores/auth-store';
-import { useRealtimeCalls } from '@/hooks/use-realtime-calls';
+import { useRealtimeCalls, useRealtimeSms } from '@/hooks/use-realtime-calls';
 
 interface AssignedClient {
   id: string;
@@ -57,22 +58,29 @@ interface AgentStats {
 type Tab = 'dashboard' | 'calls' | 'sms';
 
 export default function AgentPage() {
-  const [activeCall, setActiveCall] = useState<unknown>(null);
   const [tab, setTab] = useState<Tab>('calls');
   const [onlyMine, setOnlyMine] = useState(true);
   const [drawerId, setDrawerId] = useState<string | null>(null);
+  const [smsBadge, setSmsBadge] = useState(0);
   const clearAuth = useAuthStore((s) => s.clear);
+  const queryClient = useQueryClient();
 
   const { data: clients = [] } = useQuery<AssignedClient[]>({
     queryKey: ['my-clients'],
     queryFn: () => apiClient.get('/sub-accounts/mine'),
   });
 
-  const incoming = useRealtimeCalls(clients.map((c) => c.cloudtalkTag));
+  const subTags = clients.map((c) => c.cloudtalkTag);
+  const { activeCall, dismiss: dismissActiveCall } = useRealtimeCalls(subTags);
+
+  useRealtimeSms(subTags, () => {
+    queryClient.invalidateQueries({ queryKey: ['my-sms'] });
+    if (tab !== 'sms') setSmsBadge((n) => n + 1);
+  });
 
   useEffect(() => {
-    if (incoming) setActiveCall(incoming);
-  }, [incoming]);
+    if (tab === 'sms') setSmsBadge(0);
+  }, [tab]);
 
   return (
     <div className="grid h-screen grid-cols-12 gap-3 bg-muted/20 p-3">
@@ -85,7 +93,7 @@ export default function AgentPage() {
         <nav className="mb-3 space-y-1">
           <TabButton active={tab === 'dashboard'} onClick={() => setTab('dashboard')} icon={Gauge} label="Dashboard" />
           <TabButton active={tab === 'calls'} onClick={() => setTab('calls')} icon={Phone} label="Chamadas" />
-          <TabButton active={tab === 'sms'} onClick={() => setTab('sms')} icon={MessageSquare} label="SMS" />
+          <TabButton active={tab === 'sms'} onClick={() => setTab('sms')} icon={MessageSquare} label="SMS" badge={smsBadge} />
         </nav>
 
         <div className="mt-2 flex-1 overflow-auto border-t pt-3">
@@ -115,9 +123,12 @@ export default function AgentPage() {
 
       <section className="col-span-7 min-h-0 space-y-3 overflow-auto">
         <NotificationBanner />
-        {activeCall ? (
-          <ActiveCallView call={activeCall} onDismiss={() => setActiveCall(null)} />
-        ) : tab === 'dashboard' ? (
+        {activeCall && (
+          <div className="sticky top-0 z-20 -mx-3 -mt-3 mb-3 border-b bg-muted/40 px-3 pb-3 pt-3 backdrop-blur">
+            <ActiveCallView call={activeCall} onDismiss={dismissActiveCall} />
+          </div>
+        )}
+        {tab === 'dashboard' ? (
           <DashboardView />
         ) : tab === 'calls' ? (
           <CallsView onlyMine={onlyMine} onToggleMine={() => setOnlyMine(!onlyMine)} onOpen={setDrawerId} />
@@ -147,11 +158,13 @@ function TabButton({
   onClick,
   icon: Icon,
   label,
+  badge,
 }: {
   active: boolean;
   onClick: () => void;
   icon: React.ComponentType<{ className?: string }>;
   label: string;
+  badge?: number;
 }) {
   return (
     <button
@@ -159,7 +172,12 @@ function TabButton({
       className={`flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm ${active ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'}`}
     >
       <Icon className="h-4 w-4" />
-      {label}
+      <span className="flex-1 text-left">{label}</span>
+      {badge && badge > 0 ? (
+        <span className="rounded-full bg-emerald-500 px-1.5 py-0.5 text-xs font-semibold text-white">
+          {badge > 99 ? '99+' : badge}
+        </span>
+      ) : null}
     </button>
   );
 }

@@ -28,6 +28,14 @@ export class RealtimeGateway implements OnGatewayConnection {
     this.server.to(`sub:${subTag}`).emit('call:incoming', payload);
   }
 
+  emitCallEnded(subTag: string, payload: unknown) {
+    this.server.to(`sub:${subTag}`).emit('call:ended', payload);
+  }
+
+  emitSmsReceived(subTag: string, payload: unknown) {
+    this.server.to(`sub:${subTag}`).emit('sms:received', payload);
+  }
+
   emitLeadCreated(subTag: string, payload: unknown) {
     this.server.to(`sub:${subTag}`).emit('lead:created', payload);
   }
