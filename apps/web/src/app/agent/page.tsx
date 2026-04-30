@@ -113,7 +113,7 @@ export default function AgentPage() {
         </button>
       </aside>
 
-      <section className="col-span-7 space-y-3 overflow-auto">
+      <section className="col-span-7 min-h-0 space-y-3 overflow-auto">
         <NotificationBanner />
         {activeCall ? (
           <ActiveCallView call={activeCall} onDismiss={() => setActiveCall(null)} />
