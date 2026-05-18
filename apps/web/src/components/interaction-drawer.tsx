@@ -13,6 +13,18 @@ import { RecordingPlayer } from '@/components/recording-player';
 import { useTenantStore } from '@/stores/tenant-store';
 
 type LeadStatus = 'new' | 'contacted' | 'qualified' | 'won' | 'lost';
+
+const ACQUISITION_CHANNELS = ['meta', 'lsa', 'google_ads', 'organic', 'gmb', 'not_identified'] as const;
+type AcquisitionChannel = (typeof ACQUISITION_CHANNELS)[number];
+const ACQUISITION_LABELS: Record<AcquisitionChannel, string> = {
+  meta: 'Meta',
+  lsa: 'LSA',
+  google_ads: 'Google ADS',
+  organic: 'Orgânico',
+  gmb: 'GMB',
+  not_identified: 'Não identificado',
+};
+export const LEAD_ACQUISITION_LABELS = ACQUISITION_LABELS;
 const STATUS_LABELS: Record<LeadStatus, string> = {
   new: 'Novo',
   contacted: 'Contatado',
@@ -48,7 +60,13 @@ interface InteractionDetail {
   sentiment: 'positive' | 'neutral' | 'negative' | null;
   aiScore: number | null;
   aiTopics: string[] | null;
-  lead: { id: string; name: string | null; phoneE164: string | null; status: LeadStatus } | null;
+  lead: {
+    id: string;
+    name: string | null;
+    phoneE164: string | null;
+    status: LeadStatus;
+    customFields?: Record<string, unknown> | null;
+  } | null;
   agent: { id: string; fullName: string } | null;
   subAccount: { id: string; name: string } | null;
 }
@@ -75,6 +93,8 @@ export function InteractionDrawer({
 }) {
   const qc = useQueryClient();
   const [note, setNote] = useState('');
+  const [editingName, setEditingName] = useState(false);
+  const [nameInput, setNameInput] = useState('');
 
   const { data: interaction } = useQuery<InteractionDetail | null>({
     queryKey: ['interaction-detail', interactionId],
@@ -117,6 +137,45 @@ export function InteractionDrawer({
       ),
     onSuccess: () => {
       toast.success('Status atualizado');
+      qc.invalidateQueries({ queryKey: ['interaction-detail', interactionId] });
+      qc.invalidateQueries({ queryKey: ['my-calls'] });
+      qc.invalidateQueries({ queryKey: ['my-sms'] });
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+
+  const updateName = useMutation({
+    mutationFn: (name: string) =>
+      apiClient.patch(
+        `/leads/${interaction!.lead!.id}`,
+        { name },
+        { subAccountId },
+      ),
+    onSuccess: () => {
+      toast.success('Nome salvo');
+      setEditingName(false);
+      qc.invalidateQueries({ queryKey: ['interaction-detail', interactionId] });
+      qc.invalidateQueries({ queryKey: ['my-calls'] });
+      qc.invalidateQueries({ queryKey: ['my-sms'] });
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+
+  const updateChannel = useMutation({
+    mutationFn: (channel: AcquisitionChannel | '') => {
+      const currentCustomFields =
+        (interaction?.lead?.customFields as Record<string, unknown> | undefined) ?? {};
+      const customFields = channel
+        ? { ...currentCustomFields, acquisitionChannel: channel }
+        : Object.fromEntries(Object.entries(currentCustomFields).filter(([k]) => k !== 'acquisitionChannel'));
+      return apiClient.patch(
+        `/leads/${interaction!.lead!.id}`,
+        { customFields },
+        { subAccountId },
+      );
+    },
+    onSuccess: () => {
+      toast.success('Origem atualizada');
       qc.invalidateQueries({ queryKey: ['interaction-detail', interactionId] });
       qc.invalidateQueries({ queryKey: ['my-calls'] });
       qc.invalidateQueries({ queryKey: ['my-sms'] });
@@ -232,19 +291,73 @@ export function InteractionDrawer({
           {interaction.lead && (
             <>
               <section className="rounded-md border p-3">
-                <div className="flex items-center justify-between">
-                  <div>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0 flex-1">
                     <p className="text-xs uppercase text-muted-foreground">Lead</p>
-                    <p className="font-medium">{interaction.lead.name ?? interaction.lead.phoneE164}</p>
+                    {editingName ? (
+                      <div className="mt-1 flex items-center gap-2">
+                        <input
+                          autoFocus
+                          value={nameInput}
+                          onChange={(e) => setNameInput(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' && nameInput.trim()) updateName.mutate(nameInput.trim());
+                            if (e.key === 'Escape') setEditingName(false);
+                          }}
+                          placeholder="Nome do cliente"
+                          className="h-8 flex-1 rounded-md border bg-background px-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        />
+                        <Button
+                          size="sm"
+                          onClick={() => nameInput.trim() && updateName.mutate(nameInput.trim())}
+                          disabled={!nameInput.trim() || updateName.isPending}
+                        >
+                          Salvar
+                        </Button>
+                        <Button size="sm" variant="ghost" onClick={() => setEditingName(false)}>
+                          Cancelar
+                        </Button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => {
+                          setNameInput(interaction.lead?.name ?? '');
+                          setEditingName(true);
+                        }}
+                        className="group mt-1 flex items-center gap-1.5 text-left"
+                      >
+                        <span className="font-medium">
+                          {interaction.lead.name ?? <span className="italic text-muted-foreground">Adicionar nome</span>}
+                        </span>
+                        <span className="text-xs text-blue-600 opacity-0 group-hover:opacity-100">editar</span>
+                      </button>
+                    )}
+                    <p className="mt-0.5 font-mono text-xs text-muted-foreground">{interaction.lead.phoneE164}</p>
                   </div>
                   <select
                     value={interaction.lead.status}
                     onChange={(e) => updateStatus.mutate(e.target.value as LeadStatus)}
                     disabled={updateStatus.isPending}
-                    className={`h-9 rounded-md border px-3 text-sm font-medium ${STATUS_COLOR[interaction.lead.status]}`}
+                    className={`h-9 shrink-0 rounded-md border px-3 text-sm font-medium ${STATUS_COLOR[interaction.lead.status]}`}
                   >
                     {(Object.keys(STATUS_LABELS) as LeadStatus[]).map((s) => (
                       <option key={s} value={s}>{STATUS_LABELS[s]}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="mt-3 flex items-center gap-2">
+                  <label className="text-xs text-muted-foreground">Origem</label>
+                  <select
+                    value={
+                      (interaction.lead.customFields?.acquisitionChannel as string | undefined) ?? ''
+                    }
+                    onChange={(e) => updateChannel.mutate(e.target.value as AcquisitionChannel | '')}
+                    disabled={updateChannel.isPending}
+                    className="h-8 rounded-md border bg-background px-2 text-xs"
+                  >
+                    <option value="">— não definido —</option>
+                    {ACQUISITION_CHANNELS.map((ch) => (
+                      <option key={ch} value={ch}>{ACQUISITION_LABELS[ch]}</option>
                     ))}
                   </select>
                 </div>

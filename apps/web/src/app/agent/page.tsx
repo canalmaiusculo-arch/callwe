@@ -15,6 +15,7 @@ import {
   Search,
   Send,
   X,
+  BookOpen,
 } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -23,9 +24,16 @@ import { Badge } from '@/components/ui/badge';
 import { SoftphoneFrame } from '@/components/agent/softphone-frame';
 import { InteractionDrawer } from '@/components/interaction-drawer';
 import { NotificationBanner } from '@/components/agent/notification-banner';
+import { BriefingDisplay } from '@/components/agent/briefing-display';
 import { useAuthStore } from '@/stores/auth-store';
 import { useRealtimeCalls, useRealtimeSms } from '@/hooks/use-realtime-calls';
-import { LEAD_STATUS_COLOR, LEAD_STATUS_LABELS, type LeadStatus } from '@/components/interaction-drawer';
+import {
+  LEAD_STATUS_COLOR,
+  LEAD_STATUS_LABELS,
+  LEAD_ACQUISITION_LABELS,
+  type LeadStatus,
+} from '@/components/interaction-drawer';
+import { useSeenIds } from '@/hooks/use-unread';
 
 interface AssignedClient {
   id: string;
@@ -45,7 +53,12 @@ interface Interaction {
   smsBody: string | null;
   recordingUrl: string | null;
   aiSummary: string | null;
-  lead: { id: string; name: string | null; status?: LeadStatus } | null;
+  lead: {
+    id: string;
+    name: string | null;
+    status?: LeadStatus;
+    customFields?: Record<string, unknown> | null;
+  } | null;
   agent: { id: string; fullName: string } | null;
   subAccount: { id: string; name: string } | null;
 }
@@ -58,7 +71,7 @@ interface AgentStats {
   smsToday: number;
 }
 
-type Tab = 'dashboard' | 'calls' | 'sms';
+type Tab = 'dashboard' | 'calls' | 'sms' | 'briefings';
 
 export default function AgentPage() {
   const [tab, setTab] = useState<Tab>('calls');
@@ -77,11 +90,19 @@ export default function AgentPage() {
 
   const subTags = clients.map((c) => c.cloudtalkTag);
   const { activeCall, dismiss: dismissActiveCall } = useRealtimeCalls(subTags);
+  const seenSms = useSeenIds('sms');
+  const seenCalls = useSeenIds('calls');
 
   useRealtimeSms(subTags, () => {
     queryClient.invalidateQueries({ queryKey: ['my-sms'] });
     if (tab !== 'sms') setSmsBadge((n) => n + 1);
   });
+
+  const openInteraction = (id: string) => {
+    setDrawerId(id);
+    seenSms.markSeen(id);
+    seenCalls.markSeen(id);
+  };
 
   useEffect(() => {
     if (tab === 'sms') setSmsBadge(0);
@@ -102,6 +123,7 @@ export default function AgentPage() {
           <TabButton active={tab === 'dashboard'} onClick={() => setTab('dashboard')} icon={Gauge} label="Dashboard" />
           <TabButton active={tab === 'calls'} onClick={() => setTab('calls')} icon={Phone} label="Chamadas" />
           <TabButton active={tab === 'sms'} onClick={() => setTab('sms')} icon={MessageSquare} label="SMS" badge={smsBadge} />
+          <TabButton active={tab === 'briefings'} onClick={() => setTab('briefings')} icon={BookOpen} label="Briefings" />
         </nav>
 
         <div className="mt-2 flex min-h-0 flex-1 flex-col border-t pt-3">
@@ -150,7 +172,7 @@ export default function AgentPage() {
             <ActiveCallView call={activeCall} onDismiss={dismissActiveCall} />
           </div>
         )}
-        {tab !== 'dashboard' && (
+        {(tab === 'calls' || tab === 'sms') && (
           <SearchBar value={search} onChange={setSearch} placeholder={tab === 'calls' ? 'Buscar chamada (número, cliente, lead)...' : 'Buscar SMS (número, cliente, conteúdo)...'} />
         )}
         {tab === 'dashboard' ? (
@@ -159,18 +181,22 @@ export default function AgentPage() {
           <CallsView
             onlyMine={onlyMine}
             onToggleMine={() => setOnlyMine(!onlyMine)}
-            onOpen={setDrawerId}
+            onOpen={openInteraction}
             filterSubAccountId={filterSubAccountId}
             search={search}
+            isSeen={seenCalls.isSeen}
           />
-        ) : (
+        ) : tab === 'sms' ? (
           <SmsView
             onlyMine={onlyMine}
             onToggleMine={() => setOnlyMine(!onlyMine)}
-            onOpen={setDrawerId}
+            onOpen={openInteraction}
             filterSubAccountId={filterSubAccountId}
             search={search}
+            isSeen={seenSms.isSeen}
           />
+        ) : (
+          <BriefingsView clients={clients} initialSelectedId={filterSubAccountId} />
         )}
       </section>
 
@@ -274,12 +300,14 @@ function CallsView({
   onOpen,
   filterSubAccountId,
   search,
+  isSeen,
 }: {
   onlyMine: boolean;
   onToggleMine: () => void;
   onOpen: (id: string) => void;
   filterSubAccountId: string | null;
   search: string;
+  isSeen: (id: string) => boolean;
 }) {
   const { data: calls = [] } = useQuery<Interaction[]>({
     queryKey: ['my-calls', onlyMine],
@@ -313,11 +341,17 @@ function CallsView({
           </div>
         )}
         {filtered.map((c) => (
-          <CallRow key={c.id} call={c} onClick={() => onOpen(c.id)} />
+          <CallRow key={c.id} call={c} onClick={() => onOpen(c.id)} unread={!isSeen(c.id) && needsAttention(c)} />
         ))}
       </CardContent>
     </Card>
   );
+}
+
+function needsAttention(call: Interaction): boolean {
+  // "Sem status trabalhado" = lead.status indefinido OU 'new'
+  const leadStatus = call.lead?.status;
+  return !leadStatus || leadStatus === 'new';
 }
 
 function filterInteractions(
@@ -378,7 +412,7 @@ function SearchBar({
   );
 }
 
-function CallRow({ call, onClick }: { call: Interaction; onClick: () => void }) {
+function CallRow({ call, onClick, unread }: { call: Interaction; onClick: () => void; unread?: boolean }) {
   const Icon = call.status === 'missed' ? PhoneMissed : call.direction === 'inbound' ? PhoneIncoming : PhoneOutgoing;
   const iconColor =
     call.status === 'missed'
@@ -392,7 +426,15 @@ function CallRow({ call, onClick }: { call: Interaction; onClick: () => void }) 
       onClick={onClick}
       className="grid w-full grid-cols-[auto_1fr_auto] items-center gap-3 rounded-md border p-3 text-left transition-colors hover:bg-muted/40"
     >
-      <Icon className={`h-5 w-5 ${iconColor}`} />
+      <div className="relative">
+        <Icon className={`h-5 w-5 ${iconColor}`} />
+        {unread && (
+          <span className="absolute -right-0.5 -top-0.5 inline-flex h-2.5 w-2.5">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-500 opacity-75" />
+            <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-red-500" />
+          </span>
+        )}
+      </div>
       <div className="grid grid-cols-4 gap-2 text-xs">
         <div>
           <p className="text-muted-foreground">De</p>
@@ -404,13 +446,23 @@ function CallRow({ call, onClick }: { call: Interaction; onClick: () => void }) 
         </div>
         <div>
           <p className="text-muted-foreground">Lead</p>
-          <p className="flex items-center gap-1.5">
+          <p className="flex flex-wrap items-center gap-1.5">
             <span>{call.lead?.name ?? call.fromNumber ?? '—'}</span>
             {call.lead?.status && (
               <span className={`rounded border px-1.5 py-0.5 text-[10px] font-medium ${LEAD_STATUS_COLOR[call.lead.status]}`}>
                 {LEAD_STATUS_LABELS[call.lead.status]}
               </span>
             )}
+            {(() => {
+              const ch = call.lead?.customFields?.acquisitionChannel as string | undefined;
+              if (!ch) return null;
+              const label = LEAD_ACQUISITION_LABELS[ch as keyof typeof LEAD_ACQUISITION_LABELS] ?? ch;
+              return (
+                <span className="rounded border border-slate-300 bg-slate-50 px-1.5 py-0.5 text-[10px] font-medium text-slate-700">
+                  {label}
+                </span>
+              );
+            })()}
           </p>
         </div>
         <div>
@@ -434,12 +486,14 @@ function SmsView({
   onOpen,
   filterSubAccountId,
   search,
+  isSeen,
 }: {
   onlyMine: boolean;
   onToggleMine: () => void;
   onOpen: (id: string) => void;
   filterSubAccountId: string | null;
   search: string;
+  isSeen: (id: string) => boolean;
 }) {
   const { data: messages = [] } = useQuery<Interaction[]>({
     queryKey: ['my-sms', onlyMine],
@@ -472,14 +526,19 @@ function SmsView({
           </p>
         )}
         {filtered.map((m) => (
-          <SmsRow key={m.id} sms={m} onOpen={() => onOpen(m.id)} />
+          <SmsRow
+            key={m.id}
+            sms={m}
+            onOpen={() => onOpen(m.id)}
+            unread={m.direction === 'inbound' && !isSeen(m.id)}
+          />
         ))}
       </CardContent>
     </Card>
   );
 }
 
-function SmsRow({ sms, onOpen }: { sms: Interaction; onOpen: () => void }) {
+function SmsRow({ sms, onOpen, unread }: { sms: Interaction; onOpen: () => void; unread?: boolean }) {
   const [showReply, setShowReply] = useState(false);
   const [text, setText] = useState('');
   const queryClient = useQueryClient();
@@ -507,7 +566,15 @@ function SmsRow({ sms, onOpen }: { sms: Interaction; onOpen: () => void }) {
         onClick={onOpen}
         className="flex w-full gap-3 rounded-t-md p-3 text-left hover:bg-muted/40"
       >
-        <MessageSquare className="mt-0.5 h-4 w-4 text-muted-foreground" />
+        <div className="relative">
+          <MessageSquare className="mt-0.5 h-4 w-4 text-muted-foreground" />
+          {unread && (
+            <span className="absolute -right-0.5 -top-0.5 inline-flex h-2 w-2">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-500 opacity-75" />
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-red-500" />
+            </span>
+          )}
+        </div>
         <div className="flex-1">
           <div className="flex items-center justify-between text-xs text-muted-foreground">
             <span>
@@ -575,16 +642,6 @@ function SmsRow({ sms, onOpen }: { sms: Interaction; onOpen: () => void }) {
   );
 }
 
-interface Briefing {
-  businessSummary?: string;
-  targetAudience?: string;
-  keyServices?: string[];
-  pricingGuidelines?: string;
-  faq?: Array<{ q?: string; a?: string; question?: string; answer?: string }>;
-  scripts?: { opening?: string; closing?: string; objectionHandling?: string };
-  dosAndDonts?: Record<string, unknown>;
-}
-
 function ActiveCallView({ call, onDismiss }: { call: unknown; onDismiss: () => void }) {
   const c = call as {
     from_number?: string;
@@ -592,19 +649,6 @@ function ActiveCallView({ call, onDismiss }: { call: unknown; onDismiss: () => v
     subAccountId?: string;
     subAccountName?: string;
   };
-
-  const { data: briefing } = useQuery<Briefing | null>({
-    queryKey: ['briefing', c.subAccountId],
-    queryFn: () => apiClient.get(`/briefings/by-sub-account/${c.subAccountId}`),
-    enabled: !!c.subAccountId,
-  });
-
-  const dosDontsEntries = briefing?.dosAndDonts ? Object.entries(briefing.dosAndDonts) : [];
-  const hasDosDonts = dosDontsEntries.some(([, v]) => {
-    if (Array.isArray(v)) return v.length > 0;
-    if (typeof v === 'string') return v.trim().length > 0;
-    return false;
-  });
 
   return (
     <Card>
@@ -622,125 +666,52 @@ function ActiveCallView({ call, onDismiss }: { call: unknown; onDismiss: () => v
           <Button variant="outline" size="sm" onClick={onDismiss}>Fechar</Button>
         </div>
       </CardHeader>
-      <CardContent className="space-y-3">
-        {briefing?.businessSummary && (
-          <BriefCard title="Sobre o cliente" tone="muted">
-            <LinkifiedText text={briefing.businessSummary} />
-          </BriefCard>
-        )}
-        {briefing?.targetAudience && (
-          <BriefCard title="Público-alvo" tone="muted">
-            <LinkifiedText text={briefing.targetAudience} />
-          </BriefCard>
-        )}
-        {briefing?.keyServices && briefing.keyServices.length > 0 && (
-          <BriefCard title="Serviços principais" tone="muted">
-            <ul className="list-disc space-y-1 pl-5 text-sm">
-              {briefing.keyServices.map((s, i) => <li key={i}>{s}</li>)}
-            </ul>
-          </BriefCard>
-        )}
-        {briefing?.pricingGuidelines && (
-          <BriefCard title="Preços" tone="amber">
-            <LinkifiedText text={briefing.pricingGuidelines} />
-          </BriefCard>
-        )}
-        {briefing?.scripts?.opening && (
-          <BriefCard title="Script de abertura" tone="blue">
-            <LinkifiedText text={briefing.scripts.opening} />
-          </BriefCard>
-        )}
-        {briefing?.scripts?.objectionHandling && (
-          <BriefCard title="Lidando com objeções" tone="blue">
-            <LinkifiedText text={briefing.scripts.objectionHandling} />
-          </BriefCard>
-        )}
-        {briefing?.scripts?.closing && (
-          <BriefCard title="Script de fechamento" tone="blue">
-            <LinkifiedText text={briefing.scripts.closing} />
-          </BriefCard>
-        )}
-        {hasDosDonts && (
-          <BriefCard title="Faça / Não faça" tone="muted">
-            <div className="space-y-2 text-sm">
-              {dosDontsEntries.map(([key, value]) => {
-                const items = Array.isArray(value)
-                  ? (value as unknown[]).map((v) => String(v))
-                  : typeof value === 'string'
-                    ? [value]
-                    : [];
-                if (items.length === 0) return null;
-                return (
-                  <div key={key}>
-                    <p className="font-medium capitalize">{key}</p>
-                    <ul className="list-disc pl-5">
-                      {items.map((it, i) => <li key={i}>{it}</li>)}
-                    </ul>
-                  </div>
-                );
-              })}
-            </div>
-          </BriefCard>
-        )}
-        {briefing?.faq && briefing.faq.length > 0 && (
-          <BriefCard title={`FAQ (${briefing.faq.length})`} tone="muted">
-            <div className="space-y-2 text-sm">
-              {briefing.faq.map((item, i) => {
-                const question = (item.q ?? item.question ?? '').trim();
-                const answer = (item.a ?? item.answer ?? '').trim();
-                if (!question && !answer) return null;
-                return (
-                  <details key={i} className="rounded border bg-background p-2">
-                    <summary className="cursor-pointer font-medium">{question || `Pergunta ${i + 1}`}</summary>
-                    <div className="mt-1 pl-2">
-                      <LinkifiedText text={answer} />
-                    </div>
-                  </details>
-                );
-              })}
-            </div>
-          </BriefCard>
-        )}
-        {!briefing && (
-          <p className="text-xs text-muted-foreground">Briefing não cadastrado pra esse cliente.</p>
-        )}
+      <CardContent>
+        <BriefingDisplay subAccountId={c.subAccountId} />
       </CardContent>
     </Card>
   );
 }
 
-function BriefCard({
-  title,
-  tone,
-  children,
+function BriefingsView({
+  clients,
+  initialSelectedId,
 }: {
-  title: string;
-  tone: 'muted' | 'blue' | 'amber';
-  children: React.ReactNode;
+  clients: AssignedClient[];
+  initialSelectedId: string | null;
 }) {
-  const bg = tone === 'blue' ? 'bg-blue-50' : tone === 'amber' ? 'bg-amber-50' : 'bg-muted/30';
-  return (
-    <Card className={bg}>
-      <CardHeader className="pb-2"><CardTitle className="text-sm">{title}</CardTitle></CardHeader>
-      <CardContent>{children}</CardContent>
-    </Card>
+  const [selectedId, setSelectedId] = useState<string | null>(
+    initialSelectedId ?? clients[0]?.id ?? null,
   );
-}
 
-function LinkifiedText({ text }: { text: string }) {
-  const parts = text.split(/(https?:\/\/[^\s]+)/g);
+  useEffect(() => {
+    if (initialSelectedId) setSelectedId(initialSelectedId);
+  }, [initialSelectedId]);
+
+  useEffect(() => {
+    const first = clients[0];
+    if (!selectedId && first) setSelectedId(first.id);
+  }, [clients, selectedId]);
+
   return (
-    <p className="whitespace-pre-wrap text-sm">
-      {parts.map((p, i) =>
-        /^https?:\/\//.test(p) ? (
-          <a key={i} href={p} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline break-all">
-            {p}
-          </a>
-        ) : (
-          <span key={i}>{p}</span>
-        ),
-      )}
-    </p>
+    <Card>
+      <CardHeader className="flex flex-row items-center gap-3">
+        <CardTitle>Briefings</CardTitle>
+        <select
+          value={selectedId ?? ''}
+          onChange={(e) => setSelectedId(e.target.value || null)}
+          className="ml-auto h-9 rounded-md border bg-background px-3 text-sm"
+        >
+          {clients.length === 0 && <option value="">Nenhum cliente</option>}
+          {clients.map((c) => (
+            <option key={c.id} value={c.id}>{c.name}</option>
+          ))}
+        </select>
+      </CardHeader>
+      <CardContent>
+        <BriefingDisplay subAccountId={selectedId} />
+      </CardContent>
+    </Card>
   );
 }
 
