@@ -25,6 +25,7 @@ import { InteractionDrawer } from '@/components/interaction-drawer';
 import { NotificationBanner } from '@/components/agent/notification-banner';
 import { useAuthStore } from '@/stores/auth-store';
 import { useRealtimeCalls, useRealtimeSms } from '@/hooks/use-realtime-calls';
+import { LEAD_STATUS_COLOR, LEAD_STATUS_LABELS, type LeadStatus } from '@/components/interaction-drawer';
 
 interface AssignedClient {
   id: string;
@@ -44,7 +45,7 @@ interface Interaction {
   smsBody: string | null;
   recordingUrl: string | null;
   aiSummary: string | null;
-  lead: { id: string; name: string | null } | null;
+  lead: { id: string; name: string | null; status?: LeadStatus } | null;
   agent: { id: string; fullName: string } | null;
   subAccount: { id: string; name: string } | null;
 }
@@ -403,7 +404,14 @@ function CallRow({ call, onClick }: { call: Interaction; onClick: () => void }) 
         </div>
         <div>
           <p className="text-muted-foreground">Lead</p>
-          <p>{call.lead?.name ?? '—'}</p>
+          <p className="flex items-center gap-1.5">
+            <span>{call.lead?.name ?? call.fromNumber ?? '—'}</span>
+            {call.lead?.status && (
+              <span className={`rounded border px-1.5 py-0.5 text-[10px] font-medium ${LEAD_STATUS_COLOR[call.lead.status]}`}>
+                {LEAD_STATUS_LABELS[call.lead.status]}
+              </span>
+            )}
+          </p>
         </div>
         <div>
           <p className="text-muted-foreground">Quando</p>

@@ -3,13 +3,14 @@
 import { useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { X, Save, ExternalLink, Phone, MessageSquare, Voicemail, FormInput } from 'lucide-react';
-import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { apiClient } from '@/lib/api-client';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { RecordingPlayer } from '@/components/recording-player';
+import { useTenantStore } from '@/stores/tenant-store';
 
 type LeadStatus = 'new' | 'contacted' | 'qualified' | 'won' | 'lost';
 const STATUS_LABELS: Record<LeadStatus, string> = {
@@ -19,6 +20,17 @@ const STATUS_LABELS: Record<LeadStatus, string> = {
   won: 'Ganho',
   lost: 'Perdido',
 };
+const STATUS_COLOR: Record<LeadStatus, string> = {
+  new: 'bg-slate-100 text-slate-700 border-slate-200',
+  contacted: 'bg-blue-100 text-blue-700 border-blue-200',
+  qualified: 'bg-amber-100 text-amber-700 border-amber-200',
+  won: 'bg-emerald-100 text-emerald-700 border-emerald-200',
+  lost: 'bg-red-100 text-red-700 border-red-200',
+};
+
+export const LEAD_STATUS_LABELS = STATUS_LABELS;
+export const LEAD_STATUS_COLOR = STATUS_COLOR;
+export type { LeadStatus };
 
 interface InteractionDetail {
   id: string;
@@ -70,9 +82,24 @@ export function InteractionDrawer({
     enabled: !!interactionId,
   });
 
+  const subAccountId = interaction?.subAccount?.id;
+  const subAccountName = interaction?.subAccount?.name;
+  const router = useRouter();
+  const setTenant = useTenantStore((s) => s.setTenant);
+
+  const openFullLead = () => {
+    if (!interaction?.lead?.id || !subAccountId || !subAccountName) return;
+    setTenant(subAccountId, subAccountName);
+    router.push(`/workspace/leads/${interaction.lead.id}`);
+  };
+
   const addNote = useMutation({
     mutationFn: (body: string) =>
-      apiClient.post(`/leads/${interaction!.lead!.id}/notes`, { body }),
+      apiClient.post(
+        `/leads/${interaction!.lead!.id}/notes`,
+        { body },
+        { subAccountId },
+      ),
     onSuccess: () => {
       toast.success('Nota salva');
       setNote('');
@@ -83,12 +110,18 @@ export function InteractionDrawer({
 
   const updateStatus = useMutation({
     mutationFn: (status: LeadStatus) =>
-      apiClient.patch(`/leads/${interaction!.lead!.id}`, { status }),
+      apiClient.patch(
+        `/leads/${interaction!.lead!.id}`,
+        { status },
+        { subAccountId },
+      ),
     onSuccess: () => {
       toast.success('Status atualizado');
       qc.invalidateQueries({ queryKey: ['interaction-detail', interactionId] });
       qc.invalidateQueries({ queryKey: ['my-calls'] });
+      qc.invalidateQueries({ queryKey: ['my-sms'] });
     },
+    onError: (err: Error) => toast.error(err.message),
   });
 
   useEffect(() => {
@@ -207,19 +240,20 @@ export function InteractionDrawer({
                   <select
                     value={interaction.lead.status}
                     onChange={(e) => updateStatus.mutate(e.target.value as LeadStatus)}
-                    className="h-9 rounded-md border border-border bg-background px-3 text-sm"
+                    disabled={updateStatus.isPending}
+                    className={`h-9 rounded-md border px-3 text-sm font-medium ${STATUS_COLOR[interaction.lead.status]}`}
                   >
                     {(Object.keys(STATUS_LABELS) as LeadStatus[]).map((s) => (
                       <option key={s} value={s}>{STATUS_LABELS[s]}</option>
                     ))}
                   </select>
                 </div>
-                <Link
-                  href={`/workspace/leads/${interaction.lead.id}` as never}
+                <button
+                  onClick={openFullLead}
                   className="mt-3 flex items-center gap-2 text-sm text-blue-600 hover:underline"
                 >
                   <ExternalLink className="h-4 w-4" /> Abrir lead completo
-                </Link>
+                </button>
               </section>
 
               <section>

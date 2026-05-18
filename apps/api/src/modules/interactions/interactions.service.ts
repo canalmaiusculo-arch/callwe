@@ -1,9 +1,12 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { AxiosError } from 'axios';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { CloudtalkService } from '../cloudtalk/cloudtalk.service.js';
 
 @Injectable()
 export class InteractionsService {
+  private readonly logger = new Logger(InteractionsService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly cloudtalk: CloudtalkService,
@@ -28,11 +31,25 @@ export class InteractionsService {
       throw new BadRequestException('cloudtalk_agent_id inválido');
     }
 
-    await this.cloudtalk.client.sms.send({
-      agent_id: agentId,
-      to: input.toNumber,
-      text: input.text,
-    });
+    try {
+      await this.cloudtalk.client.sms.send({
+        agent_id: agentId,
+        to: input.toNumber,
+        text: input.text,
+      });
+    } catch (err) {
+      if (err instanceof AxiosError) {
+        const data = err.response?.data;
+        this.logger.error(
+          `CloudTalk sms/send falhou: ${err.response?.status} ${JSON.stringify(data)}`,
+        );
+        const message =
+          (data && typeof data === 'object' && (data.message || data.error || data.responseData)) ||
+          err.message;
+        throw new BadRequestException(`CloudTalk recusou o envio: ${JSON.stringify(message)}`);
+      }
+      throw err;
+    }
 
     // O webhook sms.sent vai chegar em 1-3s e o worker persiste a Interaction.
     // Aqui só retornamos sucesso — frontend invalida o cache e o refetch
