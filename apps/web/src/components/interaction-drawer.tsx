@@ -248,7 +248,7 @@ export function InteractionDrawer({
           {interaction.recordingUrl && (
             <section>
               <p className="mb-2 text-xs font-medium uppercase text-muted-foreground">Gravação</p>
-              <RecordingPlayer interactionId={interaction.id} />
+              <RecordingPlayer interactionId={interaction.id} subAccountId={subAccountId} />
             </section>
           )}
 
