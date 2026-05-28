@@ -21,9 +21,22 @@ const defaults = {
   },
 };
 
+// Queues que dependem de APIs externas com latência variável ou rate limit
+// (CloudTalk processando recording, OpenAI Whisper/Chat com limite por minuto).
+// 30s base + exponencial → ~30s, 60s, 120s, 240s, 480s, 960s = ~30min total.
+const slowExternalDefaults = {
+  connection,
+  defaultJobOptions: {
+    attempts: 8,
+    backoff: { type: 'exponential' as const, delay: 30000 },
+    removeOnComplete: { age: 3600, count: 1000 },
+    removeOnFail: { age: 7 * 24 * 3600 },
+  },
+};
+
 export const cloudtalkWebhookQueue = new Queue(QUEUES.cloudtalkWebhook, defaults);
 export const metaLeadgenQueue = new Queue(QUEUES.metaLeadgen, defaults);
-export const recordingSyncQueue = new Queue(QUEUES.recordingSync, defaults);
-export const transcriptionQueue = new Queue(QUEUES.transcription, defaults);
+export const recordingSyncQueue = new Queue(QUEUES.recordingSync, slowExternalDefaults);
+export const transcriptionQueue = new Queue(QUEUES.transcription, slowExternalDefaults);
 export const slaCheckerQueue = new Queue(QUEUES.slaChecker, defaults);
 export const usageAggregatorQueue = new Queue(QUEUES.usageAggregator, defaults);
