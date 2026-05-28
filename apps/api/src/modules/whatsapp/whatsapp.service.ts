@@ -68,15 +68,14 @@ export class WhatsappService {
     }
   }
 
-  /** Carrega interaction, valida acesso, monta mensagem e envia pro grupo da sub_account. */
-  async sendInteractionSummary(userId: string, interactionId: string): Promise<{ sent: true; phone: string }> {
+  /** Carrega interaction, valida acesso, monta mensagem (varia por cenário) e envia pro grupo da sub_account. */
+  async sendInteractionSummary(userId: string, interactionId: string): Promise<{ sent: true; phone: string; scenario: string }> {
     const interaction = await this.prisma.interaction.findUnique({
       where: { id: interactionId },
       include: { subAccount: true, lead: true, agent: { select: { fullName: true } } },
     });
     if (!interaction) throw new BadRequestException('Interação não encontrada');
 
-    // Valida que o usuário atende essa sub_account.
     const membership = await this.prisma.membership.findFirst({
       where: { userId, subAccountId: interaction.subAccountId },
       select: { id: true },
@@ -91,31 +90,16 @@ export class WhatsappService {
       );
     }
 
-    const summary = interaction.aiSummary?.trim();
-    if (!summary) throw new BadRequestException('Sem resumo IA pra essa chamada ainda');
+    const scenario = classifyInteraction(interaction);
+    if (scenario === 'unsupported') {
+      throw new BadRequestException(
+        'Essa chamada não tem report disponível ainda. Aguarde a transcrição completar.',
+      );
+    }
 
-    const leadName = interaction.lead?.name ?? interaction.fromNumber ?? 'Lead';
-    const agentName = interaction.agent?.fullName ?? 'Atendente';
-    const startedAt = interaction.startedAt.toLocaleString('pt-BR', {
-      timeZone: 'America/Sao_Paulo',
-    });
-    const duration = interaction.durationSeconds
-      ? `${Math.floor(interaction.durationSeconds / 60)}m${interaction.durationSeconds % 60}s`
-      : '—';
-
-    const message = [
-      `📞 *Resumo de chamada — ${interaction.subAccount.name}*`,
-      ``,
-      `*Lead:* ${leadName}`,
-      `*Atendente:* ${agentName}`,
-      `*Quando:* ${startedAt}`,
-      `*Duração:* ${duration}`,
-      ``,
-      summary,
-    ].join('\n');
-
+    const message = buildMessage(scenario, interaction);
     await this.sendText(phone, message);
-    return { sent: true, phone };
+    return { sent: true, phone, scenario };
   }
 
   private formatError(err: unknown): string {
@@ -127,4 +111,78 @@ export class WhatsappService {
     }
     return (err as Error)?.message ?? 'erro desconhecido';
   }
+}
+
+type Scenario = 'summary' | 'missed_inbound' | 'outbound_unanswered' | 'unsupported';
+
+interface InteractionForWhatsapp {
+  type: string;
+  direction: string;
+  status: string;
+  startedAt: Date;
+  durationSeconds: number | null;
+  fromNumber: string | null;
+  toNumber: string | null;
+  aiSummary: string | null;
+  subAccount: { name: string };
+  lead: { name: string | null; phoneE164: string | null } | null;
+  agent: { fullName: string } | null;
+}
+
+export function classifyInteraction(i: InteractionForWhatsapp): Scenario {
+  if (i.type !== 'call') return 'unsupported';
+  const summary = i.aiSummary?.trim();
+  if (summary) return 'summary';
+  if (i.direction === 'inbound' && i.status === 'missed') return 'missed_inbound';
+  if (i.direction === 'outbound' && (!i.durationSeconds || i.durationSeconds < 5)) {
+    return 'outbound_unanswered';
+  }
+  return 'unsupported';
+}
+
+function buildMessage(scenario: Scenario, i: InteractionForWhatsapp): string {
+  const leadName = i.lead?.name?.trim();
+  const leadPhone = i.lead?.phoneE164 ?? (i.direction === 'inbound' ? i.fromNumber : i.toNumber) ?? '—';
+  const leadLabel = leadName ? `${leadName} (${leadPhone})` : leadPhone;
+  const when = i.startedAt.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+  const agentName = i.agent?.fullName ?? 'Equipe';
+  const sub = i.subAccount.name;
+
+  if (scenario === 'summary') {
+    const duration = i.durationSeconds
+      ? `${Math.floor(i.durationSeconds / 60)}m${i.durationSeconds % 60}s`
+      : '—';
+    return [
+      `📞 *Resumo de chamada — ${sub}*`,
+      ``,
+      `*Lead:* ${leadLabel}`,
+      `*Atendente:* ${agentName}`,
+      `*Quando:* ${when}`,
+      `*Duração:* ${duration}`,
+      ``,
+      i.aiSummary?.trim() ?? '',
+    ].join('\n');
+  }
+
+  if (scenario === 'missed_inbound') {
+    return [
+      `📵 *Chamada perdida — ${sub}*`,
+      ``,
+      `*Lead:* ${leadLabel}`,
+      `*Quando:* ${when}`,
+      ``,
+      `Ligou e a chamada foi perdida. Vamos retornar em breve.`,
+    ].join('\n');
+  }
+
+  // outbound_unanswered
+  return [
+    `↩️ *Tentativa de retorno — ${sub}*`,
+    ``,
+    `*Lead:* ${leadLabel}`,
+    `*Atendente:* ${agentName}`,
+    `*Quando:* ${when}`,
+    ``,
+    `Tentamos contato mas não foi atendido. Vamos tentar novamente.`,
+  ].join('\n');
 }

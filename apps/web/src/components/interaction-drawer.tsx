@@ -285,20 +285,31 @@ export function InteractionDrawer({
                   <Badge key={t} variant="secondary">{t}</Badge>
                 ))}
               </div>
-              {interaction.aiSummary && (
+            </section>
+          )}
+
+          {(() => {
+            const action = classifyForWhatsapp(interaction);
+            if (!action) return null;
+            return (
+              <section className="rounded-md border border-emerald-200 bg-emerald-50 p-3">
+                <p className="mb-2 text-xs font-medium uppercase text-emerald-700">
+                  Report pro cliente
+                </p>
+                <p className="mb-2 text-xs text-emerald-900/80">{action.preview}</p>
                 <Button
                   size="sm"
                   variant="outline"
-                  className="mt-3 border-blue-300 bg-white"
+                  className="border-emerald-300 bg-white"
                   onClick={() => sendWhatsappSummary.mutate()}
                   disabled={sendWhatsappSummary.isPending}
                 >
                   <Send className="mr-1 h-3 w-3" />
-                  {sendWhatsappSummary.isPending ? 'Enviando...' : 'Enviar resumo pro grupo WhatsApp'}
+                  {sendWhatsappSummary.isPending ? 'Enviando...' : action.label}
                 </Button>
-              )}
-            </section>
-          )}
+              </section>
+            );
+          })()}
 
           {interaction.transcript && (
             <section>
@@ -424,6 +435,29 @@ function InfoBox({ label, value }: { label: string; value: string }) {
       <p className="text-sm font-medium">{value}</p>
     </div>
   );
+}
+
+function classifyForWhatsapp(i: InteractionDetail): { label: string; preview: string } | null {
+  if (i.type !== 'call') return null;
+  if (i.aiSummary?.trim()) {
+    return {
+      label: 'Enviar resumo pro grupo WhatsApp',
+      preview: 'Envia o resumo da chamada + dados do lead pro grupo WhatsApp do cliente.',
+    };
+  }
+  if (i.direction === 'inbound' && i.status === 'missed') {
+    return {
+      label: 'Avisar cliente da chamada perdida',
+      preview: 'Avisa o cliente que o lead ligou e a chamada foi perdida — informaremos que vamos retornar.',
+    };
+  }
+  if (i.direction === 'outbound' && (!i.durationSeconds || i.durationSeconds < 5)) {
+    return {
+      label: 'Avisar tentativa de retorno',
+      preview: 'Avisa o cliente que tentamos retornar o contato mas não foi atendido.',
+    };
+  }
+  return null;
 }
 
 function formatDuration(seconds: number): string {
