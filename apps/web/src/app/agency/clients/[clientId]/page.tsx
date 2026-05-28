@@ -19,8 +19,14 @@ interface ClientDetail {
   status: string;
   plan: string;
   cloudtalkTag: string;
+  settings: Record<string, unknown> | null;
   phoneNumbers: Array<{ id: string; e164: string; label: string | null; cloudtalkNumberId: string }>;
   _count: { leads: number; interactions: number };
+}
+
+interface WhatsappGroup {
+  phone: string;
+  name: string;
 }
 
 interface AvailableNumber {
@@ -205,6 +211,95 @@ export default function ClientDetailPage({ params }: { params: Promise<{ clientI
           )}
         </>
       )}
+
+      <WhatsappGroupCard clientId={clientId} currentGroupId={(client.settings?.whatsappGroupId as string | undefined) ?? null} />
     </div>
+  );
+}
+
+function WhatsappGroupCard({
+  clientId,
+  currentGroupId,
+}: {
+  clientId: string;
+  currentGroupId: string | null;
+}) {
+  const qc = useQueryClient();
+  const [expanded, setExpanded] = useState(false);
+
+  const { data: groups = [], isLoading, error } = useQuery<WhatsappGroup[]>({
+    queryKey: ['whatsapp-groups'],
+    queryFn: () => apiClient.get('/whatsapp/groups'),
+    enabled: expanded,
+    retry: false,
+  });
+
+  const save = useMutation({
+    mutationFn: (groupId: string | null) =>
+      apiClient.patch(`/sub-accounts/${clientId}/whatsapp`, { whatsappGroupId: groupId }),
+    onSuccess: () => {
+      toast.success(currentGroupId ? 'Grupo atualizado' : 'Grupo conectado');
+      qc.invalidateQueries({ queryKey: ['client', clientId] });
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+
+  const currentGroup = groups.find((g) => g.phone === currentGroupId);
+
+  return (
+    <Card className="mt-6">
+      <CardHeader className="flex flex-row items-center justify-between">
+        <div>
+          <CardTitle className="text-base">WhatsApp do cliente</CardTitle>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            Grupo onde resumos das chamadas serão enviados.
+          </p>
+        </div>
+        {currentGroupId && (
+          <Badge variant="secondary" className="font-mono text-xs">
+            {currentGroup?.name ?? currentGroupId}
+          </Badge>
+        )}
+      </CardHeader>
+      <CardContent>
+        {!expanded ? (
+          <Button size="sm" variant="outline" onClick={() => setExpanded(true)}>
+            {currentGroupId ? 'Trocar grupo' : 'Configurar grupo'}
+          </Button>
+        ) : (
+          <div className="space-y-2">
+            {isLoading && <p className="text-sm text-muted-foreground">Carregando grupos do Z-API...</p>}
+            {error && (
+              <p className="text-sm text-red-600">
+                {(error as Error).message ?? 'Erro carregando grupos'}
+              </p>
+            )}
+            {!isLoading && !error && groups.length === 0 && (
+              <p className="text-sm text-muted-foreground">
+                Nenhum grupo encontrado. Adicione o número da Z-API a um grupo WhatsApp primeiro.
+              </p>
+            )}
+            {groups.length > 0 && (
+              <select
+                value={currentGroupId ?? ''}
+                onChange={(e) => save.mutate(e.target.value || null)}
+                disabled={save.isPending}
+                className="h-9 w-full rounded-md border bg-background px-2 text-sm"
+              >
+                <option value="">— desconectar —</option>
+                {groups.map((g) => (
+                  <option key={g.phone} value={g.phone}>
+                    {g.name} ({g.phone})
+                  </option>
+                ))}
+              </select>
+            )}
+            <Button size="sm" variant="ghost" onClick={() => setExpanded(false)}>
+              Fechar
+            </Button>
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }

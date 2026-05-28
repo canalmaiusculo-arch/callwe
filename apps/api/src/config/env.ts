@@ -29,6 +29,11 @@ const schema = z.object({
   META_SYSTEM_USER_TOKEN: z.string().optional(),
   META_OAUTH_STATE_SECRET: z.string().min(32).optional(),
 
+  // Z-API (WhatsApp). Credenciais globais — 1 número da agência atende todos os clientes.
+  ZAPI_INSTANCE_ID: z.string().optional(),
+  ZAPI_TOKEN: z.string().optional(),
+  ZAPI_CLIENT_TOKEN: z.string().optional(),
+
   S3_ENDPOINT: z.string().url().optional(),
   S3_REGION: z.string().default('auto'),
   S3_BUCKET: z.string().optional(),

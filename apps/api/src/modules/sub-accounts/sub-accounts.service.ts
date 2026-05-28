@@ -91,4 +91,18 @@ export class SubAccountsService {
   archive(id: string) {
     return this.prisma.subAccount.update({ where: { id }, data: { status: 'archived' } });
   }
+
+  async setWhatsappGroup(id: string, whatsappGroupId: string | null) {
+    const sub = await this.prisma.subAccount.findUnique({ where: { id }, select: { settings: true } });
+    if (!sub) throw new Error('Sub-account não encontrada');
+    const currentSettings = (sub.settings ?? {}) as Record<string, unknown>;
+    const next = whatsappGroupId
+      ? { ...currentSettings, whatsappGroupId }
+      : Object.fromEntries(Object.entries(currentSettings).filter(([k]) => k !== 'whatsappGroupId'));
+    return this.prisma.subAccount.update({
+      where: { id },
+      data: { settings: next as never },
+      select: { id: true, name: true, settings: true },
+    });
+  }
 }

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { X, Save, ExternalLink, Phone, MessageSquare, Voicemail, FormInput } from 'lucide-react';
+import { X, Save, ExternalLink, Phone, MessageSquare, Voicemail, FormInput, Send } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { apiClient } from '@/lib/api-client';
@@ -161,6 +161,15 @@ export function InteractionDrawer({
     onError: (err: Error) => toast.error(err.message),
   });
 
+  const sendWhatsappSummary = useMutation({
+    mutationFn: () =>
+      apiClient.post(`/whatsapp/send-summary/${interactionId}`, {}),
+    onSuccess: () => {
+      toast.success('Resumo enviado pro grupo WhatsApp');
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+
   const updateChannel = useMutation({
     mutationFn: (channel: AcquisitionChannel | '') => {
       const currentCustomFields =
@@ -276,6 +285,18 @@ export function InteractionDrawer({
                   <Badge key={t} variant="secondary">{t}</Badge>
                 ))}
               </div>
+              {interaction.aiSummary && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="mt-3 border-blue-300 bg-white"
+                  onClick={() => sendWhatsappSummary.mutate()}
+                  disabled={sendWhatsappSummary.isPending}
+                >
+                  <Send className="mr-1 h-3 w-3" />
+                  {sendWhatsappSummary.isPending ? 'Enviando...' : 'Enviar resumo pro grupo WhatsApp'}
+                </Button>
+              )}
             </section>
           )}
 

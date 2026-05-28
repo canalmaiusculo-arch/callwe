@@ -20,6 +20,10 @@ const UpdateDto = z.object({
   plan: z.enum(['starter', 'pro', 'enterprise']).optional(),
 });
 
+const WhatsappDto = z.object({
+  whatsappGroupId: z.string().min(1).nullable(),
+});
+
 @Controller('sub-accounts')
 @UseGuards(AuthGuard('jwt'), RolesGuard)
 export class SubAccountsController {
@@ -63,6 +67,16 @@ export class SubAccountsController {
   @Roles(ROLES.SUPER_ADMIN, ROLES.AGENCY_ADMIN)
   update(@Param('id') id: string, @ZodBody(UpdateDto) dto: z.infer<typeof UpdateDto>) {
     return this.svc.update(id, dto);
+  }
+
+  /** Seta o grupo WhatsApp pra envio de resumos automáticos. */
+  @Patch(':id/whatsapp')
+  @Roles(ROLES.SUPER_ADMIN, ROLES.AGENCY_ADMIN)
+  setWhatsappGroup(
+    @Param('id') id: string,
+    @ZodBody(WhatsappDto) dto: z.infer<typeof WhatsappDto>,
+  ) {
+    return this.svc.setWhatsappGroup(id, dto.whatsappGroupId);
   }
 
   @Delete(':id')

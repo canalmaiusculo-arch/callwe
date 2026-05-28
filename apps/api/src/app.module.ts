@@ -18,6 +18,7 @@ import { PhoneNumbersModule } from './modules/phone-numbers/phone-numbers.module
 import { TeamModule } from './modules/team/team.module.js';
 import { ReportsModule } from './modules/reports/reports.module.js';
 import { AgenciesModule } from './modules/agencies/agencies.module.js';
+import { WhatsappModule } from './modules/whatsapp/whatsapp.module.js';
 
 @Module({
   imports: [
@@ -39,6 +40,7 @@ import { AgenciesModule } from './modules/agencies/agencies.module.js';
     IntegrationsModule,
     DashboardModule,
     RealtimeModule,
+    WhatsappModule,
   ],
   controllers: [HealthController],
 })
