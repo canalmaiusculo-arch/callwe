@@ -24,10 +24,13 @@ async function main() {
     let retried = 0;
     for (const job of failed) {
       try {
-        await job.retry();
+        // add() recria o job com a config CURRENT da queue (backoff/attempts atuais).
+        // job.retry() mantém a config original — inútil se a gente bumpou o backoff.
+        await q.add(job.name ?? name, job.data);
+        await job.remove();
         retried++;
       } catch (err) {
-        console.log(`  ⚠️ failed to retry ${job.id}: ${(err as Error).message}`);
+        console.log(`  ⚠️ failed to recreate ${job.id}: ${(err as Error).message}`);
       }
     }
     console.log(`  ✅ ${retried}/${failed.length} re-enqueued`);
