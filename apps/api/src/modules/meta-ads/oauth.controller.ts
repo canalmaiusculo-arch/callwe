@@ -20,16 +20,16 @@ const SubscribeFormDto = z.object({
 export class MetaAdsOAuthController {
   constructor(private readonly svc: MetaAdsService) {}
 
-  /** Inicia o fluxo OAuth — redireciona para o Facebook. Exige usuário logado + tenant. */
+  /** Inicia o fluxo OAuth. Retorna a URL do Facebook como JSON — frontend
+   *  redireciona com window.location.href depois de autenticar. */
   @Get('connect')
   @UseGuards(AuthGuard('jwt'), TenantGuard)
   connect(
     @Req() req: { tenant: { subAccountId: string } },
     @CurrentUser() user: AuthUser,
-    @Res() res: Response,
   ) {
     const url = this.svc.buildAuthorizeUrl(req.tenant.subAccountId, user.id);
-    return res.redirect(url);
+    return { authorizeUrl: url };
   }
 
   /** Callback do Facebook — público, mas validamos o `state` assinado. */

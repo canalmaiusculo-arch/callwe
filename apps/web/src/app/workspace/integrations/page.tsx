@@ -2,6 +2,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { Facebook, Phone, MessageCircle } from 'lucide-react';
+import { toast } from 'sonner';
 import { apiClient } from '@/lib/api-client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -21,16 +22,26 @@ const PROVIDERS = [
     name: 'Meta Ads (Facebook Lead Ads)',
     description: 'Recebe leads dos formulários nativos do Facebook/Instagram direto no CRM.',
     icon: Facebook,
-    connectUrl: '/api/integrations/meta-ads/connect',
+    connectPath: '/integrations/meta-ads/connect',
   },
   {
     key: 'whatsapp_cloud' as const,
     name: 'WhatsApp Business',
     description: 'Mensagens do WhatsApp no mesmo painel.',
     icon: MessageCircle,
-    connectUrl: '/api/integrations/whatsapp/connect',
+    connectPath: '/integrations/whatsapp/connect',
   },
 ];
+
+async function startConnect(connectPath: string) {
+  try {
+    const res = await apiClient.get<{ authorizeUrl: string }>(connectPath);
+    if (!res.authorizeUrl) throw new Error('Backend não retornou authorizeUrl');
+    window.location.href = res.authorizeUrl;
+  } catch (err) {
+    toast.error((err as Error).message ?? 'Falha ao iniciar conexão');
+  }
+}
 
 export default function IntegrationsPage() {
   const { data: integrations = [] } = useQuery<Integration[]>({
@@ -86,8 +97,11 @@ export default function IntegrationsPage() {
                   )}
                   {inst?.lastError && <p className="text-red-600">Erro: {inst.lastError}</p>}
                 </div>
-                <Button asChild variant={connected ? 'outline' : 'default'}>
-                  <a href={p.connectUrl}>{connected ? 'Reconectar' : 'Conectar'}</a>
+                <Button
+                  variant={connected ? 'outline' : 'default'}
+                  onClick={() => startConnect(p.connectPath)}
+                >
+                  {connected ? 'Reconectar' : 'Conectar'}
                 </Button>
               </CardContent>
             </Card>
