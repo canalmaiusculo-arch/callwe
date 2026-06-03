@@ -79,6 +79,20 @@ export class SubAccountsController {
     return this.svc.setWhatsappGroup(id, dto.whatsappGroupId);
   }
 
+  /** Retorna (e gera se não existir) a API key pra integração Zapier. */
+  @Get(':id/zapier-key')
+  @Roles(ROLES.SUPER_ADMIN, ROLES.AGENCY_ADMIN)
+  getZapierKey(@Param('id') id: string) {
+    return this.svc.getOrCreateZapierApiKey(id);
+  }
+
+  /** Rotaciona a API key (invalida a anterior). */
+  @Post(':id/zapier-key/rotate')
+  @Roles(ROLES.SUPER_ADMIN, ROLES.AGENCY_ADMIN)
+  rotateZapierKey(@Param('id') id: string) {
+    return this.svc.rotateZapierApiKey(id);
+  }
+
   @Delete(':id')
   @Roles(ROLES.SUPER_ADMIN)
   archive(@Param('id') id: string) {

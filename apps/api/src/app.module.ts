@@ -19,6 +19,7 @@ import { TeamModule } from './modules/team/team.module.js';
 import { ReportsModule } from './modules/reports/reports.module.js';
 import { AgenciesModule } from './modules/agencies/agencies.module.js';
 import { WhatsappModule } from './modules/whatsapp/whatsapp.module.js';
+import { ZapierWebhookModule } from './modules/zapier-webhook/zapier-webhook.module.js';
 
 @Module({
   imports: [
@@ -41,6 +42,7 @@ import { WhatsappModule } from './modules/whatsapp/whatsapp.module.js';
     DashboardModule,
     RealtimeModule,
     WhatsappModule,
+    ZapierWebhookModule,
   ],
   controllers: [HealthController],
 })

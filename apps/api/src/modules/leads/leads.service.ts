@@ -160,7 +160,13 @@ export class LeadsService {
   async upsertByPhone(
     subAccountId: string,
     phoneE164: string,
-    defaults: { source: LeadSource; name?: string },
+    defaults: {
+      source: LeadSource;
+      sourceRef?: string;
+      name?: string;
+      email?: string;
+      customFields?: Prisma.InputJsonValue;
+    },
   ) {
     const existing = await this.prisma.lead.findFirst({
       where: { subAccountId, phoneE164, deletedAt: null },
