@@ -11,8 +11,8 @@ const CreateDto = z.object({
   subAccountId: z.string().uuid(),
   cloudtalkNumberId: z.string(),
   e164: z.string().regex(/^\+[1-9]\d{1,14}$/),
-  label: z.string().optional(),
-  country: z.string().length(2).optional(),
+  label: z.string().nullish(),
+  country: z.string().nullish(),
 });
 
 @Controller('phone-numbers')
@@ -37,7 +37,12 @@ export class PhoneNumbersController {
   @Post()
   @Roles(ROLES.SUPER_ADMIN)
   create(@ZodBody(CreateDto) dto: z.infer<typeof CreateDto>) {
-    return this.svc.create(dto.subAccountId, dto);
+    return this.svc.create(dto.subAccountId, {
+      cloudtalkNumberId: dto.cloudtalkNumberId,
+      e164: dto.e164,
+      label: dto.label?.trim() || undefined,
+      country: normalizeCountry(dto.country),
+    });
   }
 
   @Delete(':id')
@@ -45,4 +50,25 @@ export class PhoneNumbersController {
   release(@Param('id') id: string) {
     return this.svc.release(id);
   }
+}
+
+/** Aceita ISO-2, ISO-3 ou nome do país e devolve um código ISO-2 confiável. */
+function normalizeCountry(raw: string | null | undefined): string | undefined {
+  if (!raw) return undefined;
+  const trimmed = raw.trim().toUpperCase();
+  if (!trimmed) return undefined;
+  if (/^[A-Z]{2}$/.test(trimmed)) return trimmed;
+  // Mapeamento mínimo dos mais comuns no negócio (US/BR/Canadá)
+  const aliases: Record<string, string> = {
+    USA: 'US',
+    'UNITED STATES': 'US',
+    BRA: 'BR',
+    BRASIL: 'BR',
+    BRAZIL: 'BR',
+    CAN: 'CA',
+    CANADA: 'CA',
+    GBR: 'GB',
+    'UNITED KINGDOM': 'GB',
+  };
+  return aliases[trimmed] ?? undefined;
 }
