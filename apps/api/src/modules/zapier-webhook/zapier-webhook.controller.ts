@@ -9,21 +9,96 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { LeadSource, type Prisma } from '@callwe/db';
-import { z } from 'zod';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { LeadsService } from '../leads/leads.service.js';
-import { ZodBody } from '../../common/pipes/zod.pipe.js';
 
-const ZapierLeadDto = z.object({
-  name: z.string().optional(),
-  phone: z.string().optional(),
-  email: z.string().email().optional(),
-  source: z.enum(['meta_ads', 'sms', 'manual', 'api', 'import']).optional(),
-  sourceRef: z.string().optional(),
-  formName: z.string().optional(),
-  campaignName: z.string().optional(),
-  customFields: z.record(z.unknown()).optional(),
-});
+// Mapa de aliases comuns que o Zapier envia → chave canônica do CallWe.
+// Case-insensitive e ignora espaços/underscores/hifens.
+const FIELD_ALIASES: Record<string, 'name' | 'phone' | 'email' | 'source' | 'sourceRef' | 'formName' | 'campaignName'> = {
+  name: 'name',
+  fullname: 'name',
+  full_name: 'name',
+  leadname: 'name',
+  customername: 'name',
+
+  phone: 'phone',
+  phonenumber: 'phone',
+  phone_number: 'phone',
+  telefone: 'phone',
+  mobile: 'phone',
+  cell: 'phone',
+  whatsapp: 'phone',
+
+  email: 'email',
+  emailaddress: 'email',
+  email_address: 'email',
+  mail: 'email',
+
+  source: 'source',
+  channel: 'source',
+  acquisitionchannel: 'source',
+
+  sourceref: 'sourceRef',
+  leadid: 'sourceRef',
+  lead_id: 'sourceRef',
+  externalid: 'sourceRef',
+
+  formname: 'formName',
+  form_name: 'formName',
+  form: 'formName',
+  formulario: 'formName',
+
+  campaignname: 'campaignName',
+  campaign_name: 'campaignName',
+  campaign: 'campaignName',
+  adname: 'campaignName',
+  anuncio: 'campaignName',
+};
+
+function normalizeKey(k: string): string {
+  return k.toLowerCase().replace(/[\s_\-.]/g, '');
+}
+
+interface NormalizedBody {
+  name?: string;
+  phone?: string;
+  email?: string;
+  source?: LeadSource;
+  sourceRef?: string;
+  formName?: string;
+  campaignName?: string;
+  customFields: Record<string, unknown>;
+}
+
+const VALID_SOURCES = new Set(['meta_ads', 'sms', 'manual', 'api', 'import']);
+
+function normalizeBody(raw: Record<string, unknown>): NormalizedBody {
+  const out: NormalizedBody = { customFields: {} };
+
+  for (const [key, value] of Object.entries(raw)) {
+    if (value === null || value === undefined || value === '') continue;
+
+    const normKey = normalizeKey(key);
+    const canonical = FIELD_ALIASES[normKey];
+
+    if (canonical === 'source') {
+      const str = String(value).toLowerCase().trim();
+      if (VALID_SOURCES.has(str)) out.source = str as LeadSource;
+      else out.customFields[key] = value;
+      continue;
+    }
+    if (canonical) {
+      const str = String(value).trim();
+      if (str) out[canonical] = str;
+      continue;
+    }
+
+    // Campo não reconhecido — vai pra customFields preservando o nome original do Zapier
+    out.customFields[key] = value;
+  }
+
+  return out;
+}
 
 @Controller('webhooks/zapier')
 export class ZapierWebhookController {
@@ -43,7 +118,7 @@ export class ZapierWebhookController {
   @HttpCode(202)
   async receive(
     @Headers('x-callwe-api-key') apiKey: string | undefined,
-    @ZodBody(ZapierLeadDto) body: z.infer<typeof ZapierLeadDto>,
+    @Body() rawBody: Record<string, unknown>,
   ) {
     if (!apiKey || apiKey.length < 16) {
       throw new UnauthorizedException('API key required');
@@ -58,24 +133,24 @@ export class ZapierWebhookController {
       throw new UnauthorizedException('Invalid API key');
     }
 
+    const body = normalizeBody(rawBody ?? {});
     const phoneE164 = normalizePhoneToE164(body.phone);
-    const source = (body.source ?? 'meta_ads') as LeadSource;
+    const source = body.source ?? ('meta_ads' as LeadSource);
 
-    // customFields agrega tudo que veio do Zapier que não bate em colunas fixas
+    // customFields preserva campos extras + adiciona metadata útil
     const customFields: Prisma.InputJsonValue = {
-      ...(body.customFields ?? {}),
+      ...body.customFields,
       ...(body.formName ? { formName: body.formName } : {}),
       ...(body.campaignName ? { campaignName: body.campaignName } : {}),
-      ...(body.source ? { acquisitionChannel: body.source } : { acquisitionChannel: 'meta_ads' }),
+      acquisitionChannel: source,
       receivedVia: 'zapier',
     };
 
-    // Se temos phone, faz upsert pra não duplicar lead do mesmo número
     if (phoneE164) {
       const lead = await this.leadsService.upsertByPhone(sub.id, phoneE164, {
         source,
         sourceRef: body.sourceRef,
-        name: body.name?.trim(),
+        name: body.name,
         email: body.email,
         customFields,
       });
@@ -83,11 +158,10 @@ export class ZapierWebhookController {
       return { received: true, leadId: lead.id, subAccount: sub.name };
     }
 
-    // Sem phone: cria lead sempre (não dá pra dedup)
     const lead = await this.leadsService.create(sub.id, {
       source,
       sourceRef: body.sourceRef,
-      name: body.name?.trim(),
+      name: body.name,
       email: body.email,
       customFields,
     });
