@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Plus, Copy, UserX } from 'lucide-react';
+import { Plus, Copy, UserX, Pencil, X as XIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { apiClient } from '@/lib/api-client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -184,7 +184,9 @@ export default function TeamPage() {
         <section className="mb-6">
           <h2 className="mb-2 text-sm font-medium uppercase text-muted-foreground">Admins</h2>
           <div className="space-y-2">
-            {admins.map((u) => <UserRow key={u.id} user={u} onRemove={() => remove.mutate(u.id)} />)}
+            {admins.map((u) => (
+              <UserRow key={u.id} user={u} subAccounts={subAccounts} onRemove={() => remove.mutate(u.id)} />
+            ))}
           </div>
         </section>
       )}
@@ -199,36 +201,155 @@ export default function TeamPage() {
               </CardContent>
             </Card>
           )}
-          {agents.map((u) => <UserRow key={u.id} user={u} onRemove={() => remove.mutate(u.id)} />)}
+          {agents.map((u) => (
+            <UserRow
+              key={u.id}
+              user={u}
+              subAccounts={subAccounts}
+              onRemove={() => remove.mutate(u.id)}
+              isAgent
+            />
+          ))}
         </div>
       </section>
     </div>
   );
 }
 
-function UserRow({ user, onRemove }: { user: TeamMember; onRemove: () => void }) {
+function UserRow({
+  user,
+  subAccounts,
+  onRemove,
+  isAgent,
+}: {
+  user: TeamMember;
+  subAccounts: SubAccount[];
+  onRemove: () => void;
+  isAgent?: boolean;
+}) {
+  const [editing, setEditing] = useState(false);
   const subNames = user.memberships
     .filter((m) => m.subAccountName)
     .map((m) => m.subAccountName)
     .join(', ');
 
   return (
-    <Card>
-      <CardContent className="flex items-center justify-between p-4">
-        <div className="flex-1">
-          <p className="font-medium">{user.fullName}</p>
-          <p className="text-xs text-muted-foreground">{user.email}</p>
-          {subNames && <p className="mt-1 text-xs text-muted-foreground">Atende: {subNames}</p>}
-        </div>
-        <div className="flex items-center gap-2">
-          <Badge variant={user.status === 'active' ? 'success' : user.status === 'invited' ? 'warning' : 'secondary'}>
-            {user.status}
-          </Badge>
-          <Button size="sm" variant="ghost" onClick={onRemove}>
-            <UserX className="h-4 w-4" />
+    <>
+      <Card>
+        <CardContent className="flex items-center justify-between p-4">
+          <div className="flex-1">
+            <p className="font-medium">{user.fullName}</p>
+            <p className="text-xs text-muted-foreground">{user.email}</p>
+            {subNames && <p className="mt-1 text-xs text-muted-foreground">Atende: {subNames}</p>}
+          </div>
+          <div className="flex items-center gap-2">
+            <Badge variant={user.status === 'active' ? 'success' : user.status === 'invited' ? 'warning' : 'secondary'}>
+              {user.status}
+            </Badge>
+            {isAgent && (
+              <Button size="sm" variant="outline" onClick={() => setEditing(true)} title="Editar clientes atendidos">
+                <Pencil className="h-4 w-4" />
+              </Button>
+            )}
+            <Button size="sm" variant="ghost" onClick={onRemove} title="Remover do time">
+              <UserX className="h-4 w-4" />
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+      {editing && (
+        <EditAgentSubAccounts user={user} subAccounts={subAccounts} onClose={() => setEditing(false)} />
+      )}
+    </>
+  );
+}
+
+function EditAgentSubAccounts({
+  user,
+  subAccounts,
+  onClose,
+}: {
+  user: TeamMember;
+  subAccounts: SubAccount[];
+  onClose: () => void;
+}) {
+  const qc = useQueryClient();
+  const initial = user.memberships
+    .filter((m) => m.subAccountId)
+    .map((m) => m.subAccountId!) as string[];
+  const [selected, setSelected] = useState<Set<string>>(new Set(initial));
+  const [filter, setFilter] = useState('');
+
+  const visible = subAccounts.filter((s) =>
+    !filter ? true : s.name.toLowerCase().includes(filter.toLowerCase()),
+  );
+
+  const sync = useMutation({
+    mutationFn: () =>
+      apiClient.post(`/team/${user.id}/sub-accounts`, { subAccountIds: Array.from(selected) }),
+    onSuccess: (r: unknown) => {
+      const res = r as { added: number; removed: number; total: number };
+      toast.success(`Atualizado: +${res.added} / −${res.removed} → ${res.total} clientes`);
+      qc.invalidateQueries({ queryKey: ['team'] });
+      onClose();
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+
+  const toggleAll = () => {
+    if (selected.size === visible.length) setSelected(new Set());
+    else setSelected(new Set(visible.map((s) => s.id)));
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
+      <Card className="max-h-[80vh] w-full max-w-lg overflow-hidden" onClick={(e) => e.stopPropagation()}>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0">
+          <div>
+            <CardTitle className="text-base">Clientes atendidos por {user.fullName}</CardTitle>
+            <p className="mt-0.5 text-xs text-muted-foreground">{selected.size} de {subAccounts.length} selecionados</p>
+          </div>
+          <Button size="sm" variant="ghost" onClick={onClose}>
+            <XIcon className="h-4 w-4" />
           </Button>
-        </div>
-      </CardContent>
-    </Card>
+        </CardHeader>
+        <CardContent className="flex max-h-[60vh] flex-col gap-2 overflow-hidden">
+          <div className="flex items-center gap-2">
+            <Input placeholder="Filtrar clientes..." value={filter} onChange={(e) => setFilter(e.target.value)} />
+            <Button size="sm" variant="outline" onClick={toggleAll}>
+              {selected.size === visible.length && visible.length > 0 ? 'Limpar' : 'Todos'}
+            </Button>
+          </div>
+          <div className="flex-1 space-y-0.5 overflow-auto rounded-md border p-2">
+            {visible.length === 0 && (
+              <p className="py-4 text-center text-sm text-muted-foreground">Nenhum cliente bate com o filtro.</p>
+            )}
+            {visible.map((s) => (
+              <label key={s.id} className="flex cursor-pointer items-center gap-2 rounded p-1.5 hover:bg-muted/40">
+                <input
+                  type="checkbox"
+                  checked={selected.has(s.id)}
+                  onChange={() => {
+                    setSelected((cur) => {
+                      const next = new Set(cur);
+                      if (next.has(s.id)) next.delete(s.id);
+                      else next.add(s.id);
+                      return next;
+                    });
+                  }}
+                />
+                <span className="text-sm">{s.name}</span>
+              </label>
+            ))}
+          </div>
+          <div className="flex items-center justify-end gap-2">
+            <Button size="sm" variant="ghost" onClick={onClose}>Cancelar</Button>
+            <Button size="sm" onClick={() => sync.mutate()} disabled={sync.isPending}>
+              {sync.isPending ? 'Salvando...' : 'Salvar'}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   );
 }

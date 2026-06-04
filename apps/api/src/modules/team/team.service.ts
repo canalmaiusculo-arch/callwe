@@ -158,7 +158,8 @@ export class TeamService {
     }));
   }
 
-  async assignSubAccount(userId: string, subAccountId: string) {
+  async assignSubAccount(user: { id: string; memberships: Array<{ role: string; agencyId?: string }> }, userId: string, subAccountId: string) {
+    await this.requireAgencyAdminOverSubAccount(user, subAccountId);
     const exists = await this.prisma.membership.findFirst({
       where: { userId, subAccountId, role: 'agent' },
     });
@@ -168,10 +169,89 @@ export class TeamService {
     });
   }
 
-  async unassignSubAccount(userId: string, subAccountId: string) {
+  async unassignSubAccount(user: { id: string; memberships: Array<{ role: string; agencyId?: string }> }, userId: string, subAccountId: string) {
+    await this.requireAgencyAdminOverSubAccount(user, subAccountId);
     return this.prisma.membership.deleteMany({
       where: { userId, subAccountId, role: 'agent' },
     });
+  }
+
+  /** Substitui a lista de sub-accounts atendidas por um atendente. */
+  async syncSubAccounts(
+    user: { id: string; memberships: Array<{ role: string; agencyId?: string }> },
+    targetUserId: string,
+    subAccountIds: string[],
+  ) {
+    // Resolve a agency do invoker
+    const isSuperAdmin = user.memberships.some((m) => m.role === 'super_admin');
+    const agencyId = isSuperAdmin ? null : user.memberships.find((m) => m.agencyId)?.agencyId;
+    if (!isSuperAdmin && !agencyId) throw new BadRequestException('Sem agência');
+
+    // Garante que todas as subs pertencem à agência do invoker
+    if (agencyId) {
+      const validSubs = await this.prisma.subAccount.findMany({
+        where: { id: { in: subAccountIds }, agencyId },
+        select: { id: true },
+      });
+      const validIds = new Set(validSubs.map((s) => s.id));
+      const invalid = subAccountIds.filter((id) => !validIds.has(id));
+      if (invalid.length > 0) {
+        throw new BadRequestException(`Sub-accounts fora da sua agência: ${invalid.join(', ')}`);
+      }
+    }
+
+    // Memberships atuais (agent) do user-alvo, restritas à agência (se houver)
+    const currentScope = agencyId
+      ? { userId: targetUserId, role: 'agent' as const, subAccount: { agencyId } }
+      : { userId: targetUserId, role: 'agent' as const };
+    const current = await this.prisma.membership.findMany({
+      where: currentScope,
+      select: { id: true, subAccountId: true },
+    });
+    const currentIds = new Set(current.map((m) => m.subAccountId).filter((v): v is string => !!v));
+    const desiredIds = new Set(subAccountIds);
+
+    const toAdd = subAccountIds.filter((id) => !currentIds.has(id));
+    const toRemove = current.filter((m) => m.subAccountId && !desiredIds.has(m.subAccountId));
+
+    // Pega cloudtalk_agent_id de qualquer membership existente do user pra herdar
+    const ref = current.find((m) => true);
+    let cloudtalkAgentId: string | null = null;
+    if (toAdd.length > 0) {
+      const refMembership = await this.prisma.membership.findFirst({
+        where: { userId: targetUserId, role: 'agent', cloudtalkAgentId: { not: null } },
+        select: { cloudtalkAgentId: true },
+      });
+      cloudtalkAgentId = refMembership?.cloudtalkAgentId ?? null;
+    }
+
+    await this.prisma.$transaction([
+      ...toRemove.map((m) => this.prisma.membership.delete({ where: { id: m.id } })),
+      ...toAdd.map((subAccountId) =>
+        this.prisma.membership.create({
+          data: { userId: targetUserId, subAccountId, role: 'agent', cloudtalkAgentId },
+        }),
+      ),
+    ]);
+
+    return { added: toAdd.length, removed: toRemove.length, total: desiredIds.size };
+  }
+
+  private async requireAgencyAdminOverSubAccount(
+    user: { memberships: Array<{ role: string; agencyId?: string }> },
+    subAccountId: string,
+  ) {
+    const isSuperAdmin = user.memberships.some((m) => m.role === 'super_admin');
+    if (isSuperAdmin) return;
+    const adminAgencyId = user.memberships.find((m) => m.role === 'agency_admin' && m.agencyId)?.agencyId;
+    if (!adminAgencyId) throw new BadRequestException('Sem permissão');
+    const sub = await this.prisma.subAccount.findUnique({
+      where: { id: subAccountId },
+      select: { agencyId: true },
+    });
+    if (!sub || sub.agencyId !== adminAgencyId) {
+      throw new BadRequestException('Sub-account fora da sua agência');
+    }
   }
 
   async remove(userId: string, agencyId: string) {

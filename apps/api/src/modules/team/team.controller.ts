@@ -25,6 +25,10 @@ const AssignDto = z.object({
   subAccountId: z.string().uuid(),
 });
 
+const SyncSubsDto = z.object({
+  subAccountIds: z.array(z.string().uuid()),
+});
+
 @Controller('team')
 export class TeamController {
   constructor(private readonly svc: TeamService) {}
@@ -67,16 +71,32 @@ export class TeamController {
 
   @Post('assign')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles(ROLES.SUPER_ADMIN)
-  assign(@ZodBody(AssignDto) dto: z.infer<typeof AssignDto>) {
-    return this.svc.assignSubAccount(dto.userId, dto.subAccountId);
+  @Roles(ROLES.SUPER_ADMIN, ROLES.AGENCY_ADMIN)
+  assign(@CurrentUser() user: AuthUser, @ZodBody(AssignDto) dto: z.infer<typeof AssignDto>) {
+    return this.svc.assignSubAccount(user, dto.userId, dto.subAccountId);
   }
 
   @Delete('assign/:userId/:subAccountId')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles(ROLES.SUPER_ADMIN)
-  unassign(@Param('userId') userId: string, @Param('subAccountId') subAccountId: string) {
-    return this.svc.unassignSubAccount(userId, subAccountId);
+  @Roles(ROLES.SUPER_ADMIN, ROLES.AGENCY_ADMIN)
+  unassign(
+    @CurrentUser() user: AuthUser,
+    @Param('userId') userId: string,
+    @Param('subAccountId') subAccountId: string,
+  ) {
+    return this.svc.unassignSubAccount(user, userId, subAccountId);
+  }
+
+  /** Sincroniza as sub-accounts que um atendente atende (substitui a lista atual). */
+  @Post(':userId/sub-accounts')
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(ROLES.SUPER_ADMIN, ROLES.AGENCY_ADMIN)
+  syncSubAccounts(
+    @CurrentUser() user: AuthUser,
+    @Param('userId') userId: string,
+    @ZodBody(SyncSubsDto) dto: z.infer<typeof SyncSubsDto>,
+  ) {
+    return this.svc.syncSubAccounts(user, userId, dto.subAccountIds);
   }
 
   @Delete(':userId')
