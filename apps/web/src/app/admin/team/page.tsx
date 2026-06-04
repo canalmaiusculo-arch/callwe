@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { UserPlus, Copy, UserX } from 'lucide-react';
+import { UserPlus, Copy, UserX, Pencil, X as XIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { apiClient } from '@/lib/api-client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -175,31 +175,144 @@ export default function AdminTeamPage() {
           </Card>
         )}
         {agents.map((a) => (
-          <Card key={a.id}>
-            <CardContent className="flex items-center justify-between p-4">
-              <div className="flex-1">
-                <p className="font-medium">{a.fullName}</p>
-                <p className="text-xs text-muted-foreground">{a.email}</p>
-                {a.assignedSubAccounts.length > 0 && (
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    Atende: {a.assignedSubAccounts.map((s) => s.name).join(', ')}
-                  </p>
-                )}
-              </div>
-              <div className="flex items-center gap-2">
-                <Badge
-                  variant={a.status === 'active' ? 'success' : a.status === 'invited' ? 'warning' : 'secondary'}
-                >
-                  {a.status}
-                </Badge>
-                <Button size="sm" variant="ghost" onClick={() => remove.mutate(a.id)}>
-                  <UserX className="h-4 w-4" />
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+          <AgentRow key={a.id} agent={a} subs={subs} onRemove={() => remove.mutate(a.id)} />
         ))}
       </div>
+    </div>
+  );
+}
+
+function AgentRow({
+  agent,
+  subs,
+  onRemove,
+}: {
+  agent: Agent;
+  subs: SubAccount[];
+  onRemove: () => void;
+}) {
+  const [editing, setEditing] = useState(false);
+
+  return (
+    <>
+      <Card>
+        <CardContent className="flex items-center justify-between p-4">
+          <div className="flex-1">
+            <p className="font-medium">{agent.fullName}</p>
+            <p className="text-xs text-muted-foreground">{agent.email}</p>
+            {agent.assignedSubAccounts.length > 0 && (
+              <p className="mt-1 text-xs text-muted-foreground">
+                Atende: {agent.assignedSubAccounts.map((s) => s.name).join(', ')}
+              </p>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <Badge
+              variant={agent.status === 'active' ? 'success' : agent.status === 'invited' ? 'warning' : 'secondary'}
+            >
+              {agent.status}
+            </Badge>
+            <Button size="sm" variant="outline" onClick={() => setEditing(true)} title="Editar clientes atendidos">
+              <Pencil className="h-4 w-4" />
+            </Button>
+            <Button size="sm" variant="ghost" onClick={onRemove} title="Remover atendente">
+              <UserX className="h-4 w-4" />
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+      {editing && <EditAgentSubAccounts agent={agent} subs={subs} onClose={() => setEditing(false)} />}
+    </>
+  );
+}
+
+function EditAgentSubAccounts({
+  agent,
+  subs,
+  onClose,
+}: {
+  agent: Agent;
+  subs: SubAccount[];
+  onClose: () => void;
+}) {
+  const qc = useQueryClient();
+  const initial = agent.assignedSubAccounts.map((s) => s.id);
+  const [selected, setSelected] = useState<Set<string>>(new Set(initial));
+  const [filter, setFilter] = useState('');
+
+  const visible = subs.filter((s) =>
+    !filter ? true : s.name.toLowerCase().includes(filter.toLowerCase()),
+  );
+
+  const sync = useMutation({
+    mutationFn: () =>
+      apiClient.post(`/team/${agent.id}/sub-accounts`, { subAccountIds: Array.from(selected) }),
+    onSuccess: (r: unknown) => {
+      const res = r as { added: number; removed: number; total: number };
+      toast.success(`Atualizado: +${res.added} / −${res.removed} → ${res.total} clientes`);
+      qc.invalidateQueries({ queryKey: ['all-agents'] });
+      onClose();
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+
+  const toggleAll = () => {
+    if (selected.size === visible.length) setSelected(new Set());
+    else setSelected(new Set(visible.map((s) => s.id)));
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
+      <Card className="max-h-[80vh] w-full max-w-lg overflow-hidden" onClick={(e) => e.stopPropagation()}>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0">
+          <div>
+            <CardTitle className="text-base">Clientes atendidos por {agent.fullName}</CardTitle>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              {selected.size} de {subs.length} selecionados
+            </p>
+          </div>
+          <Button size="sm" variant="ghost" onClick={onClose}>
+            <XIcon className="h-4 w-4" />
+          </Button>
+        </CardHeader>
+        <CardContent className="flex max-h-[60vh] flex-col gap-2 overflow-hidden">
+          <div className="flex items-center gap-2">
+            <Input placeholder="Filtrar clientes..." value={filter} onChange={(e) => setFilter(e.target.value)} />
+            <Button size="sm" variant="outline" onClick={toggleAll}>
+              {selected.size === visible.length && visible.length > 0 ? 'Limpar' : 'Todos'}
+            </Button>
+          </div>
+          <div className="flex-1 space-y-0.5 overflow-auto rounded-md border p-2">
+            {visible.length === 0 && (
+              <p className="py-4 text-center text-sm text-muted-foreground">Nenhum cliente bate com o filtro.</p>
+            )}
+            {visible.map((s) => (
+              <label key={s.id} className="flex cursor-pointer items-center gap-2 rounded p-1.5 hover:bg-muted/40">
+                <input
+                  type="checkbox"
+                  checked={selected.has(s.id)}
+                  onChange={() => {
+                    setSelected((cur) => {
+                      const next = new Set(cur);
+                      if (next.has(s.id)) next.delete(s.id);
+                      else next.add(s.id);
+                      return next;
+                    });
+                  }}
+                />
+                <span className="flex-1 text-sm">{s.name}</span>
+                {s.agency && <span className="text-xs text-muted-foreground">{s.agency.name}</span>}
+              </label>
+            ))}
+          </div>
+          <div className="flex items-center justify-end gap-2">
+            <Button size="sm" variant="ghost" onClick={onClose}>Cancelar</Button>
+            <Button size="sm" onClick={() => sync.mutate()} disabled={sync.isPending}>
+              {sync.isPending ? 'Salvando...' : 'Salvar'}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
