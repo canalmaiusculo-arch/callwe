@@ -157,6 +157,37 @@ export class LeadsService {
     });
   }
 
+  /** Lista leads de múltiplas sub-accounts (pra atendente que atende vários clientes). */
+  listMany(subAccountIds: string[], filters?: LeadFilters) {
+    return this.prisma.lead.findMany({
+      where: {
+        subAccountId: { in: subAccountIds },
+        deletedAt: null,
+        ...(filters?.status ? { status: filters.status } : {}),
+        ...(filters?.source ? { source: filters.source } : {}),
+        ...(filters?.ownerUserId ? { ownerUserId: filters.ownerUserId } : {}),
+        ...(filters?.search
+          ? {
+              OR: [
+                { name: { contains: filters.search, mode: 'insensitive' } },
+                { phoneE164: { contains: filters.search } },
+                { email: { contains: filters.search, mode: 'insensitive' } },
+              ],
+            }
+          : {}),
+        ...(filters?.from || filters?.to
+          ? { createdAt: { gte: filters.from, lte: filters.to } }
+          : {}),
+      },
+      include: {
+        subAccount: { select: { id: true, name: true } },
+        owner: { select: { id: true, fullName: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: filters?.limit ?? 100,
+    });
+  }
+
   async upsertByPhone(
     subAccountId: string,
     phoneE164: string,

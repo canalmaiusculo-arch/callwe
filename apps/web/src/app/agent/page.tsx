@@ -16,6 +16,8 @@ import {
   Send,
   X,
   BookOpen,
+  UserPlus,
+  Users,
 } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -71,7 +73,7 @@ interface AgentStats {
   smsToday: number;
 }
 
-type Tab = 'dashboard' | 'calls' | 'sms' | 'briefings';
+type Tab = 'dashboard' | 'calls' | 'sms' | 'leads' | 'briefings';
 
 export default function AgentPage() {
   const [tab, setTab] = useState<Tab>('calls');
@@ -123,6 +125,7 @@ export default function AgentPage() {
           <TabButton active={tab === 'dashboard'} onClick={() => setTab('dashboard')} icon={Gauge} label="Dashboard" />
           <TabButton active={tab === 'calls'} onClick={() => setTab('calls')} icon={Phone} label="Chamadas" />
           <TabButton active={tab === 'sms'} onClick={() => setTab('sms')} icon={MessageSquare} label="SMS" badge={smsBadge} />
+          <TabButton active={tab === 'leads'} onClick={() => setTab('leads')} icon={UserPlus} label="Leads" />
           <TabButton active={tab === 'briefings'} onClick={() => setTab('briefings')} icon={BookOpen} label="Briefings" />
         </nav>
 
@@ -172,8 +175,18 @@ export default function AgentPage() {
             <ActiveCallView call={activeCall} onDismiss={dismissActiveCall} />
           </div>
         )}
-        {(tab === 'calls' || tab === 'sms') && (
-          <SearchBar value={search} onChange={setSearch} placeholder={tab === 'calls' ? 'Buscar chamada (número, cliente, lead)...' : 'Buscar SMS (número, cliente, conteúdo)...'} />
+        {(tab === 'calls' || tab === 'sms' || tab === 'leads') && (
+          <SearchBar
+            value={search}
+            onChange={setSearch}
+            placeholder={
+              tab === 'calls'
+                ? 'Buscar chamada (número, cliente, lead)...'
+                : tab === 'sms'
+                  ? 'Buscar SMS (número, cliente, conteúdo)...'
+                  : 'Buscar lead (nome, número, email)...'
+            }
+          />
         )}
         {tab === 'dashboard' ? (
           <DashboardView />
@@ -195,6 +208,8 @@ export default function AgentPage() {
             search={search}
             isSeen={seenSms.isSeen}
           />
+        ) : tab === 'leads' ? (
+          <LeadsView filterSubAccountId={filterSubAccountId} search={search} />
         ) : (
           <BriefingsView clients={clients} initialSelectedId={filterSubAccountId} />
         )}
@@ -712,6 +727,147 @@ function BriefingsView({
         <BriefingDisplay subAccountId={selectedId} />
       </CardContent>
     </Card>
+  );
+}
+
+interface AgentLead {
+  id: string;
+  name: string | null;
+  phoneE164: string | null;
+  email: string | null;
+  status: LeadStatus;
+  source: string;
+  createdAt: string;
+  customFields: Record<string, unknown> | null;
+  subAccount: { id: string; name: string } | null;
+  owner: { id: string; fullName: string } | null;
+}
+
+function LeadsView({
+  filterSubAccountId,
+  search,
+}: {
+  filterSubAccountId: string | null;
+  search: string;
+}) {
+  const { data: leads = [], isLoading } = useQuery<AgentLead[]>({
+    queryKey: ['my-leads'],
+    queryFn: () => apiClient.get('/leads/mine?limit=200'),
+    refetchInterval: 30_000,
+  });
+
+  const filtered = useMemo(() => {
+    let out = leads;
+    if (filterSubAccountId) out = out.filter((l) => l.subAccount?.id === filterSubAccountId);
+    const q = search.trim().toLowerCase();
+    if (q) {
+      out = out.filter((l) => {
+        const haystack = [
+          l.name,
+          l.phoneE164,
+          l.email,
+          l.subAccount?.name,
+          l.source,
+          ...(l.customFields ? Object.values(l.customFields).map(String) : []),
+        ]
+          .filter(Boolean)
+          .join(' ')
+          .toLowerCase();
+        return haystack.includes(q);
+      });
+    }
+    return out;
+  }, [leads, filterSubAccountId, search]);
+
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <CardTitle>
+          Leads
+          {(filterSubAccountId || search) && (
+            <span className="ml-2 text-xs text-muted-foreground">{filtered.length}/{leads.length}</span>
+          )}
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-2">
+        {isLoading && <p className="text-sm text-muted-foreground">Carregando...</p>}
+        {!isLoading && filtered.length === 0 && (
+          <div className="flex flex-col items-center py-8 text-center text-muted-foreground">
+            <Users className="mb-2 h-8 w-8 opacity-30" />
+            <p className="text-sm">
+              {leads.length === 0 ? 'Nenhum lead ainda.' : 'Nenhum lead bate com o filtro.'}
+            </p>
+          </div>
+        )}
+        {filtered.map((l) => (
+          <LeadRow key={l.id} lead={l} />
+        ))}
+      </CardContent>
+    </Card>
+  );
+}
+
+const SOURCE_LABEL: Record<string, string> = {
+  meta_ads: 'Meta',
+  google_ads: 'Google',
+  inbound_call: 'Chamada',
+  outbound_call: 'Discada',
+  sms: 'SMS',
+  manual: 'Manual',
+  api: 'API',
+  import: 'Importação',
+};
+
+function LeadRow({ lead }: { lead: AgentLead }) {
+  const ch = lead.customFields?.acquisitionChannel as string | undefined;
+  const channelLabel =
+    (ch && LEAD_ACQUISITION_LABELS[ch as keyof typeof LEAD_ACQUISITION_LABELS]) ??
+    SOURCE_LABEL[lead.source] ??
+    lead.source;
+  const formName = lead.customFields?.formName as string | undefined;
+  const when = new Date(lead.createdAt);
+  const ageMin = Math.floor((Date.now() - when.getTime()) / 60_000);
+  const ageLabel =
+    ageMin < 1 ? 'agora' : ageMin < 60 ? `${ageMin}min` : ageMin < 1440 ? `${Math.floor(ageMin / 60)}h` : when.toLocaleDateString('pt-BR');
+
+  return (
+    <div className="flex items-start gap-3 rounded-md border p-3 hover:bg-muted/40">
+      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-blue-50">
+        <UserPlus className="h-4 w-4 text-blue-600" />
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-2">
+          <p className="truncate font-medium">{lead.name ?? lead.phoneE164 ?? lead.email ?? '—'}</p>
+          <span className={`rounded border px-1.5 py-0.5 text-[10px] font-medium ${LEAD_STATUS_COLOR[lead.status]}`}>
+            {LEAD_STATUS_LABELS[lead.status]}
+          </span>
+          <span className="rounded border border-slate-300 bg-slate-50 px-1.5 py-0.5 text-[10px] font-medium text-slate-700">
+            {channelLabel}
+          </span>
+        </div>
+        <div className="mt-1 grid grid-cols-2 gap-x-3 text-xs text-muted-foreground sm:grid-cols-4">
+          <div>
+            <p className="text-[10px] uppercase">Cliente</p>
+            <p>{lead.subAccount?.name ?? '—'}</p>
+          </div>
+          <div>
+            <p className="text-[10px] uppercase">Telefone</p>
+            <p className="font-mono">{lead.phoneE164 ?? '—'}</p>
+          </div>
+          <div>
+            <p className="text-[10px] uppercase">E-mail</p>
+            <p className="truncate">{lead.email ?? '—'}</p>
+          </div>
+          <div>
+            <p className="text-[10px] uppercase">Quando</p>
+            <p>{ageLabel}</p>
+          </div>
+        </div>
+        {formName && (
+          <p className="mt-1 text-[11px] text-muted-foreground">📝 {formName}</p>
+        )}
+      </div>
+    </div>
   );
 }
 

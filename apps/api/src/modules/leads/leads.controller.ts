@@ -41,17 +41,29 @@ function parseFilters(q: Record<string, string | undefined>) {
 }
 
 @Controller('leads')
-@UseGuards(AuthGuard('jwt'), TenantGuard)
+@UseGuards(AuthGuard('jwt'))
 export class LeadsController {
   constructor(private readonly svc: LeadsService) {}
 
+  /** Lista leads de TODAS as sub-accounts que o atendente atende. */
+  @Get('mine')
+  mine(@CurrentUser() user: AuthUser, @Query() q: Record<string, string>) {
+    const subAccountIds = user.memberships
+      .map((m) => m.subAccountId)
+      .filter((v): v is string => !!v);
+    if (subAccountIds.length === 0) return [];
+    return this.svc.listMany(subAccountIds, parseFilters(q));
+  }
+
   @Get()
+  @UseGuards(TenantGuard)
   list(@Req() req: { tenant: { subAccountId: string } }, @Query() q: Record<string, string>) {
     return this.svc.list(req.tenant.subAccountId, parseFilters(q));
   }
 
   /** Export CSV com os mesmos filtros aplicados. */
   @Get('export.csv')
+  @UseGuards(TenantGuard)
   @Header('Content-Type', 'text/csv; charset=utf-8')
   async exportCsv(
     @Req() req: { tenant: { subAccountId: string } },
@@ -65,16 +77,19 @@ export class LeadsController {
   }
 
   @Get(':id')
+  @UseGuards(TenantGuard)
   get(@Req() req: { tenant: { subAccountId: string } }, @Param('id') id: string) {
     return this.svc.get(req.tenant.subAccountId, id);
   }
 
   @Post()
+  @UseGuards(TenantGuard)
   create(@Req() req: { tenant: { subAccountId: string } }, @ZodBody(CreateLeadDto) dto: z.infer<typeof CreateLeadDto>) {
     return this.svc.create(req.tenant.subAccountId, dto);
   }
 
   @Patch(':id')
+  @UseGuards(TenantGuard)
   update(
     @Req() req: { tenant: { subAccountId: string } },
     @Param('id') id: string,
@@ -84,6 +99,7 @@ export class LeadsController {
   }
 
   @Post(':id/notes')
+  @UseGuards(TenantGuard)
   addNote(
     @Param('id') id: string,
     @CurrentUser() user: AuthUser,
@@ -93,6 +109,7 @@ export class LeadsController {
   }
 
   @Post(':id/call')
+  @UseGuards(TenantGuard)
   callLead(
     @Req() req: { tenant: { subAccountId: string } },
     @Param('id') id: string,
