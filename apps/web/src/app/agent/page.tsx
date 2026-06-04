@@ -209,7 +209,7 @@ export default function AgentPage() {
             isSeen={seenSms.isSeen}
           />
         ) : tab === 'leads' ? (
-          <LeadsView filterSubAccountId={filterSubAccountId} search={search} />
+          <LeadsView filterSubAccountId={filterSubAccountId} search={search} clients={clients} />
         ) : (
           <BriefingsView clients={clients} initialSelectedId={filterSubAccountId} />
         )}
@@ -743,22 +743,74 @@ interface AgentLead {
   owner: { id: string; fullName: string } | null;
 }
 
+type DateRange = 'today' | '7d' | '30d' | 'all';
+type SourceFilter = 'all' | 'meta_ads' | 'google_ads' | 'inbound_call' | 'outbound_call' | 'sms' | 'manual' | 'api';
+
+const DATE_LABELS: Record<DateRange, string> = {
+  today: 'Hoje',
+  '7d': 'Últimos 7 dias',
+  '30d': 'Últimos 30 dias',
+  all: 'Todos',
+};
+
+const SOURCE_FILTER_LABELS: Record<SourceFilter, string> = {
+  all: 'Todas as origens',
+  meta_ads: 'Meta',
+  google_ads: 'Google',
+  inbound_call: 'Chamada recebida',
+  outbound_call: 'Chamada feita',
+  sms: 'SMS',
+  manual: 'Manual',
+  api: 'API / Zapier',
+};
+
 function LeadsView({
   filterSubAccountId,
   search,
+  clients,
 }: {
   filterSubAccountId: string | null;
   search: string;
+  clients: AssignedClient[];
 }) {
+  const [dateRange, setDateRange] = useState<DateRange>('30d');
+  const [sourceFilter, setSourceFilter] = useState<SourceFilter>('all');
+  const [clientFilter, setClientFilter] = useState<string>('');
+
   const { data: leads = [], isLoading } = useQuery<AgentLead[]>({
     queryKey: ['my-leads'],
-    queryFn: () => apiClient.get('/leads/mine?limit=200'),
+    queryFn: () => apiClient.get('/leads/mine?limit=500'),
     refetchInterval: 30_000,
   });
 
   const filtered = useMemo(() => {
     let out = leads;
-    if (filterSubAccountId) out = out.filter((l) => l.subAccount?.id === filterSubAccountId);
+
+    // Sidebar global (filterSubAccountId) tem prioridade; senão usa o filtro local da tab
+    const effectiveClientId = filterSubAccountId ?? (clientFilter || null);
+    if (effectiveClientId) out = out.filter((l) => l.subAccount?.id === effectiveClientId);
+
+    // Data
+    if (dateRange !== 'all') {
+      const now = Date.now();
+      const cutoff =
+        dateRange === 'today'
+          ? new Date().setHours(0, 0, 0, 0)
+          : dateRange === '7d'
+            ? now - 7 * 24 * 3600 * 1000
+            : now - 30 * 24 * 3600 * 1000;
+      out = out.filter((l) => new Date(l.createdAt).getTime() >= cutoff);
+    }
+
+    // Source: checa lead.source OU customFields.acquisitionChannel
+    if (sourceFilter !== 'all') {
+      out = out.filter((l) => {
+        const ch = String(l.customFields?.acquisitionChannel ?? '').toLowerCase();
+        return l.source === sourceFilter || ch === sourceFilter;
+      });
+    }
+
+    // Busca textual global
     const q = search.trim().toLowerCase();
     if (q) {
       out = out.filter((l) => {
@@ -776,18 +828,59 @@ function LeadsView({
         return haystack.includes(q);
       });
     }
+
     return out;
-  }, [leads, filterSubAccountId, search]);
+  }, [leads, filterSubAccountId, clientFilter, dateRange, sourceFilter, search]);
+
+  const hasActiveFilter =
+    filterSubAccountId || clientFilter || dateRange !== '30d' || sourceFilter !== 'all' || search;
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle>
-          Leads
-          {(filterSubAccountId || search) && (
-            <span className="ml-2 text-xs text-muted-foreground">{filtered.length}/{leads.length}</span>
+      <CardHeader className="space-y-3">
+        <div className="flex flex-row items-center justify-between">
+          <CardTitle>
+            Leads
+            {hasActiveFilter && (
+              <span className="ml-2 text-xs text-muted-foreground">{filtered.length}/{leads.length}</span>
+            )}
+          </CardTitle>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <FilterSelect
+            value={dateRange}
+            onChange={(v) => setDateRange(v as DateRange)}
+            options={Object.entries(DATE_LABELS).map(([v, l]) => ({ value: v, label: l }))}
+          />
+          <FilterSelect
+            value={sourceFilter}
+            onChange={(v) => setSourceFilter(v as SourceFilter)}
+            options={Object.entries(SOURCE_FILTER_LABELS).map(([v, l]) => ({ value: v, label: l }))}
+          />
+          <FilterSelect
+            value={clientFilter}
+            onChange={setClientFilter}
+            options={[
+              { value: '', label: 'Todos os clientes' },
+              ...clients.map((c) => ({ value: c.id, label: c.name })),
+            ]}
+            disabled={!!filterSubAccountId}
+            disabledHint={filterSubAccountId ? 'Filtro ativo na sidebar' : undefined}
+          />
+          {hasActiveFilter && (
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => {
+                setDateRange('30d');
+                setSourceFilter('all');
+                setClientFilter('');
+              }}
+            >
+              Limpar
+            </Button>
           )}
-        </CardTitle>
+        </div>
       </CardHeader>
       <CardContent className="space-y-2">
         {isLoading && <p className="text-sm text-muted-foreground">Carregando...</p>}
@@ -804,6 +897,34 @@ function LeadsView({
         ))}
       </CardContent>
     </Card>
+  );
+}
+
+function FilterSelect({
+  value,
+  onChange,
+  options,
+  disabled,
+  disabledHint,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  options: Array<{ value: string; label: string }>;
+  disabled?: boolean;
+  disabledHint?: string;
+}) {
+  return (
+    <select
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      disabled={disabled}
+      title={disabled ? disabledHint : undefined}
+      className="h-8 rounded-md border bg-background px-2 text-xs disabled:cursor-not-allowed disabled:opacity-50"
+    >
+      {options.map((o) => (
+        <option key={o.value} value={o.value}>{o.label}</option>
+      ))}
+    </select>
   );
 }
 
