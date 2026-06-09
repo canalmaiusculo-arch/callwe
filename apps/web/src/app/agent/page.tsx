@@ -744,7 +744,7 @@ interface AgentLead {
 }
 
 type DateRange = 'today' | '7d' | '30d' | 'all';
-type SourceFilter = 'all' | 'meta_ads' | 'google_ads' | 'inbound_call' | 'outbound_call' | 'sms' | 'manual' | 'api';
+type SourceFilter = 'all' | 'meta_ads' | 'google_ads' | 'inbound_call' | 'outbound_call' | 'sms' | 'manual' | 'api' | 'form';
 
 const DATE_LABELS: Record<DateRange, string> = {
   today: 'Hoje',
@@ -762,6 +762,7 @@ const SOURCE_FILTER_LABELS: Record<SourceFilter, string> = {
   sms: 'SMS',
   manual: 'Manual',
   api: 'API / Zapier',
+  form: 'Formulário',
 };
 
 function LeadsView({
@@ -937,6 +938,7 @@ const SOURCE_LABEL: Record<string, string> = {
   manual: 'Manual',
   api: 'API',
   import: 'Importação',
+  form: 'Formulário',
 };
 
 function LeadRow({ lead }: { lead: AgentLead }) {

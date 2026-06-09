@@ -105,7 +105,7 @@ export class SubAccountsService {
       });
     }
     const apiBase = process.env.API_URL ?? 'https://api.callwe.digital';
-    return { apiKey, webhookUrl: `${apiBase}/api/webhooks/zapier/leads` };
+    return { apiKey, webhookUrl: `${apiBase}/api/webhooks/leads` };
   }
 
   async rotateZapierApiKey(id: string): Promise<{ apiKey: string; webhookUrl: string }> {
@@ -118,7 +118,7 @@ export class SubAccountsService {
       data: { settings: { ...settings, zapierApiKey: apiKey } as never },
     });
     const apiBase = process.env.API_URL ?? 'https://api.callwe.digital';
-    return { apiKey, webhookUrl: `${apiBase}/api/webhooks/zapier/leads` };
+    return { apiKey, webhookUrl: `${apiBase}/api/webhooks/leads` };
   }
 
   async setWhatsappGroup(id: string, whatsappGroupId: string | null) {

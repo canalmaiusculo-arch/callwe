@@ -54,6 +54,7 @@ enum LeadSource {
   manual
   import
   api
+  form
 }
 
 enum LeadStatus {

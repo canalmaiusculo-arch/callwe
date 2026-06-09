@@ -70,7 +70,7 @@ interface NormalizedBody {
   customFields: Record<string, unknown>;
 }
 
-const VALID_SOURCES = new Set(['meta_ads', 'sms', 'manual', 'api', 'import']);
+const VALID_SOURCES = new Set(['meta_ads', 'sms', 'manual', 'api', 'import', 'form']);
 
 function normalizeBody(raw: Record<string, unknown>): NormalizedBody {
   const out: NormalizedBody = { customFields: {} };
@@ -100,7 +100,7 @@ function normalizeBody(raw: Record<string, unknown>): NormalizedBody {
   return out;
 }
 
-@Controller('webhooks/zapier')
+@Controller('webhooks')
 export class ZapierWebhookController {
   private readonly logger = new Logger(ZapierWebhookController.name);
 
@@ -110,15 +110,42 @@ export class ZapierWebhookController {
   ) {}
 
   /**
-   * Endpoint público — Zapier (ou qualquer integração) manda POST com
-   * `X-CallWe-Api-Key` no header e dados do lead no body. Resolvemos
-   * a sub-account pela API key e criamos/upsertamos o lead.
+   * Webhook genérico de formulários/quizz. A ferramenta externa (Typeform,
+   * Jotform, quizz próprio, landing page, etc.) faz POST direto aqui com
+   * `X-CallWe-Api-Key` no header. Leads entram com source `form`.
    */
   @Post('leads')
   @HttpCode(202)
-  async receive(
+  receiveForm(
     @Headers('x-callwe-api-key') apiKey: string | undefined,
     @Body() rawBody: Record<string, unknown>,
+  ) {
+    return this.ingestLead(apiKey, rawBody, 'form' as LeadSource, 'form_webhook');
+  }
+
+  /**
+   * Alias legado — usado enquanto o app Meta estava em review (Zapier
+   * disparando leads do Facebook). Mantido pra não quebrar integrações
+   * existentes; default de fonte continua `meta_ads`.
+   */
+  @Post('zapier/leads')
+  @HttpCode(202)
+  receiveZapier(
+    @Headers('x-callwe-api-key') apiKey: string | undefined,
+    @Body() rawBody: Record<string, unknown>,
+  ) {
+    return this.ingestLead(apiKey, rawBody, 'meta_ads' as LeadSource, 'zapier');
+  }
+
+  /**
+   * Resolve a sub-account pela API key e cria/upserta o lead. `defaultSource`
+   * é usado quando o payload não traz um campo `source` válido.
+   */
+  private async ingestLead(
+    apiKey: string | undefined,
+    rawBody: Record<string, unknown>,
+    defaultSource: LeadSource,
+    receivedVia: string,
   ) {
     if (!apiKey || apiKey.length < 16) {
       throw new UnauthorizedException('API key required');
@@ -129,13 +156,13 @@ export class ZapierWebhookController {
       select: { id: true, name: true },
     });
     if (!sub) {
-      this.logger.warn(`Zapier webhook with invalid API key (prefix=${apiKey.slice(0, 6)}...)`);
+      this.logger.warn(`Webhook with invalid API key (prefix=${apiKey.slice(0, 6)}...)`);
       throw new UnauthorizedException('Invalid API key');
     }
 
     const body = normalizeBody(rawBody ?? {});
     const phoneE164 = normalizePhoneToE164(body.phone);
-    const source = body.source ?? ('meta_ads' as LeadSource);
+    const source = body.source ?? defaultSource;
 
     // customFields preserva campos extras + adiciona metadata útil
     const customFields: Prisma.InputJsonValue = {
@@ -143,7 +170,7 @@ export class ZapierWebhookController {
       ...(body.formName ? { formName: body.formName } : {}),
       ...(body.campaignName ? { campaignName: body.campaignName } : {}),
       acquisitionChannel: source,
-      receivedVia: 'zapier',
+      receivedVia,
     };
 
     if (phoneE164) {
@@ -154,7 +181,7 @@ export class ZapierWebhookController {
         email: body.email,
         customFields,
       });
-      this.logger.log(`Zapier lead recebido pra ${sub.name}: ${phoneE164} → lead ${lead.id}`);
+      this.logger.log(`Lead via ${receivedVia} pra ${sub.name}: ${phoneE164} → lead ${lead.id}`);
       return { received: true, leadId: lead.id, subAccount: sub.name };
     }
 
@@ -165,7 +192,7 @@ export class ZapierWebhookController {
       email: body.email,
       customFields,
     });
-    this.logger.log(`Zapier lead sem phone recebido pra ${sub.name}: lead ${lead.id}`);
+    this.logger.log(`Lead via ${receivedVia} sem phone pra ${sub.name}: lead ${lead.id}`);
     return { received: true, leadId: lead.id, subAccount: sub.name };
   }
 }

@@ -323,7 +323,7 @@ function ZapierWebhookCard({ clientId }: { clientId: string }) {
   const rotate = useMutation({
     mutationFn: () => apiClient.post<ZapierKeyResponse>(`/sub-accounts/${clientId}/zapier-key/rotate`, {}),
     onSuccess: () => {
-      toast.success('Chave rotacionada — atualize seu Zap');
+      toast.success('Chave rotacionada — atualize a integração');
       qc.invalidateQueries({ queryKey: ['zapier-key', clientId] });
       setRevealed(true);
     },
@@ -342,9 +342,11 @@ function ZapierWebhookCard({ clientId }: { clientId: string }) {
   return (
     <Card className="mt-6">
       <CardHeader>
-        <CardTitle className="text-base">Receber leads via Zapier</CardTitle>
+        <CardTitle className="text-base">Receber leads de formulários / quizz</CardTitle>
         <p className="mt-1 text-xs text-muted-foreground">
-          Use enquanto o app Meta está em review — Zapier dispara leads do Facebook (ou outras fontes) direto pro CallWe.
+          Cole esta URL no webhook do seu formulário, quizz ou landing page. Cada lead enviado
+          cai direto no CRM com origem &quot;Formulário&quot;. Funciona com Typeform, Jotform, Zapier,
+          quizz próprio — qualquer ferramenta que dispare um POST.
         </p>
       </CardHeader>
       <CardContent className="space-y-3">
@@ -376,30 +378,28 @@ function ZapierWebhookCard({ clientId }: { clientId: string }) {
         </div>
 
         <details className="rounded-md border bg-muted/30 p-3 text-xs">
-          <summary className="cursor-pointer font-medium">Como configurar no Zapier</summary>
+          <summary className="cursor-pointer font-medium">Como configurar</summary>
           <ol className="mt-2 list-decimal space-y-1.5 pl-5 leading-relaxed">
-            <li><strong>Trigger:</strong> Facebook Lead Ads → New Lead</li>
-            <li>Conecta a conta Facebook e seleciona Page + Form</li>
-            <li><strong>Action:</strong> Webhooks by Zapier → <em>POST</em></li>
+            <li>Na sua ferramenta (Typeform, Jotform, quizz, etc.), procure a opção de <strong>Webhook</strong> / <em>HTTP POST</em> ao finalizar o envio.</li>
             <li><strong>URL:</strong> cola a URL acima</li>
-            <li><strong>Payload Type:</strong> <code>json</code></li>
-            <li><strong>Data</strong>: mapeia campos do form do Facebook pra essas chaves do CallWe:
+            <li><strong>Método:</strong> <code>POST</code> · <strong>Payload:</strong> <code>json</code></li>
+            <li><strong>Header:</strong> adiciona <code>X-CallWe-Api-Key</code> com o valor da chave acima</li>
+            <li><strong>Campos</strong> — envie com estas chaves (qualquer extra é guardado automaticamente):
               <ul className="mt-1 list-disc pl-5">
                 <li><code>name</code> → nome do lead</li>
                 <li><code>phone</code> → telefone (qualquer formato — normalizamos)</li>
                 <li><code>email</code> → e-mail</li>
-                <li><code>formName</code> (opcional) → nome do form pra agrupar</li>
+                <li><code>formName</code> (opcional) → nome do form/quizz pra agrupar</li>
                 <li><code>campaignName</code> (opcional) → nome da campanha</li>
               </ul>
             </li>
-            <li><strong>Headers:</strong> adiciona <code>X-CallWe-Api-Key</code> com o valor da chave acima</li>
-            <li>Testa o Zap → confirma que aparece em /workspace/leads com origem &quot;Meta&quot;</li>
+            <li>Testa o envio → confirma que aparece em /workspace/leads com origem &quot;Formulário&quot;.</li>
           </ol>
         </details>
 
         <div className="flex items-center justify-between pt-2">
           <p className="text-xs text-muted-foreground">
-            ⚠️ Rotacionar a chave invalida a anterior — você precisa atualizar o Zap.
+            ⚠️ Rotacionar a chave invalida a anterior — você precisa atualizar a integração.
           </p>
           <Button size="sm" variant="outline" onClick={() => rotate.mutate()} disabled={rotate.isPending}>
             Rotacionar chave

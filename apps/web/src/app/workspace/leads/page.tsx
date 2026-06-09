@@ -12,7 +12,7 @@ import { useAuthStore } from '@/stores/auth-store';
 import { useTenantStore } from '@/stores/tenant-store';
 
 type LeadStatus = 'new' | 'contacted' | 'qualified' | 'won' | 'lost';
-type LeadSource = 'inbound_call' | 'outbound_call' | 'meta_ads' | 'sms' | 'manual' | 'import' | 'api';
+type LeadSource = 'inbound_call' | 'outbound_call' | 'meta_ads' | 'sms' | 'manual' | 'import' | 'api' | 'form';
 
 interface Lead {
   id: string;
@@ -51,6 +51,7 @@ const SOURCE_LABEL: Record<LeadSource, string> = {
   manual: 'Manual',
   import: 'Importação',
   api: 'API',
+  form: 'Formulário',
 };
 
 export default function LeadsPage() {
