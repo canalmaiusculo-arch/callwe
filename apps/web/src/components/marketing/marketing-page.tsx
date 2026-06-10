@@ -12,7 +12,6 @@ import {
   Check,
   ChevronDown,
   MessageSquare,
-  Globe,
 } from 'lucide-react';
 import { Logo } from '@/components/logo';
 
@@ -23,7 +22,8 @@ const SALES_CONTACT = 'mailto:contato@callwe.digital';
 
 type Locale = 'en' | 'es' | 'pt';
 const LOCALES: Locale[] = ['en', 'es', 'pt'];
-const LOCALE_LABEL: Record<Locale, string> = { en: 'EN', es: 'ES', pt: 'PT' };
+// Bandeira por idioma (arquivos em apps/web/public/flags).
+const LOCALE_FLAG: Record<Locale, string> = { en: '/flags/us.png', es: '/flags/es.png', pt: '/flags/br.png' };
 
 const FEATURE_ICONS = [Magnet, Phone, KanbanSquare, BarChart3, Users, Building2];
 // Plano destacado (índice) e plano que leva ao contato de vendas (índice).
@@ -475,19 +475,21 @@ function LangSwitcher({
   onChange: (l: Locale) => void;
 }) {
   return (
-    <div className="flex items-center gap-1 rounded-md border px-2 py-1 text-xs">
-      <Globe className="h-3.5 w-3.5 text-muted-foreground" />
-      {LOCALES.map((l, i) => (
-        <span key={l} className="flex items-center">
-          {i > 0 && <span className="mx-0.5 text-muted-foreground">·</span>}
-          <button
-            type="button"
-            onClick={() => onChange(l)}
-            className={locale === l ? 'font-semibold text-foreground' : 'text-muted-foreground hover:text-foreground'}
-          >
-            {LOCALE_LABEL[l]}
-          </button>
-        </span>
+    <div className="flex items-center gap-1.5 rounded-md border px-1.5 py-1">
+      {LOCALES.map((l) => (
+        <button
+          key={l}
+          type="button"
+          onClick={() => onChange(l)}
+          title={CONTENT[l].langName}
+          aria-label={CONTENT[l].langName}
+          className={`overflow-hidden rounded-sm transition ${
+            locale === l ? 'ring-2 ring-primary' : 'opacity-50 hover:opacity-100'
+          }`}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={LOCALE_FLAG[l]} alt={CONTENT[l].langName} className="h-4 w-6 object-cover" />
+        </button>
       ))}
     </div>
   );
