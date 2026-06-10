@@ -32,20 +32,28 @@ build_image() {
   docker build -f "$INFRA_DIR/docker/${dockerfile}" -t "callwe-$name" "$@" "$APP_DIR"
 }
 
+# Recria os serviços de forma limpa: remove os containers (tolerando ausência)
+# e sobe de novo. Evita os erros "No such container" / "name already in use" que
+# o `--force-recreate` causa quando o estado do compose fica dessincronizado.
+recreate() {
+  $COMPOSE rm -fs "$@" || true
+  $COMPOSE up -d --no-deps "$@"
+}
+
 case "$TARGET" in
   api)
     build_image api api.Dockerfile
-    $COMPOSE up -d --no-deps --force-recreate api
+    recreate api
     ;;
   web)
     build_image web web.Dockerfile \
       --build-arg "NEXT_PUBLIC_API_URL=https://api.callwe.digital" \
       --build-arg "NEXT_PUBLIC_CLOUDTALK_PARTNER_ID="
-    $COMPOSE up -d --no-deps --force-recreate web
+    recreate web
     ;;
   worker)
     build_image worker worker.Dockerfile
-    $COMPOSE up -d --no-deps --force-recreate worker
+    recreate worker
     ;;
   all)
     build_image api api.Dockerfile
@@ -53,7 +61,7 @@ case "$TARGET" in
     build_image web web.Dockerfile \
       --build-arg "NEXT_PUBLIC_API_URL=https://api.callwe.digital" \
       --build-arg "NEXT_PUBLIC_CLOUDTALK_PARTNER_ID="
-    $COMPOSE up -d --no-deps --force-recreate api worker web
+    recreate api worker web
     ;;
   *)
     echo "Uso: $0 [api|web|worker|all]"
