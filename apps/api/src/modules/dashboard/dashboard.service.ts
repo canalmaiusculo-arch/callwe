@@ -212,70 +212,76 @@ export class DashboardService {
     }));
   }
 
-  async agencyStats(agencyId: string) {
-    const now = new Date();
-    const startOfDay = new Date(now);
+  async agencyStats(
+    agencyId: string,
+    opts: { period?: 'today' | '7d' | '30d'; subAccountId?: string } = {},
+  ) {
+    const period = opts.period ?? '7d';
+    const startOfDay = new Date();
     startOfDay.setHours(0, 0, 0, 0);
-    const startOfWeek = new Date(now);
-    startOfWeek.setDate(now.getDate() - 7);
+    const daysBack = period === 'today' ? 0 : period === '30d' ? 29 : 6;
+    const from = new Date(startOfDay);
+    from.setDate(from.getDate() - daysBack);
 
     const subs = await this.prisma.subAccount.findMany({
       where: { agencyId, status: { not: 'archived' } },
       select: { id: true, name: true },
+      orderBy: { name: 'asc' },
     });
-    const subIds = subs.map((s) => s.id);
+    const allSubIds = subs.map((s) => s.id);
+    const clients = subs.map((s) => ({ id: s.id, name: s.name }));
+
+    // Filtro por cliente — só aplica se o id pertence à agência.
+    const subIds =
+      opts.subAccountId && allSubIds.includes(opts.subAccountId)
+        ? [opts.subAccountId]
+        : allSubIds;
+
     if (subIds.length === 0) {
       return {
-        totalClients: 0,
-        totalLeadsToday: 0,
-        totalCallsToday: 0,
-        totalMissedToday: 0,
-        totalLeadsWeek: 0,
-        totalCallsWeek: 0,
-        totalTalkTodaySeconds: 0,
+        period,
+        totalClients: subs.length,
+        leads: 0,
+        calls: 0,
+        missed: 0,
+        talkSeconds: 0,
         topClients: [],
         series: [],
+        clients,
       };
     }
 
-    const [leadsToday, callsTodayAgg, missedToday, callsWeek, leadsWeek, topClients, series] =
-      await Promise.all([
-        this.prisma.lead.count({
-          where: { subAccountId: { in: subIds }, createdAt: { gte: startOfDay }, deletedAt: null },
-        }),
-        this.prisma.interaction.aggregate({
-          where: { subAccountId: { in: subIds }, type: 'call', startedAt: { gte: startOfDay } },
-          _count: { _all: true },
-          _sum: { durationSeconds: true },
-        }),
-        this.prisma.interaction.count({
-          where: {
-            subAccountId: { in: subIds },
-            type: 'call',
-            status: 'missed',
-            startedAt: { gte: startOfDay },
-          },
-        }),
-        this.prisma.interaction.count({
-          where: { subAccountId: { in: subIds }, type: 'call', startedAt: { gte: startOfWeek } },
-        }),
-        this.prisma.lead.count({
-          where: { subAccountId: { in: subIds }, createdAt: { gte: startOfWeek }, deletedAt: null },
-        }),
-        this.topClients(subIds, startOfWeek),
-        this.agencyCallsSeries(subIds),
-      ]);
+    const [leads, callsAgg, missed, topClients, series] = await Promise.all([
+      this.prisma.lead.count({
+        where: { subAccountId: { in: subIds }, createdAt: { gte: from }, deletedAt: null },
+      }),
+      this.prisma.interaction.aggregate({
+        where: { subAccountId: { in: subIds }, type: 'call', startedAt: { gte: from } },
+        _count: { _all: true },
+        _sum: { durationSeconds: true },
+      }),
+      this.prisma.interaction.count({
+        where: {
+          subAccountId: { in: subIds },
+          type: 'call',
+          status: 'missed',
+          startedAt: { gte: from },
+        },
+      }),
+      this.topClients(subIds, from),
+      this.agencyCallsSeries(subIds, from),
+    ]);
 
     return {
+      period,
       totalClients: subs.length,
-      totalLeadsToday: leadsToday,
-      totalCallsToday: callsTodayAgg._count._all,
-      totalMissedToday: missedToday,
-      totalLeadsWeek: leadsWeek,
-      totalCallsWeek: callsWeek,
-      totalTalkTodaySeconds: callsTodayAgg._sum.durationSeconds ?? 0,
+      leads,
+      calls: callsAgg._count._all,
+      missed,
+      talkSeconds: callsAgg._sum.durationSeconds ?? 0,
       topClients,
       series,
+      clients,
     };
   }
 
@@ -303,20 +309,28 @@ export class DashboardService {
     }));
   }
 
-  private async agencyCallsSeries(subIds: string[]) {
-    const sevenDaysAgo = new Date();
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
-    sevenDaysAgo.setHours(0, 0, 0, 0);
-
+  private async agencyCallsSeries(subIds: string[], from: Date) {
     const rows = await this.prisma.$queryRaw<Array<{ day: Date; count: bigint }>>`
       SELECT date_trunc('day', started_at) AS day, COUNT(*)::bigint AS count
       FROM interactions
       WHERE sub_account_id = ANY(${subIds}::uuid[])
         AND type = 'call'
-        AND started_at >= ${sevenDaysAgo}
+        AND started_at >= ${from}
       GROUP BY 1
       ORDER BY 1
     `;
-    return rows.map((r) => ({ day: r.day.toISOString().slice(0, 10), count: Number(r.count) }));
+    const counts = new Map(rows.map((r) => [r.day.toISOString().slice(0, 10), Number(r.count)]));
+
+    // Preenche todos os dias do período (de `from` até hoje) com 0 onde não houve chamada.
+    const out: Array<{ day: string; count: number }> = [];
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const cursor = new Date(from);
+    while (cursor <= today) {
+      const key = cursor.toISOString().slice(0, 10);
+      out.push({ day: key, count: counts.get(key) ?? 0 });
+      cursor.setDate(cursor.getDate() + 1);
+    }
+    return out;
   }
 }

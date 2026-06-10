@@ -16,12 +16,21 @@ export class DashboardController {
 
   @Get('agency-stats')
   @UseGuards(AuthGuard('jwt'))
-  agencyStats(@CurrentUser() user: AuthUser, @Query('agencyId') queryAgencyId?: string) {
+  agencyStats(
+    @CurrentUser() user: AuthUser,
+    @Query('agencyId') queryAgencyId?: string,
+    @Query('period') period?: string,
+    @Query('subAccountId') subAccountId?: string,
+  ) {
     const isSuperAdmin = user.memberships.some((m) => m.role === 'super_admin');
     const agencyId = isSuperAdmin && queryAgencyId
       ? queryAgencyId
       : user.memberships.find((m) => m.agencyId)?.agencyId;
     if (!agencyId) return null;
-    return this.svc.agencyStats(agencyId);
+    const validPeriod = period === 'today' || period === '30d' ? period : '7d';
+    return this.svc.agencyStats(agencyId, {
+      period: validPeriod,
+      subAccountId: subAccountId || undefined,
+    });
   }
 }
