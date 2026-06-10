@@ -36,7 +36,7 @@ export interface QuizQuestion {
 
 export interface Content {
   langName: string;
-  nav: { howItWorks: string; results: string; industries: string; login: string; cta: string };
+  nav: { howItWorks: string; pricing: string; results: string; industries: string; login: string; cta: string };
   hero: {
     eyebrow: string;
     h1: string;
@@ -53,6 +53,14 @@ export interface Content {
   how: { headline: string; steps: TitledItem[]; tagline: string };
   dashboard: { headline: string; body: string; bullets: TitledItem[]; cta: string; placeholder: string };
   industries: { headline: string; body: string; chips: string[]; line: string };
+  pricing: {
+    eyebrow: string;
+    headline: string;
+    subtitle: string;
+    plans: { name: string; tagline: string; features: string[]; highlight?: boolean }[];
+    cta: string;
+    note: string;
+  };
   why: { headline: string; cols: [string, string, string]; rowLabel: string; rows: { label: string; values: [string, string, string] }[]; line: string };
   founders: { headline: string; body: string; note: string };
   proof: {
@@ -89,7 +97,7 @@ export interface Content {
 
 const en: Content = {
   langName: 'English',
-  nav: { howItWorks: 'How It Works', results: 'Results', industries: 'Industries', login: 'Client Panel', cta: 'Book a Free Lead Audit' },
+  nav: { howItWorks: 'How It Works', pricing: 'Pricing', results: 'Results', industries: 'Industries', login: 'Client Panel', cta: 'Book a Free Lead Audit' },
   hero: {
     eyebrow: 'HUMAN SALES TEAM · BUILT FOR U.S. BUSINESSES',
     h1: 'Your next customer called. Did anyone pick up?',
@@ -169,6 +177,32 @@ const en: Content = {
     chips: ['Home Improvement & Trades', 'Restaurants', 'Cleaning Services', 'Construction', '+ Any business that takes inbound calls'],
     line: 'If your business needs to sell, Call We has a seat for you.',
   },
+  pricing: {
+    eyebrow: 'Plans',
+    headline: 'Plans built around your numbers',
+    subtitle:
+      "No rigid tiers. Tell us your volume and goals, and we'll tailor the right plan — answer your leads, add follow-up, or scale to high call volume.",
+    plans: [
+      {
+        name: 'Essential',
+        tagline: 'For businesses that just need every lead answered, fast.',
+        features: ['Speed-to-lead answering (calls, texts, forms)', 'Lead qualification', 'Live commercial dashboard', 'AI-scored calls'],
+      },
+      {
+        name: 'Follow-Up',
+        tagline: 'Answering plus relentless follow-up and lead recovery.',
+        features: ['Everything in Essential', 'Automated + human follow-up', 'Lead recovery from cold', 'Daily follow-up tracking'],
+        highlight: true,
+      },
+      {
+        name: 'High Volume',
+        tagline: 'For operations taking 500+ calls a month.',
+        features: ['Everything in Follow-Up', 'Dedicated rep team', 'Priority routing & coverage', 'Custom reporting & integrations'],
+      },
+    ],
+    cta: 'Request a custom plan',
+    note: "Every business is different — no two plans are the same. Answer a few questions and we'll recommend the right one.",
+  },
   why: {
     headline: 'Why owners choose Call We over hiring in-house',
     cols: ['In-house / DIY', 'Answering service', 'Call We'],
@@ -212,6 +246,10 @@ const en: Content = {
       { q: 'How fast does your business answer a new lead today?', options: ['Within 5 minutes', 'Within an hour', 'A few hours', 'Honestly, not sure'] },
       { q: 'Who answers your leads right now?', options: ['Me (the owner)', 'A receptionist / admin', 'A sales rep', 'Nobody consistently'] },
       { q: "What's your average customer worth?", options: ['Under $500', '$500–$2,000', '$2,000–$10,000', '$10,000+'] },
+      {
+        q: 'Which plan sounds right for you?',
+        options: ['Essential — just answer my leads', 'Follow-Up — answering + relentless follow-up', 'High Volume — 500+ calls/month', 'Not sure — help me choose'],
+      },
     ],
     capture: {
       title: 'Your Lead Audit is ready.',
@@ -242,7 +280,7 @@ const en: Content = {
 
 const es: Content = {
   langName: 'Español',
-  nav: { howItWorks: 'Cómo funciona', results: 'Resultados', industries: 'Industrias', login: 'Panel del cliente', cta: 'Auditoría de Leads Gratis' },
+  nav: { howItWorks: 'Cómo funciona', pricing: 'Planes', results: 'Resultados', industries: 'Industrias', login: 'Panel del cliente', cta: 'Auditoría de Leads Gratis' },
   hero: {
     eyebrow: 'EQUIPO DE VENTAS HUMANO · HECHO PARA EMPRESAS EN EE. UU.',
     h1: 'Tu próximo cliente llamó. ¿Alguien contestó?',
@@ -322,6 +360,32 @@ const es: Content = {
     chips: ['Remodelación y oficios', 'Restaurantes', 'Servicios de limpieza', 'Construcción', '+ Cualquier negocio que reciba llamadas'],
     line: 'Si tu negocio necesita vender, Call We tiene un lugar para ti.',
   },
+  pricing: {
+    eyebrow: 'Planes',
+    headline: 'Planes hechos a la medida de tus números',
+    subtitle:
+      'Sin niveles rígidos. Cuéntanos tu volumen y tus metas, y armamos el plan correcto — responder tus leads, sumar seguimiento o escalar a alto volumen de llamadas.',
+    plans: [
+      {
+        name: 'Esencial',
+        tagline: 'Para negocios que solo necesitan que cada lead se responda, rápido.',
+        features: ['Respuesta veloz (llamadas, mensajes, formularios)', 'Calificación de leads', 'Panel comercial en vivo', 'Llamadas calificadas con IA'],
+      },
+      {
+        name: 'Seguimiento',
+        tagline: 'Respuesta más seguimiento y recuperación de leads sin descanso.',
+        features: ['Todo lo de Esencial', 'Seguimiento automático + humano', 'Recuperación de leads fríos', 'Seguimiento diario'],
+        highlight: true,
+      },
+      {
+        name: 'Alto Volumen',
+        tagline: 'Para operaciones con 500+ llamadas al mes.',
+        features: ['Todo lo de Seguimiento', 'Equipo de agentes dedicado', 'Enrutamiento y cobertura prioritarios', 'Reportes e integraciones a medida'],
+      },
+    ],
+    cta: 'Solicita un plan personalizado',
+    note: 'Cada negocio es distinto — no hay dos planes iguales. Responde unas preguntas y te recomendamos el correcto.',
+  },
   why: {
     headline: 'Por qué los dueños eligen Call We en vez de contratar internamente',
     cols: ['Interno / por tu cuenta', 'Servicio de recados', 'Call We'],
@@ -365,6 +429,10 @@ const es: Content = {
       { q: '¿Qué tan rápido respondes hoy un lead nuevo?', options: ['En 5 minutos', 'En una hora', 'Unas horas', 'La verdad, no sé'] },
       { q: '¿Quién responde tus leads ahora?', options: ['Yo (el dueño)', 'Recepcionista / admin', 'Un vendedor', 'Nadie de forma constante'] },
       { q: '¿Cuánto vale tu cliente promedio?', options: ['Menos de $500', '$500–$2,000', '$2,000–$10,000', '$10,000+'] },
+      {
+        q: '¿Qué plan te suena mejor?',
+        options: ['Esencial — solo responder mis leads', 'Seguimiento — respuesta + seguimiento constante', 'Alto Volumen — 500+ llamadas/mes', 'No sé — ayúdame a elegir'],
+      },
     ],
     capture: {
       title: 'Tu Auditoría de Leads está lista.',
@@ -395,7 +463,7 @@ const es: Content = {
 
 const pt: Content = {
   langName: 'Português',
-  nav: { howItWorks: 'Como funciona', results: 'Resultados', industries: 'Setores', login: 'Painel do cliente', cta: 'Auditoria de Leads Grátis' },
+  nav: { howItWorks: 'Como funciona', pricing: 'Planos', results: 'Resultados', industries: 'Setores', login: 'Painel do cliente', cta: 'Auditoria de Leads Grátis' },
   hero: {
     eyebrow: 'TIME DE VENDAS HUMANO · FEITO PARA EMPRESAS NOS EUA',
     h1: 'Seu próximo cliente ligou. Alguém atendeu?',
@@ -475,6 +543,32 @@ const pt: Content = {
     chips: ['Reforma e ofícios', 'Restaurantes', 'Serviços de limpeza', 'Construção', '+ Qualquer negócio que recebe ligações'],
     line: 'Se o seu negócio precisa vender, a Call We tem um lugar pra você.',
   },
+  pricing: {
+    eyebrow: 'Planos',
+    headline: 'Planos sob medida pros seus números',
+    subtitle:
+      'Sem níveis rígidos. Conta pra gente seu volume e suas metas, e a gente monta o plano certo — responder seus leads, adicionar follow-up ou escalar pra alto volume de ligações.',
+    plans: [
+      {
+        name: 'Essencial',
+        tagline: 'Para quem só precisa que cada lead seja respondido, rápido.',
+        features: ['Resposta veloz (ligações, mensagens, formulários)', 'Qualificação de leads', 'Painel comercial ao vivo', 'Ligações avaliadas por IA'],
+      },
+      {
+        name: 'Follow-up',
+        tagline: 'Resposta mais follow-up e recuperação de leads sem parar.',
+        features: ['Tudo do Essencial', 'Follow-up automático + humano', 'Recuperação de leads frios', 'Acompanhamento diário de follow-up'],
+        highlight: true,
+      },
+      {
+        name: 'Alto Volume',
+        tagline: 'Para operações com 500+ ligações por mês.',
+        features: ['Tudo do Follow-up', 'Time de atendentes dedicado', 'Roteamento e cobertura prioritários', 'Relatórios e integrações sob medida'],
+      },
+    ],
+    cta: 'Solicite um plano personalizado',
+    note: 'Cada negócio é diferente — não existem dois planos iguais. Responda algumas perguntas e a gente recomenda o ideal.',
+  },
   why: {
     headline: 'Por que os donos escolhem a Call We em vez de contratar internamente',
     cols: ['Interno / por conta', 'Secretária eletrônica', 'Call We'],
@@ -518,6 +612,10 @@ const pt: Content = {
       { q: 'Quão rápido seu negócio responde um lead novo hoje?', options: ['Em 5 minutos', 'Em uma hora', 'Algumas horas', 'Sinceramente, não sei'] },
       { q: 'Quem responde seus leads hoje?', options: ['Eu (o dono)', 'Recepcionista / admin', 'Um vendedor', 'Ninguém de forma consistente'] },
       { q: 'Quanto vale seu cliente médio?', options: ['Menos de $500', '$500–$2.000', '$2.000–$10.000', '$10.000+'] },
+      {
+        q: 'Qual plano faz mais sentido pra você?',
+        options: ['Essencial — só responder meus leads', 'Follow-up — resposta + follow-up constante', 'Alto Volume — 500+ ligações/mês', 'Não sei — me ajuda a escolher'],
+      },
     ],
     capture: {
       title: 'Sua Auditoria de Leads está pronta.',

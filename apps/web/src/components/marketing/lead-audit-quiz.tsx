@@ -45,6 +45,7 @@ export function LeadAuditQuiz({ t, locale }: { t: Content; locale: Locale }) {
           responseTime: answers[2],
           whoAnswers: answers[3],
           customerValue: answers[4],
+          interestedPlan: answers[5],
           lang: locale,
         }),
       });

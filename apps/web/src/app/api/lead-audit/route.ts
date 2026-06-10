@@ -45,6 +45,7 @@ export async function POST(req: Request) {
         responseTime: body.responseTime ?? '',
         whoAnswers: body.whoAnswers ?? '',
         customerValue: body.customerValue ?? '',
+        interestedPlan: body.interestedPlan ?? '',
         lang: body.lang ?? '',
       }),
     });

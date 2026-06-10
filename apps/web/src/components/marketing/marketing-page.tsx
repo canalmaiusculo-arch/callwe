@@ -66,6 +66,7 @@ export function MarketingPage() {
       <WhyCallWe t={t} />
       <Founders t={t} />
       <Proof t={t} />
+      <Pricing t={t} />
       <QuizSection t={t} locale={locale} />
       <FinalCta t={t} />
       <SiteFooter t={t} />
@@ -98,6 +99,7 @@ function LangSwitcher({ locale, onChange }: { locale: Locale; onChange: (l: Loca
 function SiteHeader({ t, locale, onChange }: { t: Content; locale: Locale; onChange: (l: Locale) => void }) {
   const nav = [
     { href: '#how-it-works', label: t.nav.howItWorks },
+    { href: '#pricing', label: t.nav.pricing },
     { href: '#results', label: t.nav.results },
     { href: '#industries', label: t.nav.industries },
   ];
@@ -411,6 +413,49 @@ function Proof({ t }: { t: Content }) {
           ))}
         </div>
         <p className="mt-4 text-center text-xs text-muted-foreground">{t.proof.note}</p>
+      </div>
+    </section>
+  );
+}
+
+function Pricing({ t }: { t: Content }) {
+  return (
+    <section id="pricing" className="border-t py-20">
+      <div className="mx-auto max-w-6xl px-4">
+        <div className="mx-auto max-w-2xl text-center">
+          <span className="text-sm font-semibold uppercase tracking-wide text-secondary">{t.pricing.eyebrow}</span>
+          <h2 className="mt-2 text-3xl font-bold tracking-tight md:text-4xl">{t.pricing.headline}</h2>
+          <p className="mt-3 text-muted-foreground">{t.pricing.subtitle}</p>
+        </div>
+        <div className="mt-12 grid items-start gap-6 lg:grid-cols-3">
+          {t.pricing.plans.map((p) => (
+            <div
+              key={p.name}
+              className={`relative flex flex-col rounded-2xl border p-8 ${
+                p.highlight ? 'border-primary shadow-lg lg:-mt-2' : 'bg-card'
+              }`}
+            >
+              <h3 className="text-lg font-semibold">{p.name}</h3>
+              <p className="mt-2 text-sm text-muted-foreground">{p.tagline}</p>
+              <ul className="mt-6 flex-1 space-y-2">
+                {p.features.map((f) => (
+                  <li key={f} className="flex items-start gap-2 text-sm">
+                    <Check className="mt-0.5 h-4 w-4 shrink-0 text-secondary" /> {f}
+                  </li>
+                ))}
+              </ul>
+              <a
+                href="#audit"
+                className={`mt-8 rounded-md px-4 py-2.5 text-center text-sm font-medium transition-opacity hover:opacity-90 ${
+                  p.highlight ? 'bg-brand-gradient text-white' : 'border'
+                }`}
+              >
+                {t.pricing.cta}
+              </a>
+            </div>
+          ))}
+        </div>
+        <p className="mt-6 text-center text-xs text-muted-foreground">{t.pricing.note}</p>
       </div>
     </section>
   );
