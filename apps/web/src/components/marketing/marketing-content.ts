@@ -89,7 +89,7 @@ export interface Content {
 
 const en: Content = {
   langName: 'English',
-  nav: { howItWorks: 'How It Works', results: 'Results', industries: 'Industries', login: 'Login', cta: 'Book a Free Lead Audit' },
+  nav: { howItWorks: 'How It Works', results: 'Results', industries: 'Industries', login: 'Client Panel', cta: 'Book a Free Lead Audit' },
   hero: {
     eyebrow: 'HUMAN SALES TEAM · BUILT FOR U.S. BUSINESSES',
     h1: 'Your next customer called. Did anyone pick up?',
@@ -242,7 +242,7 @@ const en: Content = {
 
 const es: Content = {
   langName: 'Español',
-  nav: { howItWorks: 'Cómo funciona', results: 'Resultados', industries: 'Industrias', login: 'Entrar', cta: 'Auditoría de Leads Gratis' },
+  nav: { howItWorks: 'Cómo funciona', results: 'Resultados', industries: 'Industrias', login: 'Panel del cliente', cta: 'Auditoría de Leads Gratis' },
   hero: {
     eyebrow: 'EQUIPO DE VENTAS HUMANO · HECHO PARA EMPRESAS EN EE. UU.',
     h1: 'Tu próximo cliente llamó. ¿Alguien contestó?',
@@ -395,7 +395,7 @@ const es: Content = {
 
 const pt: Content = {
   langName: 'Português',
-  nav: { howItWorks: 'Como funciona', results: 'Resultados', industries: 'Setores', login: 'Entrar', cta: 'Auditoria de Leads Grátis' },
+  nav: { howItWorks: 'Como funciona', results: 'Resultados', industries: 'Setores', login: 'Painel do cliente', cta: 'Auditoria de Leads Grátis' },
   hero: {
     eyebrow: 'TIME DE VENDAS HUMANO · FEITO PARA EMPRESAS NOS EUA',
     h1: 'Seu próximo cliente ligou. Alguém atendeu?',
