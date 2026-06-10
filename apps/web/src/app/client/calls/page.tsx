@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
 import { PhoneIncoming, PhoneOutgoing, PhoneMissed } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
@@ -56,9 +57,13 @@ export default function ClientCallsPage() {
                 : 'text-blue-600';
           const number = c.direction === 'inbound' ? c.fromNumber : c.toNumber;
           return (
-            <div key={c.id} className="grid grid-cols-[auto_1fr_auto] items-center gap-4 rounded-md border p-3">
-              <Icon className={`h-5 w-5 ${color}`} />
-              <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+            <div key={c.id} className="flex items-center gap-4 rounded-md border p-3">
+              <Link
+                href={`/client/calls/${c.id}` as never}
+                className="flex flex-1 items-center gap-4 hover:opacity-80"
+              >
+                <Icon className={`h-5 w-5 ${color}`} />
+                <div className="grid flex-1 grid-cols-2 gap-4 sm:grid-cols-4">
                 <div>
                   <p className="text-xs text-muted-foreground">Número</p>
                   <p className="font-mono text-sm">{number ?? '—'}</p>
@@ -75,7 +80,8 @@ export default function ClientCallsPage() {
                   <p className="text-xs text-muted-foreground">Quando</p>
                   <p className="text-xs">{new Date(c.startedAt).toLocaleString('pt-BR')}</p>
                 </div>
-              </div>
+                </div>
+              </Link>
               <div className="flex items-center gap-2">
                 {c.sentiment && <Badge variant={SENTIMENT_VARIANT[c.sentiment]}>{c.sentiment}</Badge>}
                 {c.recordingUrl && <RecordingPlayer interactionId={c.id} />}

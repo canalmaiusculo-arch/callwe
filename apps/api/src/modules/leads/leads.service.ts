@@ -123,12 +123,17 @@ export class LeadsService {
     };
   }
 
-  get(subAccountId: string, id: string) {
+  get(subAccountId: string, id: string, clientView = false) {
     return this.prisma.lead.findFirst({
       where: { id, subAccountId },
       include: {
         interactions: { orderBy: { startedAt: 'desc' } },
-        notes: { orderBy: { createdAt: 'desc' } },
+        notes: {
+          // Cliente só enxerga as mensagens marcadas como compartilhadas.
+          where: clientView ? { shared: true } : undefined,
+          include: { author: { select: { id: true, fullName: true } } },
+          orderBy: { createdAt: 'asc' },
+        },
       },
     });
   }
@@ -231,9 +236,15 @@ export class LeadsService {
     });
   }
 
-  async addNote(leadId: string, authorUserId: string, body: string) {
+  async addNote(
+    leadId: string,
+    authorUserId: string,
+    body: string,
+    opts: { shared: boolean; authorRole?: string },
+  ) {
     return this.prisma.leadNote.create({
-      data: { leadId, authorUserId, body },
+      data: { leadId, authorUserId, body, shared: opts.shared, authorRole: opts.authorRole ?? null },
+      include: { author: { select: { id: true, fullName: true } } },
     });
   }
 }

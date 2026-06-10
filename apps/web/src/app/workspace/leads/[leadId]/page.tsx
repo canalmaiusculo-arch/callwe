@@ -46,8 +46,20 @@ interface LeadDetail {
   lostReason: string | null;
   createdAt: string;
   interactions: Interaction[];
-  notes: Array<{ id: string; body: string; createdAt: string; authorUserId: string }>;
+  notes: Array<{
+    id: string;
+    body: string;
+    createdAt: string;
+    shared: boolean;
+    authorRole: string | null;
+    author: { id: string; fullName: string } | null;
+  }>;
 }
+
+const ROLE_LABEL: Record<string, string> = {
+  client_viewer: 'Cliente', agent: 'Atendente', sub_account_admin: 'Atendente',
+  agency_admin: 'Agência', super_admin: 'Agência',
+};
 
 const ICONS = {
   call: Phone,
@@ -60,6 +72,7 @@ export default function LeadDetailPage({ params }: { params: Promise<{ leadId: s
   const { leadId } = use(params);
   const qc = useQueryClient();
   const [newNote, setNewNote] = useState('');
+  const [shareNext, setShareNext] = useState(false);
 
   const { data: lead, isLoading } = useQuery<LeadDetail>({
     queryKey: ['lead', leadId],
@@ -76,11 +89,11 @@ export default function LeadDetailPage({ params }: { params: Promise<{ leadId: s
   });
 
   const addNote = useMutation({
-    mutationFn: (body: string) => apiClient.post(`/leads/${leadId}/notes`, { body }),
+    mutationFn: (body: string) => apiClient.post(`/leads/${leadId}/notes`, { body, shared: shareNext }),
     onSuccess: () => {
       setNewNote('');
       qc.invalidateQueries({ queryKey: ['lead', leadId] });
-      toast.success('Nota adicionada');
+      toast.success(shareNext ? 'Mensagem enviada ao cliente' : 'Nota interna adicionada');
     },
   });
 
@@ -159,15 +172,24 @@ export default function LeadDetailPage({ params }: { params: Promise<{ leadId: s
             <Textarea
               value={newNote}
               onChange={(e) => setNewNote(e.target.value)}
-              placeholder="Resumo da chamada, próximos passos..."
+              placeholder={shareNext ? 'Mensagem visível ao cliente...' : 'Nota interna (só atendente/agência)...'}
               rows={4}
             />
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={shareNext}
+                onChange={(e) => setShareNext(e.target.checked)}
+                className="h-4 w-4"
+              />
+              Compartilhar com o cliente (aparece no painel dele)
+            </label>
             <Button
               size="sm"
               onClick={() => addNote.mutate(newNote)}
               disabled={!newNote.trim() || addNote.isPending}
             >
-              <Save className="h-4 w-4" /> Salvar nota
+              <Save className="h-4 w-4" /> {shareNext ? 'Enviar ao cliente' : 'Salvar nota interna'}
             </Button>
           </CardContent>
         </Card>
@@ -181,10 +203,17 @@ export default function LeadDetailPage({ params }: { params: Promise<{ leadId: s
               <p className="text-sm text-muted-foreground">Sem notas.</p>
             )}
             {lead.notes.map((n) => (
-              <div key={n.id} className="rounded-md border p-3">
-                <p className="text-xs text-muted-foreground">
-                  {new Date(n.createdAt).toLocaleString('pt-BR')}
-                </p>
+              <div key={n.id} className={`rounded-md border p-3 ${n.shared ? 'border-secondary/40 bg-secondary/5' : ''}`}>
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-xs text-muted-foreground">
+                    {n.author?.fullName ?? '—'}
+                    {n.authorRole && ` · ${ROLE_LABEL[n.authorRole] ?? n.authorRole}`} ·{' '}
+                    {new Date(n.createdAt).toLocaleString('pt-BR')}
+                  </p>
+                  <Badge variant={n.shared ? 'success' : 'secondary'} className="shrink-0 text-[10px]">
+                    {n.shared ? 'compartilhada' : 'interna'}
+                  </Badge>
+                </div>
                 <p className="mt-1 text-sm whitespace-pre-wrap">{n.body}</p>
               </div>
             ))}

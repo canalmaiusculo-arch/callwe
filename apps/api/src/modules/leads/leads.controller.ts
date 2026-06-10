@@ -26,7 +26,7 @@ const UpdateLeadDto = z.object({
   ownerUserId: z.string().uuid().nullable().optional(),
 });
 
-const NoteDto = z.object({ body: z.string().min(1) });
+const NoteDto = z.object({ body: z.string().min(1), shared: z.boolean().optional() });
 
 function parseFilters(q: Record<string, string | undefined>) {
   return {
@@ -78,8 +78,8 @@ export class LeadsController {
 
   @Get(':id')
   @UseGuards(TenantGuard)
-  get(@Req() req: { tenant: { subAccountId: string } }, @Param('id') id: string) {
-    return this.svc.get(req.tenant.subAccountId, id);
+  get(@Req() req: { tenant: { subAccountId: string; role: string } }, @Param('id') id: string) {
+    return this.svc.get(req.tenant.subAccountId, id, req.tenant.role === 'client_viewer');
   }
 
   @Post()
@@ -101,11 +101,15 @@ export class LeadsController {
   @Post(':id/notes')
   @UseGuards(TenantGuard)
   addNote(
+    @Req() req: { tenant: { role: string } },
     @Param('id') id: string,
     @CurrentUser() user: AuthUser,
     @ZodBody(NoteDto) dto: z.infer<typeof NoteDto>,
   ) {
-    return this.svc.addNote(id, user.id, dto.body);
+    // Cliente só posta no chat compartilhado; atendente/agência escolhem (default: interno).
+    const isClient = req.tenant.role === 'client_viewer';
+    const shared = isClient ? true : (dto.shared ?? false);
+    return this.svc.addNote(id, user.id, dto.body, { shared, authorRole: req.tenant.role });
   }
 
   @Post(':id/call')

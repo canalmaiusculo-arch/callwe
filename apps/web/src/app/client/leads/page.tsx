@@ -1,5 +1,6 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { apiClient } from '@/lib/api-client';
 import { useTenantStore } from '@/stores/tenant-store';
@@ -44,6 +45,7 @@ const SOURCE_LABEL: Record<LeadSource, string> = {
 };
 
 export default function ClientLeadsPage() {
+  const router = useRouter();
   const subAccountId = useTenantStore((s) => s.subAccountId);
   const { data: leads = [], isLoading } = useQuery<Lead[]>({
     queryKey: ['client-leads', subAccountId],
@@ -77,7 +79,11 @@ export default function ClientLeadsPage() {
             </thead>
             <tbody>
               {leads.map((l) => (
-                <tr key={l.id} className="border-t">
+                <tr
+                  key={l.id}
+                  onClick={() => router.push(`/client/leads/${l.id}`)}
+                  className="cursor-pointer border-t hover:bg-muted/30"
+                >
                   <td className="p-3 font-medium">{l.name ?? '—'}</td>
                   <td className="p-3 font-mono text-xs">{l.phoneE164 ?? '—'}</td>
                   <td className="p-3 text-xs">{SOURCE_LABEL[l.source] ?? l.source}</td>
