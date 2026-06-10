@@ -219,9 +219,12 @@ export class DashboardService {
     const period = opts.period ?? '7d';
     const startOfDay = new Date();
     startOfDay.setHours(0, 0, 0, 0);
-    const daysBack = period === 'today' ? 0 : period === '30d' ? 29 : 6;
+    const lenDays = period === 'today' ? 1 : period === '30d' ? 30 : 7;
     const from = new Date(startOfDay);
-    from.setDate(from.getDate() - daysBack);
+    from.setDate(from.getDate() - (lenDays - 1));
+    // Período anterior — mesma duração, imediatamente antes de `from`.
+    const prevFrom = new Date(from);
+    prevFrom.setDate(prevFrom.getDate() - lenDays);
 
     const subs = await this.prisma.subAccount.findMany({
       where: { agencyId, status: { not: 'archived' } },
@@ -237,6 +240,24 @@ export class DashboardService {
         ? [opts.subAccountId]
         : allSubIds;
 
+    const emptyDetails = {
+      missed: [] as Array<{ at: string; client: string; number: string | null }>,
+      calls: {
+        inbound: 0,
+        outbound: 0,
+        recent: [] as Array<{
+          at: string;
+          client: string;
+          direction: string;
+          status: string;
+          durationSeconds: number;
+          number: string | null;
+        }>,
+      },
+      leads: [] as Array<{ at: string; client: string; name: string; source: string }>,
+      talk: { avgSeconds: 0, longest: null as { seconds: number; client: string } | null },
+    };
+
     if (subIds.length === 0) {
       return {
         period,
@@ -245,43 +266,145 @@ export class DashboardService {
         calls: 0,
         missed: 0,
         talkSeconds: 0,
+        prev: { leads: 0, calls: 0, missed: 0, talkSeconds: 0 },
+        leadsBySource: [] as Array<{ source: string; count: number }>,
+        details: emptyDetails,
         topClients: [],
         series: [],
         clients,
       };
     }
 
-    const [leads, callsAgg, missed, topClients, series] = await Promise.all([
-      this.prisma.lead.count({
-        where: { subAccountId: { in: subIds }, createdAt: { gte: from }, deletedAt: null },
-      }),
-      this.prisma.interaction.aggregate({
-        where: { subAccountId: { in: subIds }, type: 'call', startedAt: { gte: from } },
-        _count: { _all: true },
-        _sum: { durationSeconds: true },
-      }),
-      this.prisma.interaction.count({
-        where: {
-          subAccountId: { in: subIds },
-          type: 'call',
-          status: 'missed',
-          startedAt: { gte: from },
-        },
-      }),
-      this.topClients(subIds, from),
-      this.agencyCallsSeries(subIds, from),
-    ]);
+    const nameOf = new Map(subs.map((s) => [s.id, s.name]));
+    const extNumber = (r: { direction: string; fromNumber: string | null; toNumber: string | null }) =>
+      (r.direction === 'inbound' ? r.fromNumber : r.toNumber) ?? null;
+
+    const [cur, prev, missedRows, dirRows, callRows, leadRows, sourceRows, longestRow, topClients, series] =
+      await Promise.all([
+        this.windowAggregates(subIds, from),
+        this.windowAggregates(subIds, prevFrom, from),
+        this.prisma.interaction.findMany({
+          where: { subAccountId: { in: subIds }, type: 'call', status: 'missed', startedAt: { gte: from } },
+          orderBy: { startedAt: 'desc' },
+          take: 10,
+          select: { startedAt: true, direction: true, fromNumber: true, toNumber: true, subAccountId: true },
+        }),
+        this.prisma.interaction.groupBy({
+          by: ['direction'],
+          where: { subAccountId: { in: subIds }, type: 'call', startedAt: { gte: from } },
+          _count: { _all: true },
+        }),
+        this.prisma.interaction.findMany({
+          where: { subAccountId: { in: subIds }, type: 'call', startedAt: { gte: from } },
+          orderBy: { startedAt: 'desc' },
+          take: 10,
+          select: {
+            startedAt: true,
+            direction: true,
+            status: true,
+            durationSeconds: true,
+            fromNumber: true,
+            toNumber: true,
+            subAccountId: true,
+          },
+        }),
+        this.prisma.lead.findMany({
+          where: { subAccountId: { in: subIds }, createdAt: { gte: from }, deletedAt: null },
+          orderBy: { createdAt: 'desc' },
+          take: 10,
+          select: { name: true, source: true, createdAt: true, subAccountId: true, phoneE164: true },
+        }),
+        this.prisma.lead.groupBy({
+          by: ['source'],
+          where: { subAccountId: { in: subIds }, createdAt: { gte: from }, deletedAt: null },
+          _count: { _all: true },
+        }),
+        this.prisma.interaction.findFirst({
+          where: {
+            subAccountId: { in: subIds },
+            type: 'call',
+            startedAt: { gte: from },
+            durationSeconds: { not: null },
+          },
+          orderBy: { durationSeconds: 'desc' },
+          select: { durationSeconds: true, subAccountId: true },
+        }),
+        this.topClients(subIds, from),
+        this.agencyCallsSeries(subIds, from),
+      ]);
+
+    const details = {
+      missed: missedRows.map((r) => ({
+        at: r.startedAt.toISOString(),
+        client: nameOf.get(r.subAccountId) ?? '—',
+        number: extNumber(r),
+      })),
+      calls: {
+        inbound: dirRows.find((d) => d.direction === 'inbound')?._count._all ?? 0,
+        outbound: dirRows.find((d) => d.direction === 'outbound')?._count._all ?? 0,
+        recent: callRows.map((r) => ({
+          at: r.startedAt.toISOString(),
+          client: nameOf.get(r.subAccountId) ?? '—',
+          direction: r.direction,
+          status: r.status,
+          durationSeconds: r.durationSeconds ?? 0,
+          number: extNumber(r),
+        })),
+      },
+      leads: leadRows.map((r) => ({
+        at: r.createdAt.toISOString(),
+        client: nameOf.get(r.subAccountId) ?? '—',
+        name: r.name ?? r.phoneE164 ?? '—',
+        source: r.source,
+      })),
+      talk: {
+        avgSeconds: cur.calls > 0 ? Math.round(cur.talkSeconds / cur.calls) : 0,
+        longest: longestRow
+          ? { seconds: longestRow.durationSeconds ?? 0, client: nameOf.get(longestRow.subAccountId) ?? '—' }
+          : null,
+      },
+    };
+
+    const leadsBySource = sourceRows
+      .map((r) => ({ source: r.source as string, count: r._count._all }))
+      .sort((a, b) => b.count - a.count);
 
     return {
       period,
       totalClients: subs.length,
+      leads: cur.leads,
+      calls: cur.calls,
+      missed: cur.missed,
+      talkSeconds: cur.talkSeconds,
+      prev: { leads: prev.leads, calls: prev.calls, missed: prev.missed, talkSeconds: prev.talkSeconds },
+      leadsBySource,
+      details,
+      topClients,
+      series,
+      clients,
+    };
+  }
+
+  /** Agregados de chamadas/leads numa janela [from, to). `to` omitido = até agora. */
+  private async windowAggregates(subIds: string[], from: Date, to?: Date) {
+    const startedAt = to ? { gte: from, lt: to } : { gte: from };
+    const createdAt = to ? { gte: from, lt: to } : { gte: from };
+    const [leads, callsAgg, missed] = await Promise.all([
+      this.prisma.lead.count({ where: { subAccountId: { in: subIds }, createdAt, deletedAt: null } }),
+      this.prisma.interaction.aggregate({
+        where: { subAccountId: { in: subIds }, type: 'call', startedAt },
+        _count: { _all: true },
+        _sum: { durationSeconds: true },
+      }),
+      this.prisma.interaction.count({
+        where: { subAccountId: { in: subIds }, type: 'call', status: 'missed', startedAt },
+      }),
+    ]);
+    return {
       leads,
       calls: callsAgg._count._all,
       missed,
       talkSeconds: callsAgg._sum.durationSeconds ?? 0,
-      topClients,
-      series,
-      clients,
     };
   }
 
