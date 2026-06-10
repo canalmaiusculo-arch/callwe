@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import {
   ArrowRight,
   PlayCircle,
@@ -106,9 +107,9 @@ function SiteHeader({ t, locale, onChange }: { t: Content; locale: Locale; onCha
   return (
     <header className="sticky top-0 z-40 border-b bg-background/80 backdrop-blur">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-3 px-4">
-        <a href="/" aria-label="CallWe — home" className="transition-opacity hover:opacity-80">
+        <Link href="/" aria-label="CallWe — home" className="transition-opacity hover:opacity-80">
           <Logo variant="full" className="h-7 w-auto" />
-        </a>
+        </Link>
         <nav className="hidden items-center gap-7 lg:flex">
           {nav.map((n) => (
             <a key={n.href} href={n.href} className="text-sm text-muted-foreground hover:text-foreground">
@@ -512,18 +513,18 @@ function SiteFooter({ t }: { t: Content }) {
     <footer className="border-t py-10">
       <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-4 sm:flex-row">
         <div className="flex flex-col items-center gap-1 sm:items-start">
-          <a href="/" aria-label="CallWe — home">
+          <Link href="/" aria-label="CallWe — home">
             <Logo variant="full" className="h-6 w-auto" />
-          </a>
+          </Link>
           <p className="text-xs text-muted-foreground">{t.footer.tagline}</p>
         </div>
         <div className="flex items-center gap-6 text-sm text-muted-foreground">
-          <a href="/terms" className="hover:text-foreground">
+          <Link href="/terms" className="hover:text-foreground">
             Terms
-          </a>
-          <a href="/privacy" className="hover:text-foreground">
+          </Link>
+          <Link href="/privacy" className="hover:text-foreground">
             Privacy
-          </a>
+          </Link>
           <a href={APP_URL} className="hover:text-foreground">
             {t.nav.login}
           </a>
