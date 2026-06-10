@@ -1,4 +1,4 @@
-import { ConflictException, Injectable } from '@nestjs/common';
+import { ConflictException, ForbiddenException, Injectable } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import { PrismaService } from '../prisma/prisma.service.js';
 
@@ -90,6 +90,29 @@ export class SubAccountsService {
 
   archive(id: string) {
     return this.prisma.subAccount.update({ where: { id }, data: { status: 'archived' } });
+  }
+
+  reactivate(id: string) {
+    return this.prisma.subAccount.update({ where: { id }, data: { status: 'active' } });
+  }
+
+  /** Apaga permanentemente a subconta e TODOS os dados associados (cascade). Irreversível. */
+  remove(id: string) {
+    return this.prisma.subAccount.delete({ where: { id } });
+  }
+
+  /** Garante que o usuário pode gerenciar esta subconta: super_admin, ou agency_admin da agência dona. */
+  async assertCanManage(
+    user: { memberships: Array<{ role: string; agencyId?: string | null }> },
+    id: string,
+  ) {
+    if (user.memberships.some((m) => m.role === 'super_admin')) return;
+    const adminAgencyId = user.memberships.find((m) => m.role === 'agency_admin' && m.agencyId)?.agencyId;
+    if (!adminAgencyId) throw new ForbiddenException('Sem permissão');
+    const sub = await this.prisma.subAccount.findUnique({ where: { id }, select: { agencyId: true } });
+    if (!sub || sub.agencyId !== adminAgencyId) {
+      throw new ForbiddenException('Cliente fora da sua agência');
+    }
   }
 
   async getOrCreateZapierApiKey(id: string): Promise<{ apiKey: string; webhookUrl: string }> {

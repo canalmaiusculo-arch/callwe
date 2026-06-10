@@ -64,9 +64,17 @@ export class TeamController {
 
   @Post('invite')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles(ROLES.SUPER_ADMIN)
-  invite(@ZodBody(InviteDto) dto: z.infer<typeof InviteDto>) {
-    return this.svc.invite('', dto);
+  @Roles(ROLES.SUPER_ADMIN, ROLES.AGENCY_ADMIN)
+  invite(@CurrentUser() user: AuthUser, @ZodBody(InviteDto) dto: z.infer<typeof InviteDto>) {
+    return this.svc.invite(user, dto);
+  }
+
+  /** Redefine acesso: reenvia convite (pendente) ou link de reset de senha (ativo). */
+  @Post(':userId/reset-access')
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(ROLES.SUPER_ADMIN, ROLES.AGENCY_ADMIN)
+  resetAccess(@CurrentUser() user: AuthUser, @Param('userId') userId: string) {
+    return this.svc.resetAccess(user, userId);
   }
 
   @Post('assign')

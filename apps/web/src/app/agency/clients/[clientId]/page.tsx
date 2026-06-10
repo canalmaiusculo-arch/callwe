@@ -4,11 +4,12 @@ import { use, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Phone, Plus, Trash2, ExternalLink } from 'lucide-react';
+import { Phone, Plus, Trash2, ExternalLink, KeyRound, UserPlus, Copy, RotateCcw } from 'lucide-react';
 import { toast } from 'sonner';
 import { apiClient } from '@/lib/api-client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { useTenantStore } from '@/stores/tenant-store';
 
@@ -135,6 +136,9 @@ export default function ClientDetailPage({ params }: { params: Promise<{ clientI
         </Card>
       </div>
 
+      <ClientSettingsCard client={client} />
+      <ClientAccessCard clientId={clientId} />
+
       <Card className="mt-6">
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="text-base">Números atribuídos</CardTitle>
@@ -216,6 +220,254 @@ export default function ClientDetailPage({ params }: { params: Promise<{ clientI
 
       <ZapierWebhookCard clientId={clientId} />
     </div>
+  );
+}
+
+function ClientSettingsCard({ client }: { client: ClientDetail }) {
+  const qc = useQueryClient();
+  const router = useRouter();
+  const [name, setName] = useState(client.name);
+  const [plan, setPlan] = useState(client.plan);
+  const [confirmDelete, setConfirmDelete] = useState('');
+
+  const invalidate = () => {
+    qc.invalidateQueries({ queryKey: ['client', client.id] });
+    qc.invalidateQueries({ queryKey: ['agency-clients'] });
+  };
+
+  const save = useMutation({
+    mutationFn: () => apiClient.patch(`/sub-accounts/${client.id}`, { name, plan }),
+    onSuccess: () => {
+      toast.success('Cliente atualizado');
+      invalidate();
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const setStatus = useMutation({
+    mutationFn: (status: string) => apiClient.patch(`/sub-accounts/${client.id}`, { status }),
+    onSuccess: () => {
+      toast.success('Status atualizado');
+      invalidate();
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const remove = useMutation({
+    mutationFn: () => apiClient.del(`/sub-accounts/${client.id}/permanent`),
+    onSuccess: () => {
+      toast.success('Cliente apagado permanentemente');
+      qc.invalidateQueries({ queryKey: ['agency-clients'] });
+      router.push('/agency/clients');
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const archived = client.status === 'archived';
+
+  return (
+    <Card className="mt-6">
+      <CardHeader>
+        <CardTitle className="text-base">Configurações do cliente</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+          <div className="flex-1">
+            <label className="text-xs font-medium text-muted-foreground">Nome</label>
+            <Input value={name} onChange={(e) => setName(e.target.value)} />
+          </div>
+          <div>
+            <label className="text-xs font-medium text-muted-foreground">Plano</label>
+            <select
+              value={plan}
+              onChange={(e) => setPlan(e.target.value)}
+              className="h-9 w-full rounded-md border bg-background px-2 text-sm"
+            >
+              <option value="starter">starter</option>
+              <option value="pro">pro</option>
+              <option value="enterprise">enterprise</option>
+            </select>
+          </div>
+          <Button onClick={() => save.mutate()} disabled={save.isPending}>
+            Salvar
+          </Button>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2 border-t pt-4">
+          <span className="text-sm text-muted-foreground">Status atual:</span>
+          <Badge variant={client.status === 'active' ? 'success' : 'secondary'}>{client.status}</Badge>
+          {!archived ? (
+            <>
+              {client.status === 'active' ? (
+                <Button size="sm" variant="outline" onClick={() => setStatus.mutate('paused')}>
+                  Pausar
+                </Button>
+              ) : (
+                <Button size="sm" variant="outline" onClick={() => setStatus.mutate('active')}>
+                  Ativar
+                </Button>
+              )}
+              <Button size="sm" variant="outline" onClick={() => setStatus.mutate('archived')}>
+                Arquivar
+              </Button>
+            </>
+          ) : (
+            <Button size="sm" variant="outline" onClick={() => setStatus.mutate('active')}>
+              <RotateCcw className="h-4 w-4" /> Reativar
+            </Button>
+          )}
+        </div>
+
+        <div className="rounded-md border border-destructive/40 bg-destructive/5 p-4">
+          <p className="text-sm font-medium text-destructive">Apagar permanentemente</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Remove o cliente e TODOS os dados (leads, ligações, SMS) de forma irreversível. Para
+            confirmar, digite o nome do cliente: <strong>{client.name}</strong>
+          </p>
+          <div className="mt-3 flex gap-2">
+            <Input
+              value={confirmDelete}
+              onChange={(e) => setConfirmDelete(e.target.value)}
+              placeholder={client.name}
+              className="max-w-xs"
+            />
+            <Button
+              variant="destructive"
+              disabled={confirmDelete !== client.name || remove.isPending}
+              onClick={() => remove.mutate()}
+            >
+              <Trash2 className="h-4 w-4" /> Apagar
+            </Button>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+interface TeamUser {
+  id: string;
+  email: string;
+  fullName: string;
+  status: string;
+  memberships: Array<{ role: string; subAccountId: string | null }>;
+}
+
+function ClientAccessCard({ clientId }: { clientId: string }) {
+  const qc = useQueryClient();
+  const [email, setEmail] = useState('');
+  const [fullName, setFullName] = useState('');
+  const [link, setLink] = useState<{ type: string; url: string } | null>(null);
+
+  const { data: team = [] } = useQuery<TeamUser[]>({
+    queryKey: ['team-for-client'],
+    queryFn: () => apiClient.get('/team'),
+  });
+  const clientUsers = team.filter((u) =>
+    u.memberships.some((m) => m.subAccountId === clientId && m.role === 'client_viewer'),
+  );
+
+  const invite = useMutation({
+    mutationFn: () =>
+      apiClient.post<{ inviteUrl: string }>('/team/invite', {
+        email,
+        fullName,
+        role: 'client_viewer',
+        subAccountIds: [clientId],
+      }),
+    onSuccess: (res) => {
+      toast.success('Acesso do cliente criado');
+      setLink({ type: 'invite', url: res.inviteUrl });
+      setEmail('');
+      setFullName('');
+      qc.invalidateQueries({ queryKey: ['team-for-client'] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const reset = useMutation({
+    mutationFn: (userId: string) =>
+      apiClient.post<{ type: string; url: string }>(`/team/${userId}/reset-access`, {}),
+    onSuccess: (res) => {
+      setLink(res);
+      toast.success('Link gerado');
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  return (
+    <Card className="mt-6">
+      <CardHeader>
+        <CardTitle className="text-base">Acesso do cliente</CardTitle>
+        <p className="mt-0.5 text-xs text-muted-foreground">
+          Logins do cliente final — eles veem só os próprios leads e ligações.
+        </p>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {clientUsers.length === 0 && (
+          <p className="text-sm text-muted-foreground">Nenhum acesso de cliente criado ainda.</p>
+        )}
+        {clientUsers.map((u) => (
+          <div key={u.id} className="flex items-center justify-between rounded-md border p-3">
+            <div>
+              <p className="text-sm font-medium">{u.fullName}</p>
+              <p className="text-xs text-muted-foreground">{u.email}</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Badge variant={u.status === 'active' ? 'success' : 'secondary'}>
+                {u.status === 'active' ? 'ativo' : u.status === 'invited' ? 'convite pendente' : u.status}
+              </Badge>
+              <Button size="sm" variant="outline" onClick={() => reset.mutate(u.id)} disabled={reset.isPending}>
+                <KeyRound className="h-4 w-4" /> Redefinir acesso
+              </Button>
+            </div>
+          </div>
+        ))}
+
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (email && fullName) invite.mutate();
+          }}
+          className="flex flex-col gap-2 border-t pt-4 sm:flex-row sm:items-end"
+        >
+          <div className="flex-1">
+            <label className="text-xs font-medium text-muted-foreground">Nome do contato</label>
+            <Input value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Nome" required />
+          </div>
+          <div className="flex-1">
+            <label className="text-xs font-medium text-muted-foreground">E-mail</label>
+            <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="cliente@email.com" required />
+          </div>
+          <Button type="submit" disabled={invite.isPending}>
+            <UserPlus className="h-4 w-4" /> Convidar
+          </Button>
+        </form>
+
+        {link && (
+          <div className="rounded-md border bg-muted/30 p-3">
+            <p className="text-xs font-medium">
+              {link.type === 'invite' ? 'Link de convite' : 'Link para redefinir senha'} — envie ao cliente:
+            </p>
+            <div className="mt-1 flex items-center gap-2">
+              <code className="flex-1 truncate rounded-md border bg-background px-2 py-1.5 font-mono text-xs">
+                {link.url}
+              </code>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  navigator.clipboard.writeText(link.url);
+                  toast.success('Copiado');
+                }}
+              >
+                <Copy className="h-4 w-4" /> Copiar
+              </Button>
+            </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 

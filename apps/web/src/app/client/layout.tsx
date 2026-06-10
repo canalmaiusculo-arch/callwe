@@ -1,9 +1,12 @@
 'use client';
 
 import Link from 'next/link';
+import { useEffect } from 'react';
 import { usePathname } from 'next/navigation';
+import { useQuery } from '@tanstack/react-query';
 import { LayoutDashboard, Users, Phone, MessageSquare, Voicemail, LogOut } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { apiClient } from '@/lib/api-client';
 import { useAuthStore } from '@/stores/auth-store';
 import { useTenantStore } from '@/stores/tenant-store';
 
@@ -18,8 +21,21 @@ const items = [
 export default function ClientLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const subAccountName = useTenantStore((s) => s.subAccountName);
+  const subAccountId = useTenantStore((s) => s.subAccountId);
+  const setTenant = useTenantStore((s) => s.setTenant);
   const clearAuth = useAuthStore((s) => s.clear);
   const clearTenant = useTenantStore((s) => s.clear);
+
+  // Garante que o tenant esteja selecionado em qualquer página do cliente (não só no dashboard).
+  const { data: mySubs } = useQuery<Array<{ id: string; name: string }>>({
+    queryKey: ['my-sub-accounts'],
+    queryFn: () => apiClient.get('/sub-accounts/mine'),
+  });
+  useEffect(() => {
+    if (!subAccountId && mySubs && mySubs.length > 0) {
+      setTenant(mySubs[0]!.id, mySubs[0]!.name);
+    }
+  }, [mySubs, subAccountId, setTenant]);
 
   return (
     <div className="flex h-screen">

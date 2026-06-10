@@ -53,14 +53,48 @@ export default function ClientsPage() {
 
   return (
     <div className="p-8">
-      <header className="mb-6">
-        <h1 className="text-3xl font-bold">Clientes</h1>
-        <p className="mt-1 text-muted-foreground">
-          {clients.length} sob sua agência. Para cadastrar um novo cliente, fale com a CallWe.
-        </p>
+      <header className="mb-6 flex items-start justify-between">
+        <div>
+          <h1 className="text-3xl font-bold">Clientes</h1>
+          <p className="mt-1 text-muted-foreground">{clients.length} sob sua agência.</p>
+        </div>
+        <Button onClick={() => setShowForm((v) => !v)}>
+          <Plus className="h-4 w-4" /> Novo cliente
+        </Button>
       </header>
 
-      {/* Cadastro de novos clientes feito pelo super_admin */}
+      {showForm && (
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle className="text-base">Novo cliente</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (!name.trim() || !slug.trim()) return;
+                create.mutate({ name: name.trim(), slug: slug.trim() });
+              }}
+              className="flex flex-col gap-3 sm:flex-row sm:items-end"
+            >
+              <div className="flex-1">
+                <label className="text-xs font-medium text-muted-foreground">Nome</label>
+                <Input value={name} onChange={(e) => handleNameChange(e.target.value)} placeholder="Ex.: Padaria do João" required />
+              </div>
+              <div className="flex-1">
+                <label className="text-xs font-medium text-muted-foreground">Identificador (slug)</label>
+                <Input value={slug} onChange={(e) => setSlug(slugify(e.target.value))} placeholder="padaria-do-joao" required />
+              </div>
+              <Button type="submit" disabled={create.isPending}>
+                {create.isPending ? 'Criando...' : 'Criar'}
+              </Button>
+            </form>
+            <p className="mt-2 text-xs text-muted-foreground">
+              Depois de criar, abra o cliente para convidar o acesso dele e atribuir números.
+            </p>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="space-y-2">
         {clients.length === 0 && (

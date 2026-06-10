@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException, NotFoundException, ConflictException } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException, ConflictException, ForbiddenException } from '@nestjs/common';
 import { randomBytes, createHash } from 'node:crypto';
 import * as argon2 from 'argon2';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -53,9 +53,25 @@ export class TeamService {
 
   /** Cria um convite. Role padrão: 'agent'. Se role='client_viewer', user só vê suas subcontas. */
   async invite(
-    agencyId: string,
+    invoker: { memberships: Array<{ role: string; agencyId?: string | null }> },
     input: { email: string; fullName: string; subAccountIds?: string[]; role?: 'agent' | 'client_viewer' },
   ) {
+    // Escopo: agency_admin só pode convidar para subcontas da própria agência.
+    const isSuper = invoker.memberships.some((m) => m.role === 'super_admin');
+    const agencyId = isSuper
+      ? null
+      : invoker.memberships.find((m) => m.role === 'agency_admin' && m.agencyId)?.agencyId;
+    if (!isSuper && !agencyId) throw new ForbiddenException('Sem permissão');
+    if (agencyId && input.subAccountIds?.length) {
+      const valid = await this.prisma.subAccount.findMany({
+        where: { id: { in: input.subAccountIds }, agencyId },
+        select: { id: true },
+      });
+      if (valid.length !== input.subAccountIds.length) {
+        throw new BadRequestException('Há sub-accounts fora da sua agência');
+      }
+    }
+
     const existing = await this.prisma.user.findUnique({ where: { email: input.email } });
     if (existing) {
       throw new ConflictException('Email já cadastrado no sistema');
@@ -130,6 +146,55 @@ export class TeamService {
     });
 
     return { ok: true, email: user.email };
+  }
+
+  /**
+   * Redefine o acesso de um usuário. Se ele ainda não ativou a conta (invited/disabled),
+   * gera um novo link de CONVITE. Se já está ativo, gera um link de REDEFINIR SENHA.
+   * Retorna a URL para o admin repassar ao cliente (não enviamos e-mail).
+   */
+  async resetAccess(
+    invoker: { memberships: Array<{ role: string; agencyId?: string | null }> },
+    targetUserId: string,
+  ) {
+    const isSuper = invoker.memberships.some((m) => m.role === 'super_admin');
+    const agencyId = isSuper
+      ? null
+      : invoker.memberships.find((m) => m.role === 'agency_admin' && m.agencyId)?.agencyId;
+    if (!isSuper && !agencyId) throw new ForbiddenException('Sem permissão');
+
+    const target = await this.prisma.user.findUnique({ where: { id: targetUserId } });
+    if (!target) throw new NotFoundException('Usuário não encontrado');
+
+    if (agencyId) {
+      const subIds = (
+        await this.prisma.subAccount.findMany({ where: { agencyId }, select: { id: true } })
+      ).map((s) => s.id);
+      const membership = await this.prisma.membership.findFirst({
+        where: { userId: targetUserId, OR: [{ agencyId }, { subAccountId: { in: subIds } }] },
+      });
+      if (!membership) throw new ForbiddenException('Usuário fora da sua agência');
+    }
+
+    // Usuário desativado é reativado como 'invited' (precisa ativar a conta de novo).
+    if (target.status === 'disabled') {
+      await this.prisma.user.update({ where: { id: targetUserId }, data: { status: 'invited' } });
+    }
+
+    const pending = target.status === 'invited' || target.status === 'disabled';
+    const token = randomBytes(32).toString('base64url');
+    const tokenHash = createHash('sha256').update(token).digest('hex');
+    await this.prisma.session.create({
+      data: {
+        userId: targetUserId,
+        refreshTokenHash: tokenHash,
+        expiresAt: new Date(Date.now() + (pending ? 7 * 24 * 60 * 60 * 1000 : 60 * 60 * 1000)),
+      },
+    });
+
+    return pending
+      ? { type: 'invite' as const, url: `${env.APP_URL}/accept-invite?token=${token}` }
+      : { type: 'reset' as const, url: `${env.APP_URL}/reset-password?token=${token}` };
   }
 
   /** Lista TODOS os atendentes do sistema (super_admin only). */

@@ -52,12 +52,12 @@ export class SubAccountsController {
   }
 
   @Post()
-  @Roles(ROLES.SUPER_ADMIN)
+  @Roles(ROLES.SUPER_ADMIN, ROLES.AGENCY_ADMIN)
   create(@CurrentUser() user: AuthUser, @ZodBody(CreateDto) dto: z.infer<typeof CreateDto>) {
     const isSuperAdmin = user.memberships.some((m) => m.role === 'super_admin');
     let agencyId = dto.agencyId;
     if (!isSuperAdmin) {
-      agencyId = user.memberships.find((m) => m.agencyId)?.agencyId;
+      agencyId = user.memberships.find((m) => m.role === 'agency_admin' && m.agencyId)?.agencyId;
     }
     if (!agencyId) throw new BadRequestException('agencyId obrigatório');
     return this.svc.create(agencyId, { name: dto.name, slug: dto.slug });
@@ -65,7 +65,12 @@ export class SubAccountsController {
 
   @Patch(':id')
   @Roles(ROLES.SUPER_ADMIN, ROLES.AGENCY_ADMIN)
-  update(@Param('id') id: string, @ZodBody(UpdateDto) dto: z.infer<typeof UpdateDto>) {
+  async update(
+    @CurrentUser() user: AuthUser,
+    @Param('id') id: string,
+    @ZodBody(UpdateDto) dto: z.infer<typeof UpdateDto>,
+  ) {
+    await this.svc.assertCanManage(user, id);
     return this.svc.update(id, dto);
   }
 
@@ -93,9 +98,17 @@ export class SubAccountsController {
     return this.svc.rotateZapierApiKey(id);
   }
 
+  @Delete(':id/permanent')
+  @Roles(ROLES.SUPER_ADMIN, ROLES.AGENCY_ADMIN)
+  async remove(@CurrentUser() user: AuthUser, @Param('id') id: string) {
+    await this.svc.assertCanManage(user, id);
+    return this.svc.remove(id);
+  }
+
   @Delete(':id')
-  @Roles(ROLES.SUPER_ADMIN)
-  archive(@Param('id') id: string) {
+  @Roles(ROLES.SUPER_ADMIN, ROLES.AGENCY_ADMIN)
+  async archive(@CurrentUser() user: AuthUser, @Param('id') id: string) {
+    await this.svc.assertCanManage(user, id);
     return this.svc.archive(id);
   }
 }
