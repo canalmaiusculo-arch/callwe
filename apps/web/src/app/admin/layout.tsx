@@ -8,6 +8,7 @@ import { useAuthStore } from '@/stores/auth-store';
 import { useTenantStore } from '@/stores/tenant-store';
 import { LanguageSwitcher } from '@/components/language-switcher';
 import { useTranslate } from '@/i18n/provider';
+import { Logo } from '@/components/logo';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -25,10 +26,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <aside className="flex h-screen w-60 flex-col border-r bg-muted/20">
         <div className="border-b p-4">
           <div className="flex items-center gap-2">
-            <Crown className="h-4 w-4 text-amber-600" />
-            <p className="text-xs uppercase text-muted-foreground">{t('admin.title')}</p>
+            <Logo variant="icon" className="h-7 w-7 shrink-0" />
+            <div className="min-w-0">
+              <div className="flex items-center gap-1">
+                <Crown className="h-3 w-3 text-amber-600" />
+                <p className="text-xs uppercase text-muted-foreground">{t('admin.title')}</p>
+              </div>
+              <p className="truncate text-sm font-semibold">CallWe</p>
+            </div>
           </div>
-          <p className="truncate text-sm font-semibold">CallWe</p>
         </div>
 
         <nav className="flex-1 space-y-1 p-2">

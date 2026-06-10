@@ -1,15 +1,15 @@
-import Link from 'next/link';
+import { headers } from 'next/headers';
+import { redirect } from 'next/navigation';
+import { MarketingPage } from '@/components/marketing/marketing-page';
 
-export default function HomePage() {
-  return (
-    <main className="flex min-h-screen flex-col items-center justify-center gap-6 p-8">
-      <h1 className="text-4xl font-bold">CallWe</h1>
-      <p className="text-muted-foreground">Multi-tenant call center em cima da CloudTalk.</p>
-      <div className="flex gap-3">
-        <Link href="/login" className="rounded-md bg-primary px-4 py-2 text-primary-foreground">
-          Entrar
-        </Link>
-      </div>
-    </main>
-  );
+export const dynamic = 'force-dynamic';
+
+export default async function RootPage() {
+  const host = (await headers()).get('host') ?? '';
+  // No subdomínio do app (app.callwe.digital), a raiz vai direto pro login.
+  if (host.startsWith('app.')) {
+    redirect('/login');
+  }
+  // Demais hosts (domínio raiz / localhost) recebem o site institucional.
+  return <MarketingPage />;
 }

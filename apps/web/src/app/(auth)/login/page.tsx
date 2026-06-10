@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { apiClient } from '@/lib/api-client';
 import { useAuthStore } from '@/stores/auth-store';
+import { Logo } from '@/components/logo';
 
 interface LoginResponse {
   accessToken: string;
@@ -61,9 +62,15 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center p-4">
-      <form onSubmit={onSubmit} className="w-full max-w-sm space-y-4 rounded-lg border p-6">
-        <h1 className="text-2xl font-semibold">Entrar no CallWe</h1>
+    <main className="flex min-h-screen items-center justify-center bg-muted/30 p-4">
+      <form
+        onSubmit={onSubmit}
+        className="w-full max-w-sm space-y-4 rounded-2xl border bg-card p-8 shadow-sm"
+      >
+        <div className="flex flex-col items-center gap-2 pb-2">
+          <Logo variant="full" className="h-9 w-auto" />
+          <p className="text-sm text-muted-foreground">Acesse o painel</p>
+        </div>
         <input
           type="email"
           value={email}
@@ -83,7 +90,7 @@ export default function LoginPage() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full rounded-md bg-primary px-4 py-2 text-primary-foreground disabled:opacity-50"
+          className="w-full rounded-md bg-brand-gradient px-4 py-2 font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50"
         >
           {loading ? 'Entrando...' : 'Entrar'}
         </button>

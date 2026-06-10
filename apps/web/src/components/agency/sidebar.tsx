@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores/auth-store';
 import { useTenantStore } from '@/stores/tenant-store';
 import { useAdminViewStore } from '@/stores/admin-view-store';
+import { Logo } from '@/components/logo';
 
 const items = [
   { href: '/agency' as const, icon: LayoutDashboard, label: 'Visão geral' },
@@ -25,9 +26,12 @@ export function AgencySidebar() {
   const content = (
     <>
       <div className="flex items-center justify-between border-b p-4">
-        <div className="flex-1 min-w-0">
-          <p className="text-xs uppercase text-muted-foreground">Agência</p>
-          <p className="truncate text-sm font-semibold">{viewAsAgencyName ?? 'CallWe'}</p>
+        <div className="flex min-w-0 flex-1 items-center gap-2">
+          <Logo variant="icon" className="h-7 w-7 shrink-0" />
+          <div className="min-w-0">
+            <p className="text-xs uppercase text-muted-foreground">Agência</p>
+            <p className="truncate text-sm font-semibold">{viewAsAgencyName ?? 'CallWe'}</p>
+          </div>
         </div>
         <button className="md:hidden rounded-md p-2 hover:bg-muted" onClick={() => setOpen(false)}>
           <X className="h-4 w-4" />
