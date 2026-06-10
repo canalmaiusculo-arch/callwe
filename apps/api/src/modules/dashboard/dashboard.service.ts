@@ -29,6 +29,11 @@ export class DashboardService {
       hourlySeries,
       topAgents,
       statusBreakdown,
+      recentLeads,
+      recentCalls,
+      missedList,
+      longestCall,
+      leadsBySourceRows,
     ] = await Promise.all([
       this.prisma.lead.count({
         where: { subAccountId, createdAt: { gte: startOfDay }, deletedAt: null },
@@ -74,6 +79,51 @@ export class DashboardService {
       this.hourlySeries(subAccountId, startOfWeek),
       this.topAgents(subAccountId, startOfWeek),
       this.leadStatusBreakdown(subAccountId),
+      this.prisma.lead.findMany({
+        where: { subAccountId, deletedAt: null },
+        orderBy: { createdAt: 'desc' },
+        take: 8,
+        select: { name: true, phoneE164: true, source: true, status: true, createdAt: true },
+      }),
+      this.prisma.interaction.findMany({
+        where: { subAccountId, type: 'call', startedAt: { gte: startOfWeek } },
+        orderBy: { startedAt: 'desc' },
+        take: 8,
+        select: {
+          startedAt: true,
+          direction: true,
+          status: true,
+          durationSeconds: true,
+          fromNumber: true,
+          toNumber: true,
+          aiSummary: true,
+          sentiment: true,
+          aiScore: true,
+          lead: { select: { name: true } },
+        },
+      }),
+      this.prisma.interaction.findMany({
+        where: { subAccountId, type: 'call', status: 'missed', startedAt: { gte: startOfWeek } },
+        orderBy: { startedAt: 'desc' },
+        take: 8,
+        select: {
+          startedAt: true,
+          direction: true,
+          fromNumber: true,
+          toNumber: true,
+          lead: { select: { name: true } },
+        },
+      }),
+      this.prisma.interaction.findFirst({
+        where: { subAccountId, type: 'call', startedAt: { gte: startOfWeek }, durationSeconds: { not: null } },
+        orderBy: { durationSeconds: 'desc' },
+        select: { durationSeconds: true, fromNumber: true, toNumber: true, lead: { select: { name: true } } },
+      }),
+      this.prisma.lead.groupBy({
+        by: ['source'],
+        where: { subAccountId, deletedAt: null, createdAt: { gte: startOfWeek } },
+        _count: { _all: true },
+      }),
     ]);
 
     const avgWait = Math.round(callsTodayAgg._avg.waitingSeconds ?? 0);
@@ -103,6 +153,39 @@ export class DashboardService {
       hourlySeries,
       topAgents,
       statusBreakdown,
+      leadsBySource: leadsBySourceRows
+        .map((r) => ({ source: r.source as string, count: r._count._all }))
+        .sort((a, b) => b.count - a.count),
+      details: {
+        recentLeads: recentLeads.map((l) => ({
+          name: l.name ?? l.phoneE164 ?? '—',
+          source: l.source as string,
+          status: l.status as string,
+          at: l.createdAt.toISOString(),
+        })),
+        recentCalls: recentCalls.map((c) => ({
+          at: c.startedAt.toISOString(),
+          direction: c.direction as string,
+          status: c.status as string,
+          durationSeconds: c.durationSeconds ?? 0,
+          number: (c.direction === 'inbound' ? c.fromNumber : c.toNumber) ?? null,
+          leadName: c.lead?.name ?? null,
+          aiSummary: c.aiSummary ?? null,
+          sentiment: (c.sentiment as string | null) ?? null,
+          aiScore: c.aiScore ?? null,
+        })),
+        missed: missedList.map((m) => ({
+          at: m.startedAt.toISOString(),
+          number: (m.direction === 'inbound' ? m.fromNumber : m.toNumber) ?? m.fromNumber ?? null,
+          leadName: m.lead?.name ?? null,
+        })),
+        talk: {
+          avgSeconds: avgHandle,
+          longest: longestCall
+            ? { seconds: longestCall.durationSeconds ?? 0, leadName: longestCall.lead?.name ?? null }
+            : null,
+        },
+      },
     };
   }
 
