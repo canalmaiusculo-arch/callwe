@@ -3,9 +3,9 @@ import { Providers } from '@/components/providers';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'CallWe — Atendimento e captação de leads',
+  title: 'Call We — Outsourced Sales Team for U.S. Businesses | Answer Every Lead in Minutes',
   description:
-    'Plataforma que une telefonia, captação de leads (Meta, Google, formulários) e CRM num só painel — para agências e seus clientes.',
+    "Stop losing leads to slow response. Call We's fluent, trained sales reps answer every call, text, and form in minutes — with a full AI-scored sales dashboard. Book a free lead audit.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
