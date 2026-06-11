@@ -13,6 +13,7 @@ import {
   ArrowDownRight,
 } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
+import { useTranslate } from '@/i18n/provider';
 import { HelpHint } from '@/components/help-hint';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { MiniLineChart } from '@/components/line-chart';
@@ -49,21 +50,21 @@ interface AgencyStats {
   clients: Array<{ id: string; name: string }>;
 }
 
-const PERIOD_LABELS: Record<Period, string> = {
-  today: 'Hoje',
-  '7d': 'Últimos 7 dias',
-  '30d': 'Últimos 30 dias',
+const PERIOD_LABEL_KEYS: Record<Period, string> = {
+  today: 'agencyDash.periodToday',
+  '7d': 'agencyDash.period7d',
+  '30d': 'agencyDash.period30d',
 };
 
-const SOURCE_LABEL: Record<string, string> = {
-  meta_ads: 'Meta',
-  form: 'Formulário',
-  inbound_call: 'Chamada recebida',
-  outbound_call: 'Chamada feita',
-  sms: 'SMS',
-  manual: 'Manual',
-  import: 'Importação',
-  api: 'API',
+const SOURCE_LABEL_KEYS: Record<string, string> = {
+  meta_ads: 'agencyDash.sourceMetaAds',
+  form: 'agencyDash.sourceForm',
+  inbound_call: 'agencyDash.sourceInboundCall',
+  outbound_call: 'agencyDash.sourceOutboundCall',
+  sms: 'agencyDash.sourceSms',
+  manual: 'agencyDash.sourceManual',
+  import: 'agencyDash.sourceImport',
+  api: 'agencyDash.sourceApi',
 };
 
 function fmtTime(iso: string): string {
@@ -90,6 +91,7 @@ function formatDuration(seconds: number): string {
 }
 
 export default function AgencyDashboard() {
+  const { t } = useTranslate();
   const viewAsAgencyId = useAdminViewStore((s) => s.viewAsAgencyId);
   const [period, setPeriod] = useState<Period>('7d');
   const [clientId, setClientId] = useState<string>('');
@@ -126,17 +128,19 @@ export default function AgencyDashboard() {
     clients: [],
   };
 
-  const periodLabel = PERIOD_LABELS[period].toLowerCase();
+  const periodLabel = t(PERIOD_LABEL_KEYS[period]).toLowerCase();
   const maxSource = Math.max(1, ...s.leadsBySource.map((r) => r.count));
 
   return (
     <div className="p-8">
       <header className="mb-6">
         <div className="flex items-center gap-2">
-          <h1 className="text-3xl font-bold">Visão geral da agência</h1>
+          <h1 className="text-3xl font-bold">{t('agencyDash.title')}</h1>
           <HelpHint topic="dashboard" />
         </div>
-        <p className="mt-1 text-muted-foreground">{s.totalClients} clientes ativos</p>
+        <p className="mt-1 text-muted-foreground">
+          {s.totalClients} {t('agencyDash.activeClients')}
+        </p>
       </header>
 
       {/* Filtros */}
@@ -153,7 +157,7 @@ export default function AgencyDashboard() {
                   : 'text-muted-foreground hover:bg-muted'
               }`}
             >
-              {PERIOD_LABELS[p]}
+              {t(PERIOD_LABEL_KEYS[p])}
             </button>
           ))}
         </div>
@@ -163,7 +167,7 @@ export default function AgencyDashboard() {
           onChange={(e) => setClientId(e.target.value)}
           className="h-9 rounded-md border bg-card px-3 text-sm"
         >
-          <option value="">Todos os clientes</option>
+          <option value="">{t('agencyDash.allClients')}</option>
           {s.clients.map((c) => (
             <option key={c.id} value={c.id}>
               {c.name}
@@ -172,13 +176,13 @@ export default function AgencyDashboard() {
         </select>
 
         <p className="ml-auto hidden text-xs text-muted-foreground sm:block">
-          Passe o mouse (ou toque) nos cards para ver os detalhes
+          {t('agencyDash.hoverHint')}
         </p>
       </div>
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <KpiCard
-          title="Leads"
+          title={t('agencyDash.kpiLeads')}
           sub={periodLabel}
           value={s.leads}
           icon={Users}
@@ -189,7 +193,7 @@ export default function AgencyDashboard() {
         </KpiCard>
 
         <KpiCard
-          title="Chamadas"
+          title={t('agencyDash.kpiCalls')}
           sub={periodLabel}
           value={s.calls}
           icon={Phone}
@@ -200,7 +204,7 @@ export default function AgencyDashboard() {
         </KpiCard>
 
         <KpiCard
-          title="Perdidas"
+          title={t('agencyDash.kpiMissed')}
           sub={periodLabel}
           value={s.missed}
           icon={PhoneMissed}
@@ -213,7 +217,7 @@ export default function AgencyDashboard() {
         </KpiCard>
 
         <KpiCard
-          title="Tempo ao telefone"
+          title={t('agencyDash.kpiTalkTime')}
           sub={periodLabel}
           value={formatDuration(s.talkSeconds)}
           icon={Clock}
@@ -227,7 +231,9 @@ export default function AgencyDashboard() {
       <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-3">
         <Card className="lg:col-span-2">
           <CardHeader>
-            <CardTitle>Chamadas — {periodLabel}</CardTitle>
+            <CardTitle>
+              {t('agencyDash.kpiCalls')} — {periodLabel}
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <MiniLineChart data={s.series} height={140} color="#10b981" />
@@ -236,16 +242,16 @@ export default function AgencyDashboard() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Leads por origem</CardTitle>
+            <CardTitle>{t('agencyDash.leadsBySource')}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
             {s.leadsBySource.length === 0 && (
-              <p className="text-sm text-muted-foreground">Sem leads no período.</p>
+              <p className="text-sm text-muted-foreground">{t('agencyDash.noLeadsInPeriod')}</p>
             )}
             {s.leadsBySource.map((r) => (
               <div key={r.source}>
                 <div className="flex items-center justify-between text-sm">
-                  <span>{SOURCE_LABEL[r.source] ?? r.source}</span>
+                  <span>{SOURCE_LABEL_KEYS[r.source] ? t(SOURCE_LABEL_KEYS[r.source]!) : r.source}</span>
                   <span className="font-medium">{r.count}</span>
                 </div>
                 <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-muted">
@@ -263,17 +269,21 @@ export default function AgencyDashboard() {
       <div className="mt-4">
         <Card>
           <CardHeader>
-            <CardTitle>Clientes com mais chamadas ({periodLabel})</CardTitle>
+            <CardTitle>
+              {t('agencyDash.topClients')} ({periodLabel})
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
             {s.topClients.length === 0 && (
-              <p className="text-sm text-muted-foreground">Sem dados ainda.</p>
+              <p className="text-sm text-muted-foreground">{t('agencyDash.noDataYet')}</p>
             )}
             {s.topClients.map((c) => (
               <Link key={c.subAccountId} href={`/agency/clients/${c.subAccountId}` as never}>
                 <div className="flex items-center justify-between rounded-md border p-3 hover:bg-muted/30">
                   <span className="text-sm font-medium">{c.name}</span>
-                  <span className="text-sm text-muted-foreground">{c.calls} chamadas</span>
+                  <span className="text-sm text-muted-foreground">
+                    {c.calls} {t('agencyDash.callsLabel')}
+                  </span>
                 </div>
               </Link>
             ))}
@@ -285,9 +295,10 @@ export default function AgencyDashboard() {
 }
 
 function DeltaBadge({ cur, prev, invert }: { cur: number; prev: number; invert?: boolean }) {
+  const { t } = useTranslate();
   if (prev === 0) {
     if (cur === 0) return null;
-    return <span className="text-xs font-medium text-emerald-600">novo</span>;
+    return <span className="text-xs font-medium text-emerald-600">{t('agencyDash.deltaNew')}</span>;
   }
   const pct = Math.round(((cur - prev) / prev) * 100);
   if (pct === 0) return <span className="text-xs text-muted-foreground">0%</span>;
@@ -299,7 +310,7 @@ function DeltaBadge({ cur, prev, invert }: { cur: number; prev: number; invert?:
       className={`flex items-center gap-0.5 text-xs font-medium ${
         good ? 'text-emerald-600' : 'text-red-600'
       }`}
-      title="vs. período anterior"
+      title={t('agencyDash.vsPrevPeriod')}
     >
       <Icon className="h-3 w-3" />
       {Math.abs(pct)}%
@@ -366,10 +377,12 @@ function KpiCard({
 }
 
 function EmptyDetail() {
-  return <p className="text-muted-foreground">Sem registros no período.</p>;
+  const { t } = useTranslate();
+  return <p className="text-muted-foreground">{t('agencyDash.noRecordsInPeriod')}</p>;
 }
 
 function DetailLeads({ rows }: { rows: AgencyStats['details']['leads'] }) {
+  const { t } = useTranslate();
   if (rows.length === 0) return <EmptyDetail />;
   return (
     <ul className="space-y-1.5">
@@ -380,7 +393,7 @@ function DetailLeads({ rows }: { rows: AgencyStats['details']['leads'] }) {
             <span className="text-muted-foreground"> · {r.client}</span>
           </span>
           <span className="shrink-0 text-muted-foreground">
-            {SOURCE_LABEL[r.source] ?? r.source} · {fmtTime(r.at)}
+            {SOURCE_LABEL_KEYS[r.source] ? t(SOURCE_LABEL_KEYS[r.source]!) : r.source} · {fmtTime(r.at)}
           </span>
         </li>
       ))}
@@ -389,13 +402,14 @@ function DetailLeads({ rows }: { rows: AgencyStats['details']['leads'] }) {
 }
 
 function DetailMissed({ rows }: { rows: AgencyStats['details']['missed'] }) {
+  const { t } = useTranslate();
   if (rows.length === 0) return <EmptyDetail />;
   return (
     <ul className="space-y-1.5">
       {rows.map((r, i) => (
         <li key={i} className="flex items-center justify-between gap-3">
           <span className="truncate">
-            <span className="font-medium">{r.number ?? 'Número oculto'}</span>
+            <span className="font-medium">{r.number ?? t('agencyDash.hiddenNumber')}</span>
             <span className="text-muted-foreground"> · {r.client}</span>
           </span>
           <span className="shrink-0 text-muted-foreground">{fmtTime(r.at)}</span>
@@ -406,14 +420,17 @@ function DetailMissed({ rows }: { rows: AgencyStats['details']['missed'] }) {
 }
 
 function DetailCalls({ calls }: { calls: AgencyStats['details']['calls'] }) {
+  const { t } = useTranslate();
   return (
     <div className="space-y-2">
       <div className="flex gap-4 border-b pb-2 font-medium">
         <span className="flex items-center gap-1">
-          <ArrowDownLeft className="h-3 w-3 text-emerald-600" /> {calls.inbound} recebidas
+          <ArrowDownLeft className="h-3 w-3 text-emerald-600" /> {calls.inbound}{' '}
+          {t('agencyDash.inboundCalls')}
         </span>
         <span className="flex items-center gap-1">
-          <ArrowUpRight className="h-3 w-3 text-blue-600" /> {calls.outbound} realizadas
+          <ArrowUpRight className="h-3 w-3 text-blue-600" /> {calls.outbound}{' '}
+          {t('agencyDash.outboundCalls')}
         </span>
       </div>
       {calls.recent.length === 0 ? (
@@ -434,7 +451,8 @@ function DetailCalls({ calls }: { calls: AgencyStats['details']['calls'] }) {
                 </span>
               </span>
               <span className="shrink-0 text-muted-foreground">
-                {r.status === 'missed' ? 'perdida' : fmtClock(r.durationSeconds)} · {fmtTime(r.at)}
+                {r.status === 'missed' ? t('agencyDash.missedLabel') : fmtClock(r.durationSeconds)} ·{' '}
+                {fmtTime(r.at)}
               </span>
             </li>
           ))}
@@ -445,14 +463,15 @@ function DetailCalls({ calls }: { calls: AgencyStats['details']['calls'] }) {
 }
 
 function DetailTalk({ talk }: { talk: AgencyStats['details']['talk'] }) {
+  const { t } = useTranslate();
   return (
     <div className="space-y-1.5">
       <div className="flex items-center justify-between">
-        <span className="text-muted-foreground">Média por chamada</span>
+        <span className="text-muted-foreground">{t('agencyDash.avgPerCall')}</span>
         <span className="font-medium">{fmtClock(talk.avgSeconds)}</span>
       </div>
       <div className="flex items-center justify-between">
-        <span className="text-muted-foreground">Chamada mais longa</span>
+        <span className="text-muted-foreground">{t('agencyDash.longestCall')}</span>
         <span className="font-medium">
           {talk.longest ? `${fmtClock(talk.longest.seconds)} · ${talk.longest.client}` : '—'}
         </span>

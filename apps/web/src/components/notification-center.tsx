@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { X, UserPlus, PhoneMissed } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
 import { useAuthStore } from '@/stores/auth-store';
+import { useTranslate } from '@/i18n/provider';
 
 interface Notif {
   id: string;
@@ -26,6 +27,7 @@ function loadSeen(): Set<string> {
 }
 
 export function NotificationCenter() {
+  const { t } = useTranslate();
   const token = useAuthStore((s) => s.accessToken);
   const [active, setActive] = useState<Notif[]>([]);
   const seen = useRef<Set<string>>(new Set());
@@ -98,7 +100,7 @@ export function NotificationCenter() {
               type="button"
               onClick={() => dismiss(n.id)}
               className="rounded p-1 hover:bg-black/5"
-              aria-label="Fechar"
+              aria-label={t('notifCenter.close')}
             >
               <X className="h-4 w-4 text-muted-foreground" />
             </button>

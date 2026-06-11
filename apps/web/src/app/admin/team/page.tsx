@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { useTranslate } from '@/i18n/provider';
 
 interface Agent {
   id: string;
@@ -26,6 +27,7 @@ interface SubAccount {
 }
 
 export default function AdminTeamPage() {
+  const { t } = useTranslate();
   const qc = useQueryClient();
   const [showInvite, setShowInvite] = useState(false);
   const [email, setEmail] = useState('');
@@ -47,7 +49,7 @@ export default function AdminTeamPage() {
     mutationFn: (input: { email: string; fullName: string; subAccountIds: string[] }) =>
       apiClient.post<{ inviteUrl: string }>('/team/invite', { ...input, role: 'agent' }),
     onSuccess: (data) => {
-      toast.success('Atendente convidado');
+      toast.success(t('adminTeam.agentInvited'));
       setInviteUrl(data.inviteUrl);
       qc.invalidateQueries({ queryKey: ['all-agents'] });
     },
@@ -57,7 +59,7 @@ export default function AdminTeamPage() {
   const remove = useMutation({
     mutationFn: (id: string) => apiClient.del(`/team/${id}`),
     onSuccess: () => {
-      toast.success('Atendente removido');
+      toast.success(t('adminTeam.agentRemoved'));
       qc.invalidateQueries({ queryKey: ['all-agents'] });
     },
   });
@@ -78,25 +80,25 @@ export default function AdminTeamPage() {
     <div className="p-8">
       <header className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Atendentes</h1>
+          <h1 className="text-3xl font-bold">{t('adminTeam.title')}</h1>
           <p className="mt-1 text-muted-foreground">
-            {agents.length} no time CallWe — atribuídos a clientes de várias agências
+            {agents.length} {t('adminTeam.subtitle')}
           </p>
         </div>
         <Button onClick={() => setShowInvite(!showInvite)}>
-          <UserPlus className="h-4 w-4" /> Cadastrar atendente
+          <UserPlus className="h-4 w-4" /> {t('adminTeam.registerAgent')}
         </Button>
       </header>
 
       {showInvite && (
         <Card className="mb-6">
           <CardHeader>
-            <CardTitle className="text-base">Novo atendente</CardTitle>
+            <CardTitle className="text-base">{t('adminTeam.newAgent')}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             {inviteUrl ? (
               <>
-                <p className="text-sm">Envie esse link ao atendente:</p>
+                <p className="text-sm">{t('adminTeam.sendLink')}</p>
                 <div className="flex gap-2">
                   <Input value={inviteUrl} readOnly className="font-mono text-xs" />
                   <Button
@@ -104,19 +106,19 @@ export default function AdminTeamPage() {
                     size="sm"
                     onClick={() => {
                       navigator.clipboard.writeText(inviteUrl);
-                      toast.success('Copiado');
+                      toast.success(t('adminTeam.copied'));
                     }}
                   >
                     <Copy className="h-4 w-4" />
                   </Button>
                 </div>
                 <Button variant="outline" onClick={reset}>
-                  Fechar
+                  {t('adminTeam.close')}
                 </Button>
               </>
             ) : (
               <>
-                <Input placeholder="Nome completo" value={fullName} onChange={(e) => setFullName(e.target.value)} />
+                <Input placeholder={t('adminTeam.fullNamePlaceholder')} value={fullName} onChange={(e) => setFullName(e.target.value)} />
                 <Input
                   type="email"
                   placeholder="email@callwe.com"
@@ -125,10 +127,10 @@ export default function AdminTeamPage() {
                 />
                 <div>
                   <label className="text-sm font-medium">
-                    Designar para clientes ({selectedSubs.length} selecionados)
+                    {t('adminTeam.assignToClients')} ({selectedSubs.length} {t('adminTeam.selected')})
                   </label>
                   <p className="mb-1 text-xs text-muted-foreground">
-                    O atendente vai atender chamadas desses clientes
+                    {t('adminTeam.assignHint')}
                   </p>
                   <div className="max-h-64 space-y-1 overflow-auto rounded-md border p-2">
                     {subs.map((s) => (
@@ -154,10 +156,10 @@ export default function AdminTeamPage() {
                     onClick={() => invite.mutate({ email, fullName, subAccountIds: selectedSubs })}
                     disabled={!email || !fullName || invite.isPending}
                   >
-                    {invite.isPending ? 'Criando...' : 'Gerar convite'}
+                    {invite.isPending ? t('adminTeam.creating') : t('adminTeam.generateInvite')}
                   </Button>
                   <Button variant="outline" onClick={reset}>
-                    Cancelar
+                    {t('adminTeam.cancel')}
                   </Button>
                 </div>
               </>
@@ -170,7 +172,7 @@ export default function AdminTeamPage() {
         {agents.length === 0 && (
           <Card>
             <CardContent className="p-6 text-center text-sm text-muted-foreground">
-              Nenhum atendente cadastrado.
+              {t('adminTeam.emptyAgents')}
             </CardContent>
           </Card>
         )}
@@ -191,6 +193,7 @@ function AgentRow({
   subs: SubAccount[];
   onRemove: () => void;
 }) {
+  const { t } = useTranslate();
   const [editing, setEditing] = useState(false);
 
   return (
@@ -202,7 +205,7 @@ function AgentRow({
             <p className="text-xs text-muted-foreground">{agent.email}</p>
             {agent.assignedSubAccounts.length > 0 && (
               <p className="mt-1 text-xs text-muted-foreground">
-                Atende: {agent.assignedSubAccounts.map((s) => s.name).join(', ')}
+                {t('adminTeam.serves')} {agent.assignedSubAccounts.map((s) => s.name).join(', ')}
               </p>
             )}
           </div>
@@ -210,12 +213,12 @@ function AgentRow({
             <Badge
               variant={agent.status === 'active' ? 'success' : agent.status === 'invited' ? 'warning' : 'secondary'}
             >
-              {agent.status}
+              {t(`adminTeam.status.${agent.status}`)}
             </Badge>
-            <Button size="sm" variant="outline" onClick={() => setEditing(true)} title="Editar clientes atendidos">
+            <Button size="sm" variant="outline" onClick={() => setEditing(true)} title={t('adminTeam.editServedClients')}>
               <Pencil className="h-4 w-4" />
             </Button>
-            <Button size="sm" variant="ghost" onClick={onRemove} title="Remover atendente">
+            <Button size="sm" variant="ghost" onClick={onRemove} title={t('adminTeam.removeAgent')}>
               <UserX className="h-4 w-4" />
             </Button>
           </div>
@@ -235,6 +238,7 @@ function EditAgentSubAccounts({
   subs: SubAccount[];
   onClose: () => void;
 }) {
+  const { t } = useTranslate();
   const qc = useQueryClient();
   const initial = agent.assignedSubAccounts.map((s) => s.id);
   const [selected, setSelected] = useState<Set<string>>(new Set(initial));
@@ -249,7 +253,7 @@ function EditAgentSubAccounts({
       apiClient.post(`/team/${agent.id}/sub-accounts`, { subAccountIds: Array.from(selected) }),
     onSuccess: (r: unknown) => {
       const res = r as { added: number; removed: number; total: number };
-      toast.success(`Atualizado: +${res.added} / −${res.removed} → ${res.total} clientes`);
+      toast.success(`${t('adminTeam.updated')}: +${res.added} / −${res.removed} → ${res.total} ${t('adminTeam.clients')}`);
       qc.invalidateQueries({ queryKey: ['all-agents'] });
       onClose();
     },
@@ -266,9 +270,9 @@ function EditAgentSubAccounts({
       <Card className="max-h-[80vh] w-full max-w-lg overflow-hidden" onClick={(e) => e.stopPropagation()}>
         <CardHeader className="flex flex-row items-center justify-between space-y-0">
           <div>
-            <CardTitle className="text-base">Clientes atendidos por {agent.fullName}</CardTitle>
+            <CardTitle className="text-base">{t('adminTeam.servedClientsBy')} {agent.fullName}</CardTitle>
             <p className="mt-0.5 text-xs text-muted-foreground">
-              {selected.size} de {subs.length} selecionados
+              {selected.size} {t('adminTeam.of')} {subs.length} {t('adminTeam.selected')}
             </p>
           </div>
           <Button size="sm" variant="ghost" onClick={onClose}>
@@ -277,14 +281,14 @@ function EditAgentSubAccounts({
         </CardHeader>
         <CardContent className="flex max-h-[60vh] flex-col gap-2 overflow-hidden">
           <div className="flex items-center gap-2">
-            <Input placeholder="Filtrar clientes..." value={filter} onChange={(e) => setFilter(e.target.value)} />
+            <Input placeholder={t('adminTeam.filterClients')} value={filter} onChange={(e) => setFilter(e.target.value)} />
             <Button size="sm" variant="outline" onClick={toggleAll}>
-              {selected.size === visible.length && visible.length > 0 ? 'Limpar' : 'Todos'}
+              {selected.size === visible.length && visible.length > 0 ? t('adminTeam.clear') : t('adminTeam.all')}
             </Button>
           </div>
           <div className="flex-1 space-y-0.5 overflow-auto rounded-md border p-2">
             {visible.length === 0 && (
-              <p className="py-4 text-center text-sm text-muted-foreground">Nenhum cliente bate com o filtro.</p>
+              <p className="py-4 text-center text-sm text-muted-foreground">{t('adminTeam.noClientsMatch')}</p>
             )}
             {visible.map((s) => (
               <label key={s.id} className="flex cursor-pointer items-center gap-2 rounded p-1.5 hover:bg-muted/40">
@@ -306,9 +310,9 @@ function EditAgentSubAccounts({
             ))}
           </div>
           <div className="flex items-center justify-end gap-2">
-            <Button size="sm" variant="ghost" onClick={onClose}>Cancelar</Button>
+            <Button size="sm" variant="ghost" onClick={onClose}>{t('adminTeam.cancel')}</Button>
             <Button size="sm" onClick={() => sync.mutate()} disabled={sync.isPending}>
-              {sync.isPending ? 'Salvando...' : 'Salvar'}
+              {sync.isPending ? t('adminTeam.saving') : t('adminTeam.save')}
             </Button>
           </div>
         </CardContent>

@@ -10,6 +10,7 @@ import { apiClient } from '@/lib/api-client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { useTranslate } from '@/i18n/provider';
 
 interface AvailableNumber {
   cloudtalkNumberId: string;
@@ -29,6 +30,7 @@ export default function NewClientWizardPage({ params }: { params: Promise<{ agen
   const { agencyId } = use(params);
   const router = useRouter();
   const qc = useQueryClient();
+  const { t } = useTranslate();
 
   const [step, setStep] = useState(1);
   const [name, setName] = useState('');
@@ -73,7 +75,7 @@ export default function NewClientWizardPage({ params }: { params: Promise<{ agen
       return sub;
     },
     onSuccess: () => {
-      toast.success('Cliente cadastrado');
+      toast.success(t('adminNewClient.toastCreated'));
       qc.invalidateQueries({ queryKey: ['agency', agencyId] });
       router.push(`/admin/agencies/${agencyId}`);
     },
@@ -83,11 +85,11 @@ export default function NewClientWizardPage({ params }: { params: Promise<{ agen
   return (
     <div className="mx-auto max-w-2xl p-8">
       <Link href={`/admin/agencies/${agencyId}` as never} className="text-sm text-muted-foreground hover:underline">
-        ← Voltar para a agência
+        ← {t('adminNewClient.backToAgency')}
       </Link>
 
-      <h1 className="mt-2 text-3xl font-bold">Novo cliente</h1>
-      <p className="mt-1 text-muted-foreground">Em 3 passos: nome, número CloudTalk, atendentes designados</p>
+      <h1 className="mt-2 text-3xl font-bold">{t('adminNewClient.title')}</h1>
+      <p className="mt-1 text-muted-foreground">{t('adminNewClient.subtitle')}</p>
 
       <Stepper current={step} />
 
@@ -95,21 +97,21 @@ export default function NewClientWizardPage({ params }: { params: Promise<{ agen
         {step === 1 && (
           <>
             <CardHeader>
-              <CardTitle className="text-base">1. Identificação do cliente</CardTitle>
+              <CardTitle className="text-base">{t('adminNewClient.step1Title')}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               <div>
-                <label className="text-sm font-medium">Nome do cliente</label>
-                <Input value={name} onChange={(e) => handleName(e.target.value)} placeholder="Ex: Clínica Silva" />
+                <label className="text-sm font-medium">{t('adminNewClient.clientNameLabel')}</label>
+                <Input value={name} onChange={(e) => handleName(e.target.value)} placeholder={t('adminNewClient.clientNamePlaceholder')} />
               </div>
               <div>
-                <label className="text-sm font-medium">Slug</label>
+                <label className="text-sm font-medium">{t('adminNewClient.slugLabel')}</label>
                 <Input value={slug} onChange={(e) => setSlug(e.target.value)} placeholder="clinica-silva" />
-                <p className="mt-1 text-xs text-muted-foreground">Apenas minúsculas, números e hífens.</p>
+                <p className="mt-1 text-xs text-muted-foreground">{t('adminNewClient.slugHint')}</p>
               </div>
               <div className="flex justify-end">
                 <Button onClick={() => setStep(2)} disabled={!name || !slug}>
-                  Próximo <ChevronRight className="h-4 w-4" />
+                  {t('adminNewClient.next')} <ChevronRight className="h-4 w-4" />
                 </Button>
               </div>
             </CardContent>
@@ -119,12 +121,12 @@ export default function NewClientWizardPage({ params }: { params: Promise<{ agen
         {step === 2 && (
           <>
             <CardHeader>
-              <CardTitle className="text-base">2. Atribuir número CloudTalk</CardTitle>
+              <CardTitle className="text-base">{t('adminNewClient.step2Title')}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
               {free.length === 0 && (
                 <p className="text-sm text-muted-foreground">
-                  Nenhum número CloudTalk disponível. Compre um no painel CloudTalk e volte aqui.
+                  {t('adminNewClient.noNumbers')}
                 </p>
               )}
               <div className="max-h-80 space-y-1 overflow-auto rounded-md border p-2">
@@ -149,10 +151,10 @@ export default function NewClientWizardPage({ params }: { params: Promise<{ agen
               </div>
               <div className="flex justify-between">
                 <Button variant="outline" onClick={() => setStep(1)}>
-                  Voltar
+                  {t('adminNewClient.back')}
                 </Button>
                 <Button onClick={() => setStep(3)} disabled={!chosenNumberId}>
-                  Próximo <ChevronRight className="h-4 w-4" />
+                  {t('adminNewClient.next')} <ChevronRight className="h-4 w-4" />
                 </Button>
               </div>
             </CardContent>
@@ -162,15 +164,15 @@ export default function NewClientWizardPage({ params }: { params: Promise<{ agen
         {step === 3 && (
           <>
             <CardHeader>
-              <CardTitle className="text-base">3. Designar atendentes</CardTitle>
+              <CardTitle className="text-base">{t('adminNewClient.step3Title')}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
               <p className="text-xs text-muted-foreground">
-                Escolha os atendentes que vão atender chamadas desse cliente.
+                {t('adminNewClient.agentsHint')}
               </p>
               {agents.length === 0 && (
                 <p className="text-sm text-muted-foreground">
-                  Nenhum atendente cadastrado. Vá em <Link href={'/admin/team' as never} className="underline">Atendentes</Link> primeiro.
+                  {t('adminNewClient.noAgentsPrefix')} <Link href={'/admin/team' as never} className="underline">{t('adminNewClient.agentsLinkLabel')}</Link> {t('adminNewClient.noAgentsSuffix')}
                 </p>
               )}
               <div className="max-h-64 space-y-1 overflow-auto rounded-md border p-2">
@@ -194,10 +196,10 @@ export default function NewClientWizardPage({ params }: { params: Promise<{ agen
               </div>
               <div className="flex justify-between">
                 <Button variant="outline" onClick={() => setStep(2)}>
-                  Voltar
+                  {t('adminNewClient.back')}
                 </Button>
                 <Button onClick={() => submit.mutate()} disabled={submit.isPending}>
-                  {submit.isPending ? 'Criando...' : 'Criar cliente'}
+                  {submit.isPending ? t('adminNewClient.creating') : t('adminNewClient.createClient')}
                   <Check className="h-4 w-4" />
                 </Button>
               </div>
@@ -210,7 +212,8 @@ export default function NewClientWizardPage({ params }: { params: Promise<{ agen
 }
 
 function Stepper({ current }: { current: number }) {
-  const steps = ['Nome', 'Número', 'Atendentes'];
+  const { t } = useTranslate();
+  const steps = [t('adminNewClient.stepperName'), t('adminNewClient.stepperNumber'), t('adminNewClient.stepperAgents')];
   return (
     <div className="mt-4 flex items-center gap-2">
       {steps.map((label, i) => {

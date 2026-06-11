@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useTenantStore } from '@/stores/tenant-store';
+import { useTranslate } from '@/i18n/provider';
 
 interface BriefingForm {
   businessSummary: string;
@@ -27,6 +28,7 @@ interface Briefing extends BriefingForm {
 }
 
 export default function BriefingPage() {
+  const { t } = useTranslate();
   const qc = useQueryClient();
   const subAccountId = useTenantStore((s) => s.subAccountId);
 
@@ -72,7 +74,7 @@ export default function BriefingPage() {
   const save = useMutation({
     mutationFn: (data: BriefingForm) => apiClient.put('/briefings', data),
     onSuccess: () => {
-      toast.success('Briefing salvo');
+      toast.success(t('briefing.savedToast'));
       qc.invalidateQueries({ queryKey: ['briefing', subAccountId] });
     },
     onError: (err: Error) => toast.error(err.message),
@@ -82,29 +84,29 @@ export default function BriefingPage() {
     <form onSubmit={handleSubmit((data) => save.mutate(data))} className="space-y-6 p-8">
       <header className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Briefing do cliente</h1>
+          <h1 className="text-3xl font-bold">{t('briefing.title')}</h1>
           <p className="mt-1 text-muted-foreground">
-            Esse briefing aparece para os atendentes quando recebem uma chamada.
-            {briefing && <span className="ml-2">· versão {briefing.version}</span>}
+            {t('briefing.subtitle')}
+            {briefing && <span className="ml-2">· {t('briefing.version')} {briefing.version}</span>}
           </p>
         </div>
         <Button type="submit" disabled={isSubmitting || !subAccountId}>
-          {isSubmitting ? 'Salvando...' : !subAccountId ? 'Selecione um cliente' : 'Salvar'}
+          {isSubmitting ? t('briefing.saving') : !subAccountId ? t('briefing.selectClient') : t('briefing.save')}
         </Button>
       </header>
 
       <Card>
         <CardHeader>
-          <CardTitle>Visão geral</CardTitle>
+          <CardTitle>{t('briefing.overview')}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <Field label="O que a empresa faz">
+          <Field label={t('briefing.businessSummaryLabel')}>
             <Textarea rows={4} {...register('businessSummary', { required: true })} />
           </Field>
-          <Field label="Público-alvo">
+          <Field label={t('briefing.targetAudienceLabel')}>
             <Textarea rows={3} {...register('targetAudience', { required: true })} />
           </Field>
-          <Field label="Preços / diretrizes comerciais">
+          <Field label={t('briefing.pricingGuidelinesLabel')}>
             <Textarea rows={3} {...register('pricingGuidelines')} />
           </Field>
         </CardContent>
@@ -112,16 +114,16 @@ export default function BriefingPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Scripts</CardTitle>
+          <CardTitle>{t('briefing.scripts')}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <Field label="Abertura">
+          <Field label={t('briefing.openingLabel')}>
             <Textarea rows={3} {...register('scripts.opening')} />
           </Field>
-          <Field label="Tratamento de objeções">
+          <Field label={t('briefing.objectionHandlingLabel')}>
             <Textarea rows={3} {...register('scripts.objectionHandling')} />
           </Field>
-          <Field label="Fechamento">
+          <Field label={t('briefing.closingLabel')}>
             <Textarea rows={3} {...register('scripts.closing')} />
           </Field>
         </CardContent>
@@ -130,20 +132,20 @@ export default function BriefingPage() {
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle>FAQ</CardTitle>
+            <CardTitle>{t('briefing.faq')}</CardTitle>
             <Button type="button" size="sm" variant="outline" onClick={() => appendFaq({ q: '', a: '' })}>
-              <Plus className="h-4 w-4" /> Adicionar
+              <Plus className="h-4 w-4" /> {t('briefing.add')}
             </Button>
           </div>
         </CardHeader>
         <CardContent className="space-y-3">
           {faqFields.length === 0 && (
-            <p className="text-sm text-muted-foreground">Nenhuma pergunta cadastrada.</p>
+            <p className="text-sm text-muted-foreground">{t('briefing.emptyFaq')}</p>
           )}
           {faqFields.map((f, i) => (
             <div key={f.id} className="grid grid-cols-[1fr_2fr_auto] gap-2 rounded-md border p-3">
-              <Input placeholder="Pergunta" {...register(`faq.${i}.q` as const)} />
-              <Textarea rows={2} placeholder="Resposta" {...register(`faq.${i}.a` as const)} />
+              <Input placeholder={t('briefing.questionPlaceholder')} {...register(`faq.${i}.q` as const)} />
+              <Textarea rows={2} placeholder={t('briefing.answerPlaceholder')} {...register(`faq.${i}.a` as const)} />
               <Button type="button" variant="ghost" size="icon" onClick={() => removeFaq(i)}>
                 <Trash2 className="h-4 w-4" />
               </Button>

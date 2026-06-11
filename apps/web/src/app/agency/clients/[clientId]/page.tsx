@@ -13,6 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { HelpHint } from '@/components/help-hint';
 import { useTenantStore } from '@/stores/tenant-store';
+import { useTranslate } from '@/i18n/provider';
 
 interface ClientDetail {
   id: string;
@@ -41,6 +42,7 @@ interface AvailableNumber {
 
 export default function ClientDetailPage({ params }: { params: Promise<{ clientId: string }> }) {
   const { clientId } = use(params);
+  const { t } = useTranslate();
   const qc = useQueryClient();
   const router = useRouter();
   const setTenant = useTenantStore((s) => s.setTenant);
@@ -67,7 +69,7 @@ export default function ClientDetailPage({ params }: { params: Promise<{ clientI
         country: n.country,
       }),
     onSuccess: () => {
-      toast.success('Número associado');
+      toast.success(t('clientDetail.numberAttached'));
       qc.invalidateQueries({ queryKey: ['client', clientId] });
       qc.invalidateQueries({ queryKey: ['available-numbers'] });
     },
@@ -77,12 +79,12 @@ export default function ClientDetailPage({ params }: { params: Promise<{ clientI
   const release = useMutation({
     mutationFn: (id: string) => apiClient.del(`/phone-numbers/${id}`),
     onSuccess: () => {
-      toast.success('Número liberado');
+      toast.success(t('clientDetail.numberReleased'));
       qc.invalidateQueries({ queryKey: ['client', clientId] });
     },
   });
 
-  if (!client) return <div className="p-8 text-muted-foreground">Carregando...</div>;
+  if (!client) return <div className="p-8 text-muted-foreground">{t('clientDetail.loading')}</div>;
 
   const free = available.filter((n) => !n.assignedTo);
   const taken = available.filter((n) => n.assignedTo);
@@ -90,7 +92,7 @@ export default function ClientDetailPage({ params }: { params: Promise<{ clientI
   return (
     <div className="p-8">
       <Link href={'/agency/clients' as never} className="text-sm text-muted-foreground hover:underline">
-        ← Clientes
+        ← {t('clientDetail.backToClients')}
       </Link>
       <div className="mt-2 flex items-start justify-between">
         <div>
@@ -106,14 +108,14 @@ export default function ClientDetailPage({ params }: { params: Promise<{ clientI
             router.push('/workspace');
           }}
         >
-          <ExternalLink className="h-4 w-4" /> Abrir workspace
+          <ExternalLink className="h-4 w-4" /> {t('clientDetail.openWorkspace')}
         </Button>
       </div>
 
       <div className="mt-6 grid grid-cols-3 gap-4">
         <Card>
           <CardHeader>
-            <CardTitle className="text-sm font-medium text-muted-foreground">Leads</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">{t('clientDetail.leads')}</CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold">{client._count.leads}</p>
@@ -121,7 +123,7 @@ export default function ClientDetailPage({ params }: { params: Promise<{ clientI
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle className="text-sm font-medium text-muted-foreground">Interações</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">{t('clientDetail.interactions')}</CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold">{client._count.interactions}</p>
@@ -129,7 +131,7 @@ export default function ClientDetailPage({ params }: { params: Promise<{ clientI
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle className="text-sm font-medium text-muted-foreground">Números</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">{t('clientDetail.numbers')}</CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold">{client.phoneNumbers.length}</p>
@@ -142,14 +144,14 @@ export default function ClientDetailPage({ params }: { params: Promise<{ clientI
 
       <Card className="mt-6">
         <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="text-base">Números atribuídos</CardTitle>
+          <CardTitle className="text-base">{t('clientDetail.assignedNumbers')}</CardTitle>
           <Button size="sm" onClick={() => setShowAdd(!showAdd)}>
-            <Plus className="h-4 w-4" /> Adicionar número
+            <Plus className="h-4 w-4" /> {t('clientDetail.addNumber')}
           </Button>
         </CardHeader>
         <CardContent className="space-y-2">
           {client.phoneNumbers.length === 0 && (
-            <p className="text-sm text-muted-foreground">Nenhum número atribuído ainda.</p>
+            <p className="text-sm text-muted-foreground">{t('clientDetail.noNumbersYet')}</p>
           )}
           {client.phoneNumbers.map((n) => (
             <div key={n.id} className="flex items-center justify-between rounded-md border p-3">
@@ -173,13 +175,13 @@ export default function ClientDetailPage({ params }: { params: Promise<{ clientI
           <Card className="mt-4">
             <CardHeader>
               <CardTitle className="text-base">
-                Números disponíveis no CloudTalk ({free.length})
+                {t('clientDetail.availableNumbers')} ({free.length})
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
               {free.length === 0 && (
                 <p className="text-sm text-muted-foreground">
-                  Todos os números já estão associados — veja abaixo.
+                  {t('clientDetail.allNumbersAssigned')}
                 </p>
               )}
               {free.map((n) => (
@@ -189,7 +191,7 @@ export default function ClientDetailPage({ params }: { params: Promise<{ clientI
                     {n.label && <p className="text-xs text-muted-foreground">{n.label}</p>}
                   </div>
                   <Button size="sm" onClick={() => attach.mutate(n)} disabled={attach.isPending}>
-                    Atribuir
+                    {t('clientDetail.assign')}
                   </Button>
                 </div>
               ))}
@@ -199,7 +201,7 @@ export default function ClientDetailPage({ params }: { params: Promise<{ clientI
           {taken.length > 0 && (
             <Card className="mt-4 opacity-70">
               <CardHeader>
-                <CardTitle className="text-base">Números já em uso ({taken.length})</CardTitle>
+                <CardTitle className="text-base">{t('clientDetail.numbersInUse')} ({taken.length})</CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
                 {taken.map((n) => (
@@ -225,6 +227,7 @@ export default function ClientDetailPage({ params }: { params: Promise<{ clientI
 }
 
 function ClientSettingsCard({ client }: { client: ClientDetail }) {
+  const { t } = useTranslate();
   const qc = useQueryClient();
   const router = useRouter();
   const [name, setName] = useState(client.name);
@@ -239,7 +242,7 @@ function ClientSettingsCard({ client }: { client: ClientDetail }) {
   const save = useMutation({
     mutationFn: () => apiClient.patch(`/sub-accounts/${client.id}`, { name, plan }),
     onSuccess: () => {
-      toast.success('Cliente atualizado');
+      toast.success(t('clientDetail.clientUpdated'));
       invalidate();
     },
     onError: (e: Error) => toast.error(e.message),
@@ -248,7 +251,7 @@ function ClientSettingsCard({ client }: { client: ClientDetail }) {
   const setStatus = useMutation({
     mutationFn: (status: string) => apiClient.patch(`/sub-accounts/${client.id}`, { status }),
     onSuccess: () => {
-      toast.success('Status atualizado');
+      toast.success(t('clientDetail.statusUpdated'));
       invalidate();
     },
     onError: (e: Error) => toast.error(e.message),
@@ -257,7 +260,7 @@ function ClientSettingsCard({ client }: { client: ClientDetail }) {
   const remove = useMutation({
     mutationFn: () => apiClient.del(`/sub-accounts/${client.id}/permanent`),
     onSuccess: () => {
-      toast.success('Cliente apagado permanentemente');
+      toast.success(t('clientDetail.clientDeletedPermanently'));
       qc.invalidateQueries({ queryKey: ['agency-clients'] });
       router.push('/agency/clients');
     },
@@ -269,16 +272,16 @@ function ClientSettingsCard({ client }: { client: ClientDetail }) {
   return (
     <Card className="mt-6">
       <CardHeader>
-        <CardTitle className="text-base">Configurações do cliente</CardTitle>
+        <CardTitle className="text-base">{t('clientDetail.clientSettings')}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
           <div className="flex-1">
-            <label className="text-xs font-medium text-muted-foreground">Nome</label>
+            <label className="text-xs font-medium text-muted-foreground">{t('clientDetail.nameLabel')}</label>
             <Input value={name} onChange={(e) => setName(e.target.value)} />
           </div>
           <div>
-            <label className="text-xs font-medium text-muted-foreground">Plano</label>
+            <label className="text-xs font-medium text-muted-foreground">{t('clientDetail.planLabel')}</label>
             <select
               value={plan}
               onChange={(e) => setPlan(e.target.value)}
@@ -290,40 +293,39 @@ function ClientSettingsCard({ client }: { client: ClientDetail }) {
             </select>
           </div>
           <Button onClick={() => save.mutate()} disabled={save.isPending}>
-            Salvar
+            {t('clientDetail.save')}
           </Button>
         </div>
 
         <div className="flex flex-wrap items-center gap-2 border-t pt-4">
-          <span className="text-sm text-muted-foreground">Status atual:</span>
+          <span className="text-sm text-muted-foreground">{t('clientDetail.currentStatus')}</span>
           <Badge variant={client.status === 'active' ? 'success' : 'secondary'}>{client.status}</Badge>
           {!archived ? (
             <>
               {client.status === 'active' ? (
                 <Button size="sm" variant="outline" onClick={() => setStatus.mutate('paused')}>
-                  Pausar
+                  {t('clientDetail.pause')}
                 </Button>
               ) : (
                 <Button size="sm" variant="outline" onClick={() => setStatus.mutate('active')}>
-                  Ativar
+                  {t('clientDetail.activate')}
                 </Button>
               )}
               <Button size="sm" variant="outline" onClick={() => setStatus.mutate('archived')}>
-                Arquivar
+                {t('clientDetail.archive')}
               </Button>
             </>
           ) : (
             <Button size="sm" variant="outline" onClick={() => setStatus.mutate('active')}>
-              <RotateCcw className="h-4 w-4" /> Reativar
+              <RotateCcw className="h-4 w-4" /> {t('clientDetail.reactivate')}
             </Button>
           )}
         </div>
 
         <div className="rounded-md border border-destructive/40 bg-destructive/5 p-4">
-          <p className="text-sm font-medium text-destructive">Apagar permanentemente</p>
+          <p className="text-sm font-medium text-destructive">{t('clientDetail.deletePermanently')}</p>
           <p className="mt-1 text-xs text-muted-foreground">
-            Remove o cliente e TODOS os dados (leads, ligações, SMS) de forma irreversível. Para
-            confirmar, digite o nome do cliente: <strong>{client.name}</strong>
+            {t('clientDetail.deleteWarning')} <strong>{client.name}</strong>
           </p>
           <div className="mt-3 flex gap-2">
             <Input
@@ -337,7 +339,7 @@ function ClientSettingsCard({ client }: { client: ClientDetail }) {
               disabled={confirmDelete !== client.name || remove.isPending}
               onClick={() => remove.mutate()}
             >
-              <Trash2 className="h-4 w-4" /> Apagar
+              <Trash2 className="h-4 w-4" /> {t('clientDetail.delete')}
             </Button>
           </div>
         </div>
@@ -355,6 +357,7 @@ interface TeamUser {
 }
 
 function ClientAccessCard({ clientId }: { clientId: string }) {
+  const { t } = useTranslate();
   const qc = useQueryClient();
   const [email, setEmail] = useState('');
   const [fullName, setFullName] = useState('');
@@ -377,7 +380,7 @@ function ClientAccessCard({ clientId }: { clientId: string }) {
         subAccountIds: [clientId],
       }),
     onSuccess: (res) => {
-      toast.success('Acesso do cliente criado');
+      toast.success(t('clientDetail.clientAccessCreated'));
       setLink({ type: 'invite', url: res.inviteUrl });
       setEmail('');
       setFullName('');
@@ -391,7 +394,7 @@ function ClientAccessCard({ clientId }: { clientId: string }) {
       apiClient.post<{ type: string; url: string }>(`/team/${userId}/reset-access`, {}),
     onSuccess: (res) => {
       setLink(res);
-      toast.success('Link gerado');
+      toast.success(t('clientDetail.linkGenerated'));
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -400,15 +403,15 @@ function ClientAccessCard({ clientId }: { clientId: string }) {
     <Card className="mt-6">
       <CardHeader>
         <CardTitle className="flex items-center gap-1.5 text-base">
-          Acesso do cliente <HelpHint topic="cliente-acesso" />
+          {t('clientDetail.clientAccess')} <HelpHint topic="cliente-acesso" />
         </CardTitle>
         <p className="mt-0.5 text-xs text-muted-foreground">
-          Logins do cliente final — eles veem só os próprios leads e ligações.
+          {t('clientDetail.clientAccessSubtitle')}
         </p>
       </CardHeader>
       <CardContent className="space-y-3">
         {clientUsers.length === 0 && (
-          <p className="text-sm text-muted-foreground">Nenhum acesso de cliente criado ainda.</p>
+          <p className="text-sm text-muted-foreground">{t('clientDetail.noClientAccessYet')}</p>
         )}
         {clientUsers.map((u) => (
           <div key={u.id} className="flex items-center justify-between rounded-md border p-3">
@@ -418,10 +421,10 @@ function ClientAccessCard({ clientId }: { clientId: string }) {
             </div>
             <div className="flex items-center gap-2">
               <Badge variant={u.status === 'active' ? 'success' : 'secondary'}>
-                {u.status === 'active' ? 'ativo' : u.status === 'invited' ? 'convite pendente' : u.status}
+                {u.status === 'active' ? t('clientDetail.statusActive') : u.status === 'invited' ? t('clientDetail.statusInvited') : u.status}
               </Badge>
               <Button size="sm" variant="outline" onClick={() => reset.mutate(u.id)} disabled={reset.isPending}>
-                <KeyRound className="h-4 w-4" /> Redefinir acesso
+                <KeyRound className="h-4 w-4" /> {t('clientDetail.resetAccess')}
               </Button>
             </div>
           </div>
@@ -435,22 +438,22 @@ function ClientAccessCard({ clientId }: { clientId: string }) {
           className="flex flex-col gap-2 border-t pt-4 sm:flex-row sm:items-end"
         >
           <div className="flex-1">
-            <label className="text-xs font-medium text-muted-foreground">Nome do contato</label>
-            <Input value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Nome" required />
+            <label className="text-xs font-medium text-muted-foreground">{t('clientDetail.contactNameLabel')}</label>
+            <Input value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder={t('clientDetail.contactNamePlaceholder')} required />
           </div>
           <div className="flex-1">
-            <label className="text-xs font-medium text-muted-foreground">E-mail</label>
-            <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="cliente@email.com" required />
+            <label className="text-xs font-medium text-muted-foreground">{t('clientDetail.emailLabel')}</label>
+            <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder={t('clientDetail.emailPlaceholder')} required />
           </div>
           <Button type="submit" disabled={invite.isPending}>
-            <UserPlus className="h-4 w-4" /> Convidar
+            <UserPlus className="h-4 w-4" /> {t('clientDetail.invite')}
           </Button>
         </form>
 
         {link && (
           <div className="rounded-md border bg-muted/30 p-3">
             <p className="text-xs font-medium">
-              {link.type === 'invite' ? 'Link de convite' : 'Link para redefinir senha'} — envie ao cliente:
+              {link.type === 'invite' ? t('clientDetail.inviteLink') : t('clientDetail.resetPasswordLink')} {t('clientDetail.sendToClient')}
             </p>
             <div className="mt-1 flex items-center gap-2">
               <code className="flex-1 truncate rounded-md border bg-background px-2 py-1.5 font-mono text-xs">
@@ -461,10 +464,10 @@ function ClientAccessCard({ clientId }: { clientId: string }) {
                 variant="outline"
                 onClick={() => {
                   navigator.clipboard.writeText(link.url);
-                  toast.success('Copiado');
+                  toast.success(t('clientDetail.copied'));
                 }}
               >
-                <Copy className="h-4 w-4" /> Copiar
+                <Copy className="h-4 w-4" /> {t('clientDetail.copy')}
               </Button>
             </div>
           </div>
@@ -481,6 +484,7 @@ function WhatsappGroupCard({
   clientId: string;
   currentGroupId: string | null;
 }) {
+  const { t } = useTranslate();
   const qc = useQueryClient();
   const [expanded, setExpanded] = useState(false);
 
@@ -495,7 +499,7 @@ function WhatsappGroupCard({
     mutationFn: (groupId: string | null) =>
       apiClient.patch(`/sub-accounts/${clientId}/whatsapp`, { whatsappGroupId: groupId }),
     onSuccess: () => {
-      toast.success(currentGroupId ? 'Grupo atualizado' : 'Grupo conectado');
+      toast.success(currentGroupId ? t('clientDetail.groupUpdated') : t('clientDetail.groupConnected'));
       qc.invalidateQueries({ queryKey: ['client', clientId] });
     },
     onError: (err: Error) => toast.error(err.message),
@@ -507,9 +511,9 @@ function WhatsappGroupCard({
     <Card className="mt-6">
       <CardHeader className="flex flex-row items-center justify-between">
         <div>
-          <CardTitle className="text-base">WhatsApp do cliente</CardTitle>
+          <CardTitle className="text-base">{t('clientDetail.whatsappTitle')}</CardTitle>
           <p className="mt-0.5 text-xs text-muted-foreground">
-            Grupo onde resumos das chamadas serão enviados.
+            {t('clientDetail.whatsappSubtitle')}
           </p>
         </div>
         {currentGroupId && (
@@ -521,19 +525,19 @@ function WhatsappGroupCard({
       <CardContent>
         {!expanded ? (
           <Button size="sm" variant="outline" onClick={() => setExpanded(true)}>
-            {currentGroupId ? 'Trocar grupo' : 'Configurar grupo'}
+            {currentGroupId ? t('clientDetail.changeGroup') : t('clientDetail.configureGroup')}
           </Button>
         ) : (
           <div className="space-y-2">
-            {isLoading && <p className="text-sm text-muted-foreground">Carregando grupos do Z-API...</p>}
+            {isLoading && <p className="text-sm text-muted-foreground">{t('clientDetail.loadingGroups')}</p>}
             {error && (
               <p className="text-sm text-red-600">
-                {(error as Error).message ?? 'Erro carregando grupos'}
+                {(error as Error).message ?? t('clientDetail.errorLoadingGroups')}
               </p>
             )}
             {!isLoading && !error && groups.length === 0 && (
               <p className="text-sm text-muted-foreground">
-                Nenhum grupo encontrado. Adicione o número da Z-API a um grupo WhatsApp primeiro.
+                {t('clientDetail.noGroupsFound')}
               </p>
             )}
             {groups.length > 0 && (
@@ -543,7 +547,7 @@ function WhatsappGroupCard({
                 disabled={save.isPending}
                 className="h-9 w-full rounded-md border bg-background px-2 text-sm"
               >
-                <option value="">— desconectar —</option>
+                <option value="">{t('clientDetail.disconnect')}</option>
                 {groups.map((g) => (
                   <option key={g.phone} value={g.phone}>
                     {g.name} ({g.phone})
@@ -552,7 +556,7 @@ function WhatsappGroupCard({
               </select>
             )}
             <Button size="sm" variant="ghost" onClick={() => setExpanded(false)}>
-              Fechar
+              {t('clientDetail.close')}
             </Button>
           </div>
         )}
@@ -567,6 +571,7 @@ interface ZapierKeyResponse {
 }
 
 function ZapierWebhookCard({ clientId }: { clientId: string }) {
+  const { t } = useTranslate();
   const qc = useQueryClient();
   const [revealed, setRevealed] = useState(false);
 
@@ -578,7 +583,7 @@ function ZapierWebhookCard({ clientId }: { clientId: string }) {
   const rotate = useMutation({
     mutationFn: () => apiClient.post<ZapierKeyResponse>(`/sub-accounts/${clientId}/zapier-key/rotate`, {}),
     onSuccess: () => {
-      toast.success('Chave rotacionada — atualize a integração');
+      toast.success(t('clientDetail.keyRotated'));
       qc.invalidateQueries({ queryKey: ['zapier-key', clientId] });
       setRevealed(true);
     },
@@ -587,7 +592,7 @@ function ZapierWebhookCard({ clientId }: { clientId: string }) {
 
   const copy = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
-    toast.success(`${label} copiado`);
+    toast.success(`${label} ${t('clientDetail.copiedSuffix')}`);
   };
 
   if (!key) return null;
@@ -598,68 +603,66 @@ function ZapierWebhookCard({ clientId }: { clientId: string }) {
     <Card className="mt-6">
       <CardHeader>
         <CardTitle className="flex items-center gap-1.5 text-base">
-          Receber leads de formulários / quizz <HelpHint topic="leads-webhook" />
+          {t('clientDetail.webhookTitle')} <HelpHint topic="leads-webhook" />
         </CardTitle>
         <p className="mt-1 text-xs text-muted-foreground">
-          Cole esta URL no webhook do seu formulário, quizz ou landing page. Cada lead enviado
-          cai direto no CRM com origem &quot;Formulário&quot;. Funciona com Typeform, Jotform, Zapier,
-          quizz próprio — qualquer ferramenta que dispare um POST.
+          {t('clientDetail.webhookSubtitle')}
         </p>
       </CardHeader>
       <CardContent className="space-y-3">
         <div>
-          <p className="text-xs font-medium uppercase text-muted-foreground">URL do webhook</p>
+          <p className="text-xs font-medium uppercase text-muted-foreground">{t('clientDetail.webhookUrlLabel')}</p>
           <div className="mt-1 flex items-center gap-2">
             <code className="flex-1 truncate rounded-md border bg-muted/50 px-2 py-1.5 font-mono text-xs">
               {key.webhookUrl}
             </code>
             <Button size="sm" variant="outline" onClick={() => copy(key.webhookUrl, 'URL')}>
-              Copiar
+              {t('clientDetail.copy')}
             </Button>
           </div>
         </div>
 
         <div>
-          <p className="text-xs font-medium uppercase text-muted-foreground">API Key (header X-CallWe-Api-Key)</p>
+          <p className="text-xs font-medium uppercase text-muted-foreground">{t('clientDetail.apiKeyLabel')} (header X-CallWe-Api-Key)</p>
           <div className="mt-1 flex items-center gap-2">
             <code className="flex-1 truncate rounded-md border bg-muted/50 px-2 py-1.5 font-mono text-xs">
               {maskedKey}
             </code>
             <Button size="sm" variant="outline" onClick={() => setRevealed(!revealed)}>
-              {revealed ? 'Ocultar' : 'Revelar'}
+              {revealed ? t('clientDetail.hide') : t('clientDetail.reveal')}
             </Button>
-            <Button size="sm" variant="outline" onClick={() => copy(key.apiKey, 'Chave')}>
-              Copiar
+            <Button size="sm" variant="outline" onClick={() => copy(key.apiKey, t('clientDetail.keyLabel'))}>
+              {t('clientDetail.copy')}
             </Button>
           </div>
         </div>
 
         <details className="rounded-md border bg-muted/30 p-3 text-xs">
-          <summary className="cursor-pointer font-medium">Como configurar</summary>
+          <summary className="cursor-pointer font-medium">{t('clientDetail.howToConfigure')}</summary>
           <ol className="mt-2 list-decimal space-y-1.5 pl-5 leading-relaxed">
-            <li>Na sua ferramenta (Typeform, Jotform, quizz, etc.), procure a opção de <strong>Webhook</strong> / <em>HTTP POST</em> ao finalizar o envio.</li>
-            <li><strong>URL:</strong> cola a URL acima</li>
-            <li><strong>Método:</strong> <code>POST</code> · <strong>Payload:</strong> <code>json</code></li>
-            <li><strong>Header:</strong> adiciona <code>X-CallWe-Api-Key</code> com o valor da chave acima</li>
-            <li><strong>Campos</strong> — envie com estas chaves (qualquer extra é guardado automaticamente):
+            <li>{t('clientDetail.step1Before')} <strong>Webhook</strong> / <em>HTTP POST</em> {t('clientDetail.step1After')}</li>
+            <li><strong>URL:</strong> {t('clientDetail.stepUrl')}</li>
+            <li><strong>{t('clientDetail.stepMethodLabel')}</strong> <code>POST</code> · <strong>Payload:</strong> <code>json</code></li>
+            <li><strong>Header:</strong> {t('clientDetail.stepHeaderBefore')} <code>X-CallWe-Api-Key</code> {t('clientDetail.stepHeaderAfter')}</li>
+            <li><strong>{t('clientDetail.stepFieldsLabel')}</strong> {t('clientDetail.stepFieldsHint')}
               <ul className="mt-1 list-disc pl-5">
-                <li><code>name</code> → nome do lead</li>
-                <li><code>phone</code> → telefone (qualquer formato — normalizamos)</li>
-                <li><code>email</code> → e-mail</li>
-                <li><code>formName</code> (opcional) → nome do form/quizz pra agrupar</li>
-                <li><code>campaignName</code> (opcional) → nome da campanha</li>
+                <li><code>name</code> → {t('clientDetail.fieldName')}</li>
+                <li><code>phone</code> → {t('clientDetail.fieldPhone')}</li>
+                <li><code>email</code> → {t('clientDetail.fieldEmail')}</li>
+                <li><code>formName</code> {t('clientDetail.fieldOptional')} → {t('clientDetail.fieldFormName')}</li>
+                <li><code>campaignName</code> {t('clientDetail.fieldOptional')} → {t('clientDetail.fieldCampaignName')}</li>
               </ul>
             </li>
-            <li>Testa o envio → confirma que aparece em /workspace/leads com origem &quot;Formulário&quot;.</li>
+            <li>{t('clientDetail.stepTest')}</li>
           </ol>
         </details>
 
         <div className="flex items-center justify-between pt-2">
           <p className="text-xs text-muted-foreground">
-            ⚠️ Rotacionar a chave invalida a anterior — você precisa atualizar a integração.
+            {t('clientDetail.rotateWarning')}
           </p>
           <Button size="sm" variant="outline" onClick={() => rotate.mutate()} disabled={rotate.isPending}>
-            Rotacionar chave
+            {t('clientDetail.rotateKey')}
           </Button>
         </div>
       </CardContent>

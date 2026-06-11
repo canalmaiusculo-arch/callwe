@@ -5,6 +5,7 @@ import { Voicemail } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
 import { useTenantStore } from '@/stores/tenant-store';
 import { RecordingPlayer } from '@/components/recording-player';
+import { useTranslate } from '@/i18n/provider';
 
 interface VoicemailInteraction {
   id: string;
@@ -16,6 +17,7 @@ interface VoicemailInteraction {
 }
 
 export default function ClientVoicemailsPage() {
+  const { t } = useTranslate();
   const subAccountId = useTenantStore((s) => s.subAccountId);
   const { data: items = [], isLoading } = useQuery<VoicemailInteraction[]>({
     queryKey: ['client-voicemails', subAccountId],
@@ -26,13 +28,13 @@ export default function ClientVoicemailsPage() {
   return (
     <div className="p-4 md:p-8">
       <header className="mb-6">
-        <h1 className="text-3xl font-bold">Meus voicemails</h1>
-        <p className="mt-1 text-muted-foreground">{items.length} mensagens de voz</p>
+        <h1 className="text-3xl font-bold">{t('clientVoicemails.title')}</h1>
+        <p className="mt-1 text-muted-foreground">{items.length} {t('clientVoicemails.voiceMessages')}</p>
       </header>
 
-      {isLoading && <p className="text-muted-foreground">Carregando...</p>}
+      {isLoading && <p className="text-muted-foreground">{t('clientVoicemails.loading')}</p>}
       {!isLoading && items.length === 0 && (
-        <p className="text-muted-foreground">Nenhum voicemail ainda.</p>
+        <p className="text-muted-foreground">{t('clientVoicemails.empty')}</p>
       )}
 
       <div className="space-y-2">

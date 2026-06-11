@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useAuthStore } from '@/stores/auth-store';
+import { useTranslate } from '@/i18n/provider';
 
 interface Conversation {
   leadId: string;
@@ -33,10 +34,16 @@ interface Message {
   author: { id: string; fullName: string } | null;
 }
 
-const ROLE_LABEL: Record<string, string> = {
-  client_viewer: 'Cliente', agent: 'Atendente', sub_account_admin: 'Atendente',
-  agency_admin: 'Agência', super_admin: 'Agência',
-};
+function roleLabel(role: string, t: (k: string) => string): string {
+  const map: Record<string, string> = {
+    client_viewer: t('chat.roleClient'),
+    agent: t('chat.roleAgent'),
+    sub_account_admin: t('chat.roleAgent'),
+    agency_admin: t('chat.roleAgency'),
+    super_admin: t('chat.roleAgency'),
+  };
+  return map[role] ?? role;
+}
 
 function jwtSub(token: string): string {
   try {
@@ -53,6 +60,7 @@ function fmtTime(iso: string) {
 }
 
 export function ChatWidget() {
+  const { t } = useTranslate();
   const token = useAuthStore((s) => s.accessToken);
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
@@ -120,7 +128,7 @@ export function ChatWidget() {
         type="button"
         onClick={() => setOpen((v) => !v)}
         className="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-brand-gradient text-white shadow-lg transition-transform hover:scale-105"
-        aria-label="Conversas"
+        aria-label={t('chat.conversations')}
       >
         {open ? <X className="h-6 w-6" /> : <MessageCircle className="h-6 w-6" />}
         {!open && totalUnread > 0 && (
@@ -146,7 +154,7 @@ export function ChatWidget() {
               </div>
               <div className="flex-1 space-y-3 overflow-auto p-3">
                 {messages.length === 0 && (
-                  <p className="text-sm text-muted-foreground">Nenhuma mensagem. Mande a primeira abaixo.</p>
+                  <p className="text-sm text-muted-foreground">{t('chat.noMessages')}</p>
                 )}
                 {messages.map((m) => {
                   const mine = m.authorUserId === myId;
@@ -161,7 +169,7 @@ export function ChatWidget() {
                       </div>
                       <span className="mt-1 text-[10px] text-muted-foreground">
                         {m.author?.fullName ?? '—'}
-                        {m.authorRole && ` · ${ROLE_LABEL[m.authorRole] ?? m.authorRole}`} · {fmtTime(m.createdAt)}
+                        {m.authorRole && ` · ${roleLabel(m.authorRole, t)}`} · {fmtTime(m.createdAt)}
                       </span>
                     </div>
                   );
@@ -177,7 +185,7 @@ export function ChatWidget() {
                 <Textarea
                   value={msg}
                   onChange={(e) => setMsg(e.target.value)}
-                  placeholder="Escreva uma mensagem..."
+                  placeholder={t('chat.messagePlaceholder')}
                   rows={1}
                   className="max-h-24 min-h-9 resize-none"
                 />
@@ -193,7 +201,7 @@ export function ChatWidget() {
                 <button type="button" onClick={() => setNewMode(false)} className="rounded-md p-1 hover:bg-muted">
                   <ChevronLeft className="h-5 w-5" />
                 </button>
-                <p className="text-sm font-semibold">Nova conversa</p>
+                <p className="text-sm font-semibold">{t('chat.newConversation')}</p>
               </div>
               <div className="border-b p-3">
                 <div className="flex items-center gap-2 rounded-md border px-2">
@@ -201,14 +209,14 @@ export function ChatWidget() {
                   <Input
                     value={leadSearch}
                     onChange={(e) => setLeadSearch(e.target.value)}
-                    placeholder="Buscar lead por nome ou telefone..."
+                    placeholder={t('chat.searchLeadPlaceholder')}
                     className="border-0 px-0 shadow-none focus-visible:ring-0"
                   />
                 </div>
               </div>
               <div className="flex-1 overflow-auto">
                 {foundLeads.length === 0 && (
-                  <p className="p-4 text-sm text-muted-foreground">Nenhum lead encontrado.</p>
+                  <p className="p-4 text-sm text-muted-foreground">{t('chat.noLeadsFound')}</p>
                 )}
                 {foundLeads.map((l) => (
                   <button
@@ -228,17 +236,17 @@ export function ChatWidget() {
             <>
               <div className="flex items-center justify-between border-b p-4">
                 <div>
-                  <h3 className="font-semibold">Conversas</h3>
-                  <p className="text-xs text-muted-foreground">Mensagens sobre seus leads</p>
+                  <h3 className="font-semibold">{t('chat.conversations')}</h3>
+                  <p className="text-xs text-muted-foreground">{t('chat.subtitle')}</p>
                 </div>
-                <Button size="icon" variant="outline" onClick={() => setNewMode(true)} aria-label="Nova conversa">
+                <Button size="icon" variant="outline" onClick={() => setNewMode(true)} aria-label={t('chat.newConversation')}>
                   <Plus className="h-4 w-4" />
                 </Button>
               </div>
               <div className="flex-1 overflow-auto">
                 {conversations.length === 0 && (
                   <p className="p-4 text-sm text-muted-foreground">
-                    Nenhuma conversa ainda. Toque em <strong>+</strong> para iniciar uma.
+                    {t('chat.emptyBefore')} <strong>+</strong> {t('chat.emptyAfter')}
                   </p>
                 )}
                 {conversations.map((c) => (

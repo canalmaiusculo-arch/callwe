@@ -9,6 +9,7 @@ import { useTenantStore } from '@/stores/tenant-store';
 import { useAuthStore } from '@/stores/auth-store';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { useTranslate } from '@/i18n/provider';
 
 interface SubAccountOption {
   id: string;
@@ -20,6 +21,7 @@ interface SubAccountOption {
 }
 
 export default function SelectSubAccountPage() {
+  const { t } = useTranslate();
   const router = useRouter();
   const setTenant = useTenantStore((s) => s.setTenant);
   const accessToken = useAuthStore((s) => s.accessToken);
@@ -51,18 +53,19 @@ export default function SelectSubAccountPage() {
   return (
     <main className="mx-auto max-w-2xl p-8">
       <header className="mb-6">
-        <h1 className="text-2xl font-bold">Selecione uma conta</h1>
+        <h1 className="text-2xl font-bold">{t('selectSub.title')}</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Você tem acesso a {subs.length} {subs.length === 1 ? 'conta' : 'contas'}.
+          {t('selectSub.accessIntro')} {subs.length}{' '}
+          {subs.length === 1 ? t('selectSub.accountSingular') : t('selectSub.accountPlural')}.
         </p>
       </header>
 
-      {isLoading && <p className="text-muted-foreground">Carregando...</p>}
+      {isLoading && <p className="text-muted-foreground">{t('selectSub.loading')}</p>}
 
       {!isLoading && subs.length === 0 && (
         <Card>
           <CardContent className="p-6 text-center text-muted-foreground">
-            Você ainda não foi adicionado a nenhuma subconta. Peça acesso ao administrador da agência.
+            {t('selectSub.empty')}
           </CardContent>
         </Card>
       )}

@@ -38,6 +38,7 @@ import {
   type LeadStatus,
 } from '@/components/interaction-drawer';
 import { useSeenIds } from '@/hooks/use-unread';
+import { useTranslate } from '@/i18n/provider';
 
 interface AssignedClient {
   id: string;
@@ -78,6 +79,7 @@ interface AgentStats {
 type Tab = 'dashboard' | 'calls' | 'sms' | 'leads' | 'briefings';
 
 export default function AgentPage() {
+  const { t } = useTranslate();
   const [tab, setTab] = useState<Tab>('calls');
   const [onlyMine, setOnlyMine] = useState(true);
   const [drawerId, setDrawerId] = useState<string | null>(null);
@@ -121,21 +123,21 @@ export default function AgentPage() {
       <NotificationCenter />
       <aside className="col-span-2 flex flex-col rounded-lg border bg-background p-3">
         <div className="mb-3">
-          <p className="text-xs uppercase text-muted-foreground">Atendente</p>
-          <p className="text-sm font-semibold">Painel ao vivo</p>
+          <p className="text-xs uppercase text-muted-foreground">{t('agentPanel.agentLabel')}</p>
+          <p className="text-sm font-semibold">{t('agentPanel.livePanel')}</p>
         </div>
 
         <nav className="mb-3 space-y-1">
-          <TabButton active={tab === 'dashboard'} onClick={() => setTab('dashboard')} icon={Gauge} label="Dashboard" />
-          <TabButton active={tab === 'calls'} onClick={() => setTab('calls')} icon={Phone} label="Chamadas" />
-          <TabButton active={tab === 'sms'} onClick={() => setTab('sms')} icon={MessageSquare} label="SMS" badge={smsBadge} />
-          <TabButton active={tab === 'leads'} onClick={() => setTab('leads')} icon={UserPlus} label="Leads" />
-          <TabButton active={tab === 'briefings'} onClick={() => setTab('briefings')} icon={BookOpen} label="Briefings" />
+          <TabButton active={tab === 'dashboard'} onClick={() => setTab('dashboard')} icon={Gauge} label={t('agentPanel.tabDashboard')} />
+          <TabButton active={tab === 'calls'} onClick={() => setTab('calls')} icon={Phone} label={t('agentPanel.tabCalls')} />
+          <TabButton active={tab === 'sms'} onClick={() => setTab('sms')} icon={MessageSquare} label={t('agentPanel.tabSms')} badge={smsBadge} />
+          <TabButton active={tab === 'leads'} onClick={() => setTab('leads')} icon={UserPlus} label={t('agentPanel.tabLeads')} />
+          <TabButton active={tab === 'briefings'} onClick={() => setTab('briefings')} icon={BookOpen} label={t('agentPanel.tabBriefings')} />
         </nav>
 
         <div className="mt-2 flex min-h-0 flex-1 flex-col border-t pt-3">
           <p className="mb-2 text-xs font-medium uppercase text-muted-foreground">
-            Meus clientes ({clients.length})
+            {t('agentPanel.myClients')} ({clients.length})
           </p>
           <div className="flex-1 space-y-0.5 overflow-auto">
             <button
@@ -144,7 +146,7 @@ export default function AgentPage() {
                 filterSubAccountId === null ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted'
               }`}
             >
-              Todos os clientes
+              {t('agentPanel.allClients')}
             </button>
             {clients.map((c) => (
               <button
@@ -168,7 +170,7 @@ export default function AgentPage() {
           className="mt-3 flex items-center gap-2 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-muted"
         >
           <LogOut className="h-4 w-4" />
-          Sair
+          {t('agentPanel.logout')}
         </button>
       </aside>
 
@@ -185,10 +187,10 @@ export default function AgentPage() {
             onChange={setSearch}
             placeholder={
               tab === 'calls'
-                ? 'Buscar chamada (número, cliente, lead)...'
+                ? t('agentPanel.searchCallsPlaceholder')
                 : tab === 'sms'
-                  ? 'Buscar SMS (número, cliente, conteúdo)...'
-                  : 'Buscar lead (nome, número, email)...'
+                  ? t('agentPanel.searchSmsPlaceholder')
+                  : t('agentPanel.searchLeadsPlaceholder')
             }
           />
         )}
@@ -222,7 +224,7 @@ export default function AgentPage() {
       <aside className="col-span-3">
         <Card className="flex h-full flex-col">
           <CardHeader>
-            <CardTitle className="text-sm">Softphone</CardTitle>
+            <CardTitle className="text-sm">{t('agentPanel.softphone')}</CardTitle>
           </CardHeader>
           <CardContent className="flex-1 p-2">
             <SoftphoneFrame />
@@ -265,6 +267,7 @@ function TabButton({
 }
 
 function DashboardView() {
+  const { t } = useTranslate();
   const { data: stats } = useQuery<AgentStats>({
     queryKey: ['agent-stats'],
     queryFn: () => apiClient.get<AgentStats>('/interactions/mine/stats'),
@@ -276,16 +279,16 @@ function DashboardView() {
   return (
     <div className="space-y-4">
       <div>
-        <h1 className="text-2xl font-bold">Meu desempenho</h1>
-        <p className="text-sm text-muted-foreground">Atualiza a cada 30s</p>
+        <h1 className="text-2xl font-bold">{t('agentPanel.myPerformance')}</h1>
+        <p className="text-sm text-muted-foreground">{t('agentPanel.updatesEvery30s')}</p>
       </div>
 
       <div className="grid grid-cols-3 gap-3">
-        <StatCard title="Chamadas hoje" value={s.callsToday} icon={Phone} />
-        <StatCard title="Chamadas (7d)" value={s.callsWeek} icon={LayoutDashboard} />
-        <StatCard title="SMS hoje" value={s.smsToday} icon={MessageSquare} />
-        <StatCard title="Tempo ao telefone hoje" value={formatDuration(s.totalTalkTimeToday)} icon={Clock} />
-        <StatCard title="TMA (tempo médio)" value={formatDuration(s.avgTalkTime)} icon={Clock} />
+        <StatCard title={t('agentPanel.callsToday')} value={s.callsToday} icon={Phone} />
+        <StatCard title={t('agentPanel.calls7d')} value={s.callsWeek} icon={LayoutDashboard} />
+        <StatCard title={t('agentPanel.smsToday')} value={s.smsToday} icon={MessageSquare} />
+        <StatCard title={t('agentPanel.talkTimeToday')} value={formatDuration(s.totalTalkTimeToday)} icon={Clock} />
+        <StatCard title={t('agentPanel.avgTalkTime')} value={formatDuration(s.avgTalkTime)} icon={Clock} />
       </div>
     </div>
   );
@@ -328,6 +331,7 @@ function CallsView({
   search: string;
   isSeen: (id: string) => boolean;
 }) {
+  const { t } = useTranslate();
   const { data: calls = [] } = useQuery<Interaction[]>({
     queryKey: ['my-calls', onlyMine],
     queryFn: () => apiClient.get(`/interactions/mine?type=call&onlyMine=${onlyMine}`),
@@ -343,20 +347,20 @@ function CallsView({
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>
-          Chamadas {onlyMine ? '(minhas)' : '(todos clientes)'}
+          {t('agentPanel.calls')} {onlyMine ? t('agentPanel.scopeMineCalls') : t('agentPanel.scopeAllClients')}
           {(filterSubAccountId || search) && (
             <span className="ml-2 text-xs text-muted-foreground">{filtered.length}/{calls.length}</span>
           )}
         </CardTitle>
         <Button size="sm" variant="outline" onClick={onToggleMine}>
-          {onlyMine ? 'Ver todas' : 'Só minhas'}
+          {onlyMine ? t('agentPanel.seeAll') : t('agentPanel.onlyMine')}
         </Button>
       </CardHeader>
       <CardContent className="space-y-2">
         {filtered.length === 0 && (
           <div className="flex flex-col items-center py-8 text-center text-muted-foreground">
             <Phone className="mb-2 h-8 w-8 opacity-30" />
-            <p className="text-sm">{calls.length === 0 ? 'Nenhuma chamada.' : 'Nenhuma chamada bate com o filtro.'}</p>
+            <p className="text-sm">{calls.length === 0 ? t('agentPanel.noCalls') : t('agentPanel.noCallsMatch')}</p>
           </div>
         )}
         {filtered.map((c) => (
@@ -408,6 +412,7 @@ function SearchBar({
   onChange: (v: string) => void;
   placeholder: string;
 }) {
+  const { t } = useTranslate();
   return (
     <div className="relative">
       <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -421,7 +426,7 @@ function SearchBar({
       {value && (
         <button
           onClick={() => onChange('')}
-          aria-label="Limpar busca"
+          aria-label={t('agentPanel.clearSearch')}
           className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-muted-foreground hover:bg-muted"
         >
           <X className="h-3 w-3" />
@@ -432,6 +437,7 @@ function SearchBar({
 }
 
 function CallRow({ call, onClick, unread }: { call: Interaction; onClick: () => void; unread?: boolean }) {
+  const { t } = useTranslate();
   const Icon = call.status === 'missed' ? PhoneMissed : call.direction === 'inbound' ? PhoneIncoming : PhoneOutgoing;
   const iconColor =
     call.status === 'missed'
@@ -456,15 +462,15 @@ function CallRow({ call, onClick, unread }: { call: Interaction; onClick: () => 
       </div>
       <div className="grid grid-cols-4 gap-2 text-xs">
         <div>
-          <p className="text-muted-foreground">De</p>
+          <p className="text-muted-foreground">{t('agentPanel.from')}</p>
           <p className="font-mono">{call.fromNumber ?? '—'}</p>
         </div>
         <div>
-          <p className="text-muted-foreground">Cliente</p>
+          <p className="text-muted-foreground">{t('agentPanel.client')}</p>
           <p>{call.subAccount?.name ?? '—'}</p>
         </div>
         <div>
-          <p className="text-muted-foreground">Lead</p>
+          <p className="text-muted-foreground">{t('agentPanel.lead')}</p>
           <p className="flex flex-wrap items-center gap-1.5">
             <span>{call.lead?.name ?? call.fromNumber ?? '—'}</span>
             {call.lead?.status && (
@@ -485,7 +491,7 @@ function CallRow({ call, onClick, unread }: { call: Interaction; onClick: () => 
           </p>
         </div>
         <div>
-          <p className="text-muted-foreground">Quando</p>
+          <p className="text-muted-foreground">{t('agentPanel.when')}</p>
           <p>{new Date(call.startedAt).toLocaleString('pt-BR')}</p>
         </div>
       </div>
@@ -514,6 +520,7 @@ function SmsView({
   search: string;
   isSeen: (id: string) => boolean;
 }) {
+  const { t } = useTranslate();
   const { data: messages = [] } = useQuery<Interaction[]>({
     queryKey: ['my-sms', onlyMine],
     queryFn: () => apiClient.get(`/interactions/mine?type=sms&onlyMine=${onlyMine}`),
@@ -529,19 +536,19 @@ function SmsView({
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>
-          SMS {onlyMine ? '(meus)' : '(todos clientes)'}
+          {t('agentPanel.sms')} {onlyMine ? t('agentPanel.scopeMineSms') : t('agentPanel.scopeAllClients')}
           {(filterSubAccountId || search) && (
             <span className="ml-2 text-xs text-muted-foreground">{filtered.length}/{messages.length}</span>
           )}
         </CardTitle>
         <Button size="sm" variant="outline" onClick={onToggleMine}>
-          {onlyMine ? 'Ver todas' : 'Só minhas'}
+          {onlyMine ? t('agentPanel.seeAll') : t('agentPanel.onlyMine')}
         </Button>
       </CardHeader>
       <CardContent className="space-y-2">
         {filtered.length === 0 && (
           <p className="py-8 text-center text-sm text-muted-foreground">
-            {messages.length === 0 ? 'Nenhuma mensagem.' : 'Nenhuma mensagem bate com o filtro.'}
+            {messages.length === 0 ? t('agentPanel.noMessages') : t('agentPanel.noMessagesMatch')}
           </p>
         )}
         {filtered.map((m) => (
@@ -558,6 +565,7 @@ function SmsView({
 }
 
 function SmsRow({ sms, onOpen, unread }: { sms: Interaction; onOpen: () => void; unread?: boolean }) {
+  const { t } = useTranslate();
   const [showReply, setShowReply] = useState(false);
   const [text, setText] = useState('');
   const queryClient = useQueryClient();
@@ -597,7 +605,7 @@ function SmsRow({ sms, onOpen, unread }: { sms: Interaction; onOpen: () => void;
         <div className="flex-1">
           <div className="flex items-center justify-between text-xs text-muted-foreground">
             <span>
-              {sms.direction === 'inbound' ? 'De' : 'Para'}:{' '}
+              {sms.direction === 'inbound' ? t('agentPanel.from') : t('agentPanel.to')}:{' '}
               <span className="font-mono">{sms.direction === 'inbound' ? sms.fromNumber : sms.toNumber}</span>
               {' · '}
               {sms.subAccount?.name}
@@ -614,14 +622,14 @@ function SmsRow({ sms, onOpen, unread }: { sms: Interaction; onOpen: () => void;
             disabled={!subAccountId || !replyTo}
             className="text-xs text-muted-foreground hover:text-foreground disabled:opacity-50"
           >
-            ↩ Responder {replyTo && `pra ${replyTo}`}
+            ↩ {t('agentPanel.reply')} {replyTo && `${t('agentPanel.replyTo')} ${replyTo}`}
           </button>
         ) : (
           <div className="space-y-2 py-1">
             <textarea
               value={text}
               onChange={(e) => setText(e.target.value)}
-              placeholder="Digite a resposta..."
+              placeholder={t('agentPanel.replyPlaceholder')}
               rows={2}
               maxLength={1600}
               className="w-full resize-none rounded-md border bg-background px-2 py-1.5 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -637,7 +645,7 @@ function SmsRow({ sms, onOpen, unread }: { sms: Interaction; onOpen: () => void;
                     setText('');
                   }}
                 >
-                  Cancelar
+                  {t('agentPanel.cancel')}
                 </Button>
                 <Button
                   size="sm"
@@ -645,13 +653,13 @@ function SmsRow({ sms, onOpen, unread }: { sms: Interaction; onOpen: () => void;
                   disabled={!text.trim() || sendSms.isPending}
                 >
                   <Send className="mr-1 h-3 w-3" />
-                  {sendSms.isPending ? 'Enviando...' : 'Enviar'}
+                  {sendSms.isPending ? t('agentPanel.sending') : t('agentPanel.send')}
                 </Button>
               </div>
             </div>
             {sendSms.isError && (
               <p className="text-xs text-red-600">
-                {(sendSms.error as Error)?.message ?? 'Erro ao enviar SMS'}
+                {(sendSms.error as Error)?.message ?? t('agentPanel.smsSendError')}
               </p>
             )}
           </div>
@@ -662,6 +670,7 @@ function SmsRow({ sms, onOpen, unread }: { sms: Interaction; onOpen: () => void;
 }
 
 function ActiveCallView({ call, onDismiss }: { call: unknown; onDismiss: () => void }) {
+  const { t } = useTranslate();
   const c = call as {
     from_number?: string;
     external_number?: string;
@@ -678,11 +687,11 @@ function ActiveCallView({ call, onDismiss }: { call: unknown; onDismiss: () => v
           </div>
           <div className="flex-1">
             <p className="text-xs uppercase text-muted-foreground">
-              Chamada entrante {c.subAccountName && `· ${c.subAccountName}`}
+              {t('agentPanel.incomingCall')} {c.subAccountName && `· ${c.subAccountName}`}
             </p>
             <CardTitle className="text-2xl">{c.external_number ?? c.from_number ?? '—'}</CardTitle>
           </div>
-          <Button variant="outline" size="sm" onClick={onDismiss}>Fechar</Button>
+          <Button variant="outline" size="sm" onClick={onDismiss}>{t('agentPanel.close')}</Button>
         </div>
       </CardHeader>
       <CardContent>
@@ -699,6 +708,7 @@ function BriefingsView({
   clients: AssignedClient[];
   initialSelectedId: string | null;
 }) {
+  const { t } = useTranslate();
   const [selectedId, setSelectedId] = useState<string | null>(
     initialSelectedId ?? clients[0]?.id ?? null,
   );
@@ -715,13 +725,13 @@ function BriefingsView({
   return (
     <Card>
       <CardHeader className="flex flex-row items-center gap-3">
-        <CardTitle>Briefings</CardTitle>
+        <CardTitle>{t('agentPanel.briefings')}</CardTitle>
         <select
           value={selectedId ?? ''}
           onChange={(e) => setSelectedId(e.target.value || null)}
           className="ml-auto h-9 rounded-md border bg-background px-3 text-sm"
         >
-          {clients.length === 0 && <option value="">Nenhum cliente</option>}
+          {clients.length === 0 && <option value="">{t('agentPanel.noClient')}</option>}
           {clients.map((c) => (
             <option key={c.id} value={c.id}>{c.name}</option>
           ))}
@@ -750,23 +760,23 @@ interface AgentLead {
 type DateRange = 'today' | '7d' | '30d' | 'all';
 type SourceFilter = 'all' | 'meta_ads' | 'google_ads' | 'inbound_call' | 'outbound_call' | 'sms' | 'manual' | 'api' | 'form';
 
-const DATE_LABELS: Record<DateRange, string> = {
-  today: 'Hoje',
-  '7d': 'Últimos 7 dias',
-  '30d': 'Últimos 30 dias',
-  all: 'Todos',
+const DATE_LABEL_KEYS: Record<DateRange, string> = {
+  today: 'agentPanel.dateToday',
+  '7d': 'agentPanel.dateLast7d',
+  '30d': 'agentPanel.dateLast30d',
+  all: 'agentPanel.dateAll',
 };
 
-const SOURCE_FILTER_LABELS: Record<SourceFilter, string> = {
-  all: 'Todas as origens',
-  meta_ads: 'Meta',
-  google_ads: 'Google',
-  inbound_call: 'Chamada recebida',
-  outbound_call: 'Chamada feita',
-  sms: 'SMS',
-  manual: 'Manual',
-  api: 'API / Zapier',
-  form: 'Formulário',
+const SOURCE_FILTER_LABEL_KEYS: Record<SourceFilter, string> = {
+  all: 'agentPanel.sourceAll',
+  meta_ads: 'agentPanel.sourceMeta',
+  google_ads: 'agentPanel.sourceGoogle',
+  inbound_call: 'agentPanel.sourceInboundCall',
+  outbound_call: 'agentPanel.sourceOutboundCall',
+  sms: 'agentPanel.sourceSms',
+  manual: 'agentPanel.sourceManual',
+  api: 'agentPanel.sourceApi',
+  form: 'agentPanel.sourceForm',
 };
 
 function LeadsView({
@@ -778,6 +788,7 @@ function LeadsView({
   search: string;
   clients: AssignedClient[];
 }) {
+  const { t } = useTranslate();
   const [dateRange, setDateRange] = useState<DateRange>('30d');
   const [sourceFilter, setSourceFilter] = useState<SourceFilter>('all');
   const [clientFilter, setClientFilter] = useState<string>('');
@@ -845,7 +856,7 @@ function LeadsView({
       <CardHeader className="space-y-3">
         <div className="flex flex-row items-center justify-between">
           <CardTitle>
-            Leads
+            {t('agentPanel.leads')}
             {hasActiveFilter && (
               <span className="ml-2 text-xs text-muted-foreground">{filtered.length}/{leads.length}</span>
             )}
@@ -855,22 +866,22 @@ function LeadsView({
           <FilterSelect
             value={dateRange}
             onChange={(v) => setDateRange(v as DateRange)}
-            options={Object.entries(DATE_LABELS).map(([v, l]) => ({ value: v, label: l }))}
+            options={Object.entries(DATE_LABEL_KEYS).map(([v, k]) => ({ value: v, label: t(k) }))}
           />
           <FilterSelect
             value={sourceFilter}
             onChange={(v) => setSourceFilter(v as SourceFilter)}
-            options={Object.entries(SOURCE_FILTER_LABELS).map(([v, l]) => ({ value: v, label: l }))}
+            options={Object.entries(SOURCE_FILTER_LABEL_KEYS).map(([v, k]) => ({ value: v, label: t(k) }))}
           />
           <FilterSelect
             value={clientFilter}
             onChange={setClientFilter}
             options={[
-              { value: '', label: 'Todos os clientes' },
+              { value: '', label: t('agentPanel.allClients') },
               ...clients.map((c) => ({ value: c.id, label: c.name })),
             ]}
             disabled={!!filterSubAccountId}
-            disabledHint={filterSubAccountId ? 'Filtro ativo na sidebar' : undefined}
+            disabledHint={filterSubAccountId ? t('agentPanel.filterActiveInSidebar') : undefined}
           />
           {hasActiveFilter && (
             <Button
@@ -882,18 +893,18 @@ function LeadsView({
                 setClientFilter('');
               }}
             >
-              Limpar
+              {t('agentPanel.clear')}
             </Button>
           )}
         </div>
       </CardHeader>
       <CardContent className="space-y-2">
-        {isLoading && <p className="text-sm text-muted-foreground">Carregando...</p>}
+        {isLoading && <p className="text-sm text-muted-foreground">{t('agentPanel.loading')}</p>}
         {!isLoading && filtered.length === 0 && (
           <div className="flex flex-col items-center py-8 text-center text-muted-foreground">
             <Users className="mb-2 h-8 w-8 opacity-30" />
             <p className="text-sm">
-              {leads.length === 0 ? 'Nenhum lead ainda.' : 'Nenhum lead bate com o filtro.'}
+              {leads.length === 0 ? t('agentPanel.noLeads') : t('agentPanel.noLeadsMatch')}
             </p>
           </div>
         )}
@@ -933,29 +944,30 @@ function FilterSelect({
   );
 }
 
-const SOURCE_LABEL: Record<string, string> = {
-  meta_ads: 'Meta',
-  google_ads: 'Google',
-  inbound_call: 'Chamada',
-  outbound_call: 'Discada',
-  sms: 'SMS',
-  manual: 'Manual',
-  api: 'API',
-  import: 'Importação',
-  form: 'Formulário',
+const SOURCE_LABEL_KEYS: Record<string, string> = {
+  meta_ads: 'agentPanel.sourceMeta',
+  google_ads: 'agentPanel.sourceGoogle',
+  inbound_call: 'agentPanel.sourceCall',
+  outbound_call: 'agentPanel.sourceDialed',
+  sms: 'agentPanel.sourceSms',
+  manual: 'agentPanel.sourceManual',
+  api: 'agentPanel.sourceApiShort',
+  import: 'agentPanel.sourceImport',
+  form: 'agentPanel.sourceForm',
 };
 
 function LeadRow({ lead }: { lead: AgentLead }) {
+  const { t } = useTranslate();
   const ch = lead.customFields?.acquisitionChannel as string | undefined;
+  const sourceKey = SOURCE_LABEL_KEYS[lead.source];
   const channelLabel =
     (ch && LEAD_ACQUISITION_LABELS[ch as keyof typeof LEAD_ACQUISITION_LABELS]) ??
-    SOURCE_LABEL[lead.source] ??
-    lead.source;
+    (sourceKey ? t(sourceKey) : lead.source);
   const formName = lead.customFields?.formName as string | undefined;
   const when = new Date(lead.createdAt);
   const ageMin = Math.floor((Date.now() - when.getTime()) / 60_000);
   const ageLabel =
-    ageMin < 1 ? 'agora' : ageMin < 60 ? `${ageMin}min` : ageMin < 1440 ? `${Math.floor(ageMin / 60)}h` : when.toLocaleDateString('pt-BR');
+    ageMin < 1 ? t('agentPanel.ageNow') : ageMin < 60 ? `${ageMin}min` : ageMin < 1440 ? `${Math.floor(ageMin / 60)}h` : when.toLocaleDateString('pt-BR');
 
   return (
     <div className="flex items-start gap-3 rounded-md border p-3 hover:bg-muted/40">
@@ -974,19 +986,19 @@ function LeadRow({ lead }: { lead: AgentLead }) {
         </div>
         <div className="mt-1 grid grid-cols-2 gap-x-3 text-xs text-muted-foreground sm:grid-cols-4">
           <div>
-            <p className="text-[10px] uppercase">Cliente</p>
+            <p className="text-[10px] uppercase">{t('agentPanel.client')}</p>
             <p>{lead.subAccount?.name ?? '—'}</p>
           </div>
           <div>
-            <p className="text-[10px] uppercase">Telefone</p>
+            <p className="text-[10px] uppercase">{t('agentPanel.phone')}</p>
             <p className="font-mono">{lead.phoneE164 ?? '—'}</p>
           </div>
           <div>
-            <p className="text-[10px] uppercase">E-mail</p>
+            <p className="text-[10px] uppercase">{t('agentPanel.email')}</p>
             <p className="truncate">{lead.email ?? '—'}</p>
           </div>
           <div>
-            <p className="text-[10px] uppercase">Quando</p>
+            <p className="text-[10px] uppercase">{t('agentPanel.when')}</p>
             <p>{ageLabel}</p>
           </div>
         </div>

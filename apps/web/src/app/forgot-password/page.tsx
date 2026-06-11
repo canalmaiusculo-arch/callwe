@@ -8,8 +8,10 @@ import { apiClient } from '@/lib/api-client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { useTranslate } from '@/i18n/provider';
 
 export default function ForgotPasswordPage() {
+  const { t } = useTranslate();
   const [email, setEmail] = useState('');
   const [sent, setSent] = useState(false);
   const [resetUrl, setResetUrl] = useState<string | null>(null);
@@ -25,7 +27,7 @@ export default function ForgotPasswordPage() {
       setSent(true);
       if (res.resetUrl) setResetUrl(res.resetUrl);
     } catch (err) {
-      toast.error('Erro ao solicitar reset');
+      toast.error(t('forgotPassword.errorRequest'));
     } finally {
       setLoading(false);
     }
@@ -35,13 +37,13 @@ export default function ForgotPasswordPage() {
     <main className="flex min-h-screen items-center justify-center p-4">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle>Esqueci minha senha</CardTitle>
+          <CardTitle>{t('forgotPassword.title')}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           {sent ? (
             <>
               <p className="text-sm">
-                Se o email existir, um link de reset foi gerado. Verifique seu email ou use o link abaixo:
+                {t('forgotPassword.sentInfo')}
               </p>
               {resetUrl && (
                 <div className="flex gap-2">
@@ -51,7 +53,7 @@ export default function ForgotPasswordPage() {
                     size="sm"
                     onClick={() => {
                       navigator.clipboard.writeText(resetUrl);
-                      toast.success('Copiado');
+                      toast.success(t('forgotPassword.copied'));
                     }}
                   >
                     <Copy className="h-4 w-4" />
@@ -59,26 +61,26 @@ export default function ForgotPasswordPage() {
                 </div>
               )}
               <Link href="/login" className="text-sm text-blue-600 hover:underline">
-                ← Voltar ao login
+                ← {t('forgotPassword.backToLogin')}
               </Link>
             </>
           ) : (
             <form onSubmit={onSubmit} className="space-y-3">
               <p className="text-sm text-muted-foreground">
-                Informe seu email e vamos gerar um link para redefinir sua senha.
+                {t('forgotPassword.formInfo')}
               </p>
               <Input
                 type="email"
-                placeholder="seu@email.com"
+                placeholder={t('forgotPassword.emailPlaceholder')}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
               />
               <Button type="submit" disabled={loading} className="w-full">
-                {loading ? 'Enviando...' : 'Gerar link de reset'}
+                {loading ? t('forgotPassword.submitting') : t('forgotPassword.submit')}
               </Button>
               <Link href="/login" className="block text-center text-sm text-blue-600 hover:underline">
-                Cancelar
+                {t('forgotPassword.cancel')}
               </Link>
             </form>
           )}

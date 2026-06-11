@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { RecordingPlayer } from '@/components/recording-player';
 import { useTenantStore } from '@/stores/tenant-store';
+import { useTranslate } from '@/i18n/provider';
 
 type LeadStatus = 'new' | 'contacted' | 'qualified' | 'won' | 'lost';
 
@@ -91,6 +92,7 @@ export function InteractionDrawer({
   interactionId: string | null;
   onClose: () => void;
 }) {
+  const { t } = useTranslate();
   const qc = useQueryClient();
   const [note, setNote] = useState('');
   const [editingName, setEditingName] = useState(false);
@@ -121,7 +123,7 @@ export function InteractionDrawer({
         { subAccountId },
       ),
     onSuccess: () => {
-      toast.success('Nota salva');
+      toast.success(t('interactionDrawer.noteSaved'));
       setNote('');
       qc.invalidateQueries({ queryKey: ['lead', interaction?.lead?.id] });
     },
@@ -136,7 +138,7 @@ export function InteractionDrawer({
         { subAccountId },
       ),
     onSuccess: () => {
-      toast.success('Status atualizado');
+      toast.success(t('interactionDrawer.statusUpdated'));
       qc.invalidateQueries({ queryKey: ['interaction-detail', interactionId] });
       qc.invalidateQueries({ queryKey: ['my-calls'] });
       qc.invalidateQueries({ queryKey: ['my-sms'] });
@@ -152,7 +154,7 @@ export function InteractionDrawer({
         { subAccountId },
       ),
     onSuccess: () => {
-      toast.success('Nome salvo');
+      toast.success(t('interactionDrawer.nameSaved'));
       setEditingName(false);
       qc.invalidateQueries({ queryKey: ['interaction-detail', interactionId] });
       qc.invalidateQueries({ queryKey: ['my-calls'] });
@@ -165,7 +167,7 @@ export function InteractionDrawer({
     mutationFn: () =>
       apiClient.post(`/whatsapp/send-summary/${interactionId}`, {}),
     onSuccess: () => {
-      toast.success('Resumo enviado pro grupo WhatsApp');
+      toast.success(t('interactionDrawer.summarySent'));
     },
     onError: (err: Error) => toast.error(err.message),
   });
@@ -184,7 +186,7 @@ export function InteractionDrawer({
       );
     },
     onSuccess: () => {
-      toast.success('Origem atualizada');
+      toast.success(t('interactionDrawer.sourceUpdated'));
       qc.invalidateQueries({ queryKey: ['interaction-detail', interactionId] });
       qc.invalidateQueries({ queryKey: ['my-calls'] });
       qc.invalidateQueries({ queryKey: ['my-sms'] });
@@ -206,7 +208,7 @@ export function InteractionDrawer({
     return (
       <div className="fixed inset-0 z-50 flex">
         <div className="flex-1 bg-black/30" onClick={onClose} />
-        <div className="w-[520px] bg-background p-6">Carregando...</div>
+        <div className="w-[520px] bg-background p-6">{t('interactionDrawer.loading')}</div>
       </div>
     );
   }
@@ -223,12 +225,16 @@ export function InteractionDrawer({
             <div>
               <p className="text-xs uppercase text-muted-foreground">
                 {interaction.type === 'call'
-                  ? `Chamada ${interaction.direction === 'inbound' ? 'recebida' : 'realizada'}`
+                  ? interaction.direction === 'inbound'
+                    ? t('interactionDrawer.callInbound')
+                    : t('interactionDrawer.callOutbound')
                   : interaction.type === 'sms'
-                    ? `SMS ${interaction.direction === 'inbound' ? 'recebido' : 'enviado'}`
+                    ? interaction.direction === 'inbound'
+                      ? t('interactionDrawer.smsInbound')
+                      : t('interactionDrawer.smsOutbound')
                     : interaction.type === 'voicemail'
-                      ? 'Voicemail'
-                      : 'Formulário'}
+                      ? t('interactionDrawer.voicemail')
+                      : t('interactionDrawer.form')}
               </p>
               <p className="font-mono text-sm">
                 {interaction.direction === 'inbound' ? interaction.fromNumber : interaction.toNumber}
@@ -245,32 +251,32 @@ export function InteractionDrawer({
 
         <div className="flex-1 space-y-4 p-4">
           <div className="grid grid-cols-2 gap-2">
-            <InfoBox label="Cliente" value={interaction.subAccount?.name ?? '—'} />
-            <InfoBox label="Atendente" value={interaction.agent?.fullName ?? '—'} />
+            <InfoBox label={t('interactionDrawer.client')} value={interaction.subAccount?.name ?? '—'} />
+            <InfoBox label={t('interactionDrawer.agent')} value={interaction.agent?.fullName ?? '—'} />
             <InfoBox
-              label="Duração"
+              label={t('interactionDrawer.duration')}
               value={interaction.durationSeconds ? formatDuration(interaction.durationSeconds) : '—'}
             />
-            <InfoBox label="Status" value={interaction.status} />
+            <InfoBox label={t('interactionDrawer.status')} value={interaction.status} />
           </div>
 
           {interaction.recordingUrl && (
             <section>
-              <p className="mb-2 text-xs font-medium uppercase text-muted-foreground">Gravação</p>
+              <p className="mb-2 text-xs font-medium uppercase text-muted-foreground">{t('interactionDrawer.recording')}</p>
               <RecordingPlayer interactionId={interaction.id} subAccountId={subAccountId} />
             </section>
           )}
 
           {interaction.smsBody && (
             <section>
-              <p className="mb-2 text-xs font-medium uppercase text-muted-foreground">Mensagem</p>
+              <p className="mb-2 text-xs font-medium uppercase text-muted-foreground">{t('interactionDrawer.message')}</p>
               <p className="rounded-md border bg-muted/30 p-3 text-sm">{interaction.smsBody}</p>
             </section>
           )}
 
           {(interaction.aiSummary || interaction.sentiment || interaction.aiScore) && (
             <section className="rounded-md border border-blue-200 bg-blue-50 p-3">
-              <p className="mb-2 text-xs font-medium uppercase text-blue-700">Análise IA</p>
+              <p className="mb-2 text-xs font-medium uppercase text-blue-700">{t('interactionDrawer.aiAnalysis')}</p>
               {interaction.aiSummary && <p className="text-sm">{interaction.aiSummary}</p>}
               <div className="mt-2 flex flex-wrap gap-2">
                 {interaction.sentiment && (
@@ -279,7 +285,7 @@ export function InteractionDrawer({
                   </Badge>
                 )}
                 {interaction.aiScore !== null && (
-                  <Badge variant="outline">Score: {interaction.aiScore}/100</Badge>
+                  <Badge variant="outline">{t('interactionDrawer.score')}: {interaction.aiScore}/100</Badge>
                 )}
                 {interaction.aiTopics?.map((t) => (
                   <Badge key={t} variant="secondary">{t}</Badge>
@@ -294,9 +300,9 @@ export function InteractionDrawer({
             return (
               <section className="rounded-md border border-emerald-200 bg-emerald-50 p-3">
                 <p className="mb-2 text-xs font-medium uppercase text-emerald-700">
-                  Report pro cliente
+                  {t('interactionDrawer.reportToClient')}
                 </p>
-                <p className="mb-2 text-xs text-emerald-900/80">{action.preview}</p>
+                <p className="mb-2 text-xs text-emerald-900/80">{t(action.preview)}</p>
                 <Button
                   size="sm"
                   variant="outline"
@@ -305,7 +311,7 @@ export function InteractionDrawer({
                   disabled={sendWhatsappSummary.isPending}
                 >
                   <Send className="mr-1 h-3 w-3" />
-                  {sendWhatsappSummary.isPending ? 'Enviando...' : action.label}
+                  {sendWhatsappSummary.isPending ? t('interactionDrawer.sending') : t(action.label)}
                 </Button>
               </section>
             );
@@ -313,7 +319,7 @@ export function InteractionDrawer({
 
           {interaction.transcript && (
             <section>
-              <p className="mb-2 text-xs font-medium uppercase text-muted-foreground">Transcrição</p>
+              <p className="mb-2 text-xs font-medium uppercase text-muted-foreground">{t('interactionDrawer.transcript')}</p>
               <div className="max-h-48 overflow-auto rounded-md border bg-muted/30 p-3 text-xs whitespace-pre-wrap">
                 {interaction.transcript}
               </div>
@@ -325,7 +331,7 @@ export function InteractionDrawer({
               <section className="rounded-md border p-3">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">
-                    <p className="text-xs uppercase text-muted-foreground">Lead</p>
+                    <p className="text-xs uppercase text-muted-foreground">{t('interactionDrawer.lead')}</p>
                     {editingName ? (
                       <div className="mt-1 flex items-center gap-2">
                         <input
@@ -336,7 +342,7 @@ export function InteractionDrawer({
                             if (e.key === 'Enter' && nameInput.trim()) updateName.mutate(nameInput.trim());
                             if (e.key === 'Escape') setEditingName(false);
                           }}
-                          placeholder="Nome do cliente"
+                          placeholder={t('interactionDrawer.clientNamePlaceholder')}
                           className="h-8 flex-1 rounded-md border bg-background px-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
                         />
                         <Button
@@ -344,10 +350,10 @@ export function InteractionDrawer({
                           onClick={() => nameInput.trim() && updateName.mutate(nameInput.trim())}
                           disabled={!nameInput.trim() || updateName.isPending}
                         >
-                          Salvar
+                          {t('interactionDrawer.save')}
                         </Button>
                         <Button size="sm" variant="ghost" onClick={() => setEditingName(false)}>
-                          Cancelar
+                          {t('interactionDrawer.cancel')}
                         </Button>
                       </div>
                     ) : (
@@ -359,9 +365,9 @@ export function InteractionDrawer({
                         className="group mt-1 flex items-center gap-1.5 text-left"
                       >
                         <span className="font-medium">
-                          {interaction.lead.name ?? <span className="italic text-muted-foreground">Adicionar nome</span>}
+                          {interaction.lead.name ?? <span className="italic text-muted-foreground">{t('interactionDrawer.addName')}</span>}
                         </span>
-                        <span className="text-xs text-blue-600 opacity-0 group-hover:opacity-100">editar</span>
+                        <span className="text-xs text-blue-600 opacity-0 group-hover:opacity-100">{t('interactionDrawer.edit')}</span>
                       </button>
                     )}
                     <p className="mt-0.5 font-mono text-xs text-muted-foreground">{interaction.lead.phoneE164}</p>
@@ -378,7 +384,7 @@ export function InteractionDrawer({
                   </select>
                 </div>
                 <div className="mt-3 flex items-center gap-2">
-                  <label className="text-xs text-muted-foreground">Origem</label>
+                  <label className="text-xs text-muted-foreground">{t('interactionDrawer.source')}</label>
                   <select
                     value={
                       (interaction.lead.customFields?.acquisitionChannel as string | undefined) ?? ''
@@ -387,7 +393,7 @@ export function InteractionDrawer({
                     disabled={updateChannel.isPending}
                     className="h-8 rounded-md border bg-background px-2 text-xs"
                   >
-                    <option value="">— não definido —</option>
+                    <option value="">{t('interactionDrawer.notDefined')}</option>
                     {ACQUISITION_CHANNELS.map((ch) => (
                       <option key={ch} value={ch}>{ACQUISITION_LABELS[ch]}</option>
                     ))}
@@ -397,18 +403,18 @@ export function InteractionDrawer({
                   onClick={openFullLead}
                   className="mt-3 flex items-center gap-2 text-sm text-blue-600 hover:underline"
                 >
-                  <ExternalLink className="h-4 w-4" /> Abrir lead completo
+                  <ExternalLink className="h-4 w-4" /> {t('interactionDrawer.openFullLead')}
                 </button>
               </section>
 
               <section>
                 <p className="mb-2 text-xs font-medium uppercase text-muted-foreground">
-                  Observação sobre essa chamada
+                  {t('interactionDrawer.noteAboutCall')}
                 </p>
                 <Textarea
                   value={note}
                   onChange={(e) => setNote(e.target.value)}
-                  placeholder="Resumo do que foi dito, objeções, próximos passos..."
+                  placeholder={t('interactionDrawer.notePlaceholder')}
                   rows={4}
                 />
                 <Button
@@ -417,7 +423,7 @@ export function InteractionDrawer({
                   onClick={() => addNote.mutate(note)}
                   disabled={!note.trim() || addNote.isPending}
                 >
-                  <Save className="h-4 w-4" /> Salvar observação
+                  <Save className="h-4 w-4" /> {t('interactionDrawer.saveNote')}
                 </Button>
               </section>
             </>
@@ -441,20 +447,20 @@ function classifyForWhatsapp(i: InteractionDetail): { label: string; preview: st
   if (i.type !== 'call') return null;
   if (i.aiSummary?.trim()) {
     return {
-      label: 'Enviar resumo pro grupo WhatsApp',
-      preview: 'Envia o resumo da chamada + dados do lead pro grupo WhatsApp do cliente.',
+      label: 'interactionDrawer.actionSendSummaryLabel',
+      preview: 'interactionDrawer.actionSendSummaryPreview',
     };
   }
   if (i.direction === 'inbound' && i.status === 'missed') {
     return {
-      label: 'Avisar cliente da chamada perdida',
-      preview: 'Avisa o cliente que o lead ligou e a chamada foi perdida — informaremos que vamos retornar.',
+      label: 'interactionDrawer.actionMissedLabel',
+      preview: 'interactionDrawer.actionMissedPreview',
     };
   }
   if (i.direction === 'outbound' && (!i.durationSeconds || i.durationSeconds < 5)) {
     return {
-      label: 'Avisar tentativa de retorno',
-      preview: 'Avisa o cliente que tentamos retornar o contato mas não foi atendido.',
+      label: 'interactionDrawer.actionCallbackLabel',
+      preview: 'interactionDrawer.actionCallbackPreview',
     };
   }
   return null;

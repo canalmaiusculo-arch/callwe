@@ -7,6 +7,7 @@ import { apiClient } from '@/lib/api-client';
 import { useTenantStore } from '@/stores/tenant-store';
 import { Badge } from '@/components/ui/badge';
 import { RecordingPlayer } from '@/components/recording-player';
+import { useTranslate } from '@/i18n/provider';
 
 interface CallInteraction {
   id: string;
@@ -31,6 +32,7 @@ const SENTIMENT_VARIANT = {
 };
 
 export default function CallsPage() {
+  const { t } = useTranslate();
   const subAccountId = useTenantStore((s) => s.subAccountId);
   const { data: calls = [], isLoading } = useQuery<CallInteraction[]>({
     queryKey: ['calls', subAccountId],
@@ -41,11 +43,11 @@ export default function CallsPage() {
   return (
     <div className="p-8">
       <header className="mb-6">
-        <h1 className="text-3xl font-bold">Registro de chamadas</h1>
-        <p className="mt-1 text-muted-foreground">{calls.length} chamadas</p>
+        <h1 className="text-3xl font-bold">{t('wsCalls.title')}</h1>
+        <p className="mt-1 text-muted-foreground">{calls.length} {t('wsCalls.callsCount')}</p>
       </header>
 
-      {isLoading && <p className="text-muted-foreground">Carregando...</p>}
+      {isLoading && <p className="text-muted-foreground">{t('wsCalls.loading')}</p>}
 
       <div className="space-y-2">
         {calls.map((c) => (
@@ -57,6 +59,7 @@ export default function CallsPage() {
 }
 
 function CallRow({ call }: { call: CallInteraction }) {
+  const { t } = useTranslate();
   const Icon = call.status === 'missed' ? PhoneMissed : call.direction === 'inbound' ? PhoneIncoming : PhoneOutgoing;
   const iconColor =
     call.status === 'missed'
@@ -70,11 +73,11 @@ function CallRow({ call }: { call: CallInteraction }) {
       <Icon className={`h-5 w-5 ${iconColor}`} />
       <div className="grid grid-cols-5 gap-4">
         <div>
-          <p className="text-xs text-muted-foreground">De</p>
+          <p className="text-xs text-muted-foreground">{t('wsCalls.from')}</p>
           <p className="font-mono text-sm">{call.fromNumber ?? '—'}</p>
         </div>
         <div>
-          <p className="text-xs text-muted-foreground">Lead</p>
+          <p className="text-xs text-muted-foreground">{t('wsCalls.lead')}</p>
           {call.lead ? (
             <Link href={`/workspace/leads/${call.lead.id}` as never} className="text-sm hover:underline">
               {call.lead.name ?? '—'}
@@ -84,15 +87,15 @@ function CallRow({ call }: { call: CallInteraction }) {
           )}
         </div>
         <div>
-          <p className="text-xs text-muted-foreground">Atendente</p>
+          <p className="text-xs text-muted-foreground">{t('wsCalls.agent')}</p>
           <p className="text-sm">{call.agent?.fullName ?? '—'}</p>
         </div>
         <div>
-          <p className="text-xs text-muted-foreground">Duração</p>
+          <p className="text-xs text-muted-foreground">{t('wsCalls.duration')}</p>
           <p className="text-sm">{call.durationSeconds ? formatDuration(call.durationSeconds) : '—'}</p>
         </div>
         <div>
-          <p className="text-xs text-muted-foreground">Quando</p>
+          <p className="text-xs text-muted-foreground">{t('wsCalls.when')}</p>
           <p className="text-xs">{new Date(call.startedAt).toLocaleString('pt-BR')}</p>
         </div>
       </div>

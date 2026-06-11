@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { useTenantStore } from '@/stores/tenant-store';
+import { useTranslate } from '@/i18n/provider';
 
 interface AgencyDetail {
   id: string;
@@ -29,6 +30,7 @@ interface AgencyDetail {
 
 export default function AgencyDetailPage({ params }: { params: Promise<{ agencyId: string }> }) {
   const { agencyId } = use(params);
+  const { t } = useTranslate();
   const router = useRouter();
   const qc = useQueryClient();
   const setTenant = useTenantStore((s) => s.setTenant);
@@ -48,7 +50,7 @@ export default function AgencyDetailPage({ params }: { params: Promise<{ agencyI
     mutationFn: (input: { email: string; fullName: string }) =>
       apiClient.post<{ inviteUrl: string }>(`/agencies/${agencyId}/invite-admin`, input),
     onSuccess: (data) => {
-      toast.success('Convite criado');
+      toast.success(t('adminAgencyDetail.toastInviteCreated'));
       setInviteUrl(data.inviteUrl);
       qc.invalidateQueries({ queryKey: ['agency', agencyId] });
     },
@@ -58,7 +60,7 @@ export default function AgencyDetailPage({ params }: { params: Promise<{ agencyI
   const rename = useMutation({
     mutationFn: (newName: string) => apiClient.patch(`/agencies/${agencyId}`, { name: newName }),
     onSuccess: () => {
-      toast.success('Renomeada');
+      toast.success(t('adminAgencyDetail.toastRenamed'));
       setEditing(false);
       qc.invalidateQueries({ queryKey: ['agency', agencyId] });
       qc.invalidateQueries({ queryKey: ['agencies'] });
@@ -71,7 +73,7 @@ export default function AgencyDetailPage({ params }: { params: Promise<{ agencyI
         status: agency?.status === 'active' ? 'suspended' : 'active',
       }),
     onSuccess: () => {
-      toast.success('Status alterado');
+      toast.success(t('adminAgencyDetail.toastStatusChanged'));
       qc.invalidateQueries({ queryKey: ['agency', agencyId] });
       qc.invalidateQueries({ queryKey: ['agencies'] });
     },
@@ -80,7 +82,7 @@ export default function AgencyDetailPage({ params }: { params: Promise<{ agencyI
   const deleteAgency = useMutation({
     mutationFn: () => apiClient.del(`/agencies/${agencyId}`),
     onSuccess: () => {
-      toast.success('Agência arquivada');
+      toast.success(t('adminAgencyDetail.toastAgencyArchived'));
       router.push('/admin');
     },
     onError: (err: Error) => toast.error(err.message),
@@ -89,7 +91,7 @@ export default function AgencyDetailPage({ params }: { params: Promise<{ agencyI
   const deleteClient = useMutation({
     mutationFn: (id: string) => apiClient.del(`/sub-accounts/${id}`),
     onSuccess: () => {
-      toast.success('Cliente arquivado');
+      toast.success(t('adminAgencyDetail.toastClientArchived'));
       qc.invalidateQueries({ queryKey: ['agency', agencyId] });
     },
   });
@@ -109,12 +111,12 @@ export default function AgencyDetailPage({ params }: { params: Promise<{ agencyI
     router.push('/workspace');
   }
 
-  if (!agency) return <div className="p-8 text-muted-foreground">Carregando...</div>;
+  if (!agency) return <div className="p-8 text-muted-foreground">{t('adminAgencyDetail.loading')}</div>;
 
   return (
     <div className="p-8">
       <Link href={'/admin' as never} className="text-sm text-muted-foreground hover:underline">
-        ← Agências
+        ← {t('adminAgencyDetail.backToAgencies')}
       </Link>
 
       <header className="mt-2 flex flex-wrap items-start justify-between gap-3">
@@ -131,7 +133,7 @@ export default function AgencyDetailPage({ params }: { params: Promise<{ agencyI
                 <Check className="h-4 w-4" />
               </Button>
               <Button size="sm" variant="outline" onClick={() => setEditing(false)}>
-                Cancelar
+                {t('adminAgencyDetail.cancel')}
               </Button>
             </div>
           ) : (
@@ -158,20 +160,20 @@ export default function AgencyDetailPage({ params }: { params: Promise<{ agencyI
         </div>
         <div className="flex flex-wrap gap-2">
           <Button variant="default" onClick={enterAgencyPanel}>
-            <ExternalLink className="h-4 w-4" /> Abrir painel da agência
+            <ExternalLink className="h-4 w-4" /> {t('adminAgencyDetail.openAgencyPanel')}
           </Button>
           <Button variant="outline" onClick={() => toggleStatus.mutate()}>
-            {agency.status === 'active' ? 'Suspender' : 'Reativar'}
+            {agency.status === 'active' ? t('adminAgencyDetail.suspend') : t('adminAgencyDetail.reactivate')}
           </Button>
           <Button
             variant="destructive"
             onClick={() => {
-              if (confirm(`Arquivar a agência "${agency.name}"? Todos os clientes dela ficarão inativos.`)) {
+              if (confirm(t('adminAgencyDetail.confirmArchiveAgency').replace('{name}', agency.name))) {
                 deleteAgency.mutate();
               }
             }}
           >
-            <Trash2 className="h-4 w-4" /> Arquivar
+            <Trash2 className="h-4 w-4" /> {t('adminAgencyDetail.archive')}
           </Button>
         </div>
       </header>
@@ -179,9 +181,9 @@ export default function AgencyDetailPage({ params }: { params: Promise<{ agencyI
       <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-base">Gestores</CardTitle>
+            <CardTitle className="text-base">{t('adminAgencyDetail.managers')}</CardTitle>
             <Button size="sm" onClick={() => { setShowInvite(!showInvite); setInviteUrl(null); }}>
-              <UserPlus className="h-4 w-4" /> Convidar
+              <UserPlus className="h-4 w-4" /> {t('adminAgencyDetail.invite')}
             </Button>
           </CardHeader>
           <CardContent className="space-y-2">
@@ -190,7 +192,7 @@ export default function AgencyDetailPage({ params }: { params: Promise<{ agencyI
                 <CardContent className="space-y-2 pt-4">
                   {inviteUrl ? (
                     <>
-                      <p className="text-xs text-muted-foreground">Link de convite:</p>
+                      <p className="text-xs text-muted-foreground">{t('adminAgencyDetail.inviteLink')}</p>
                       <div className="flex gap-2">
                         <Input value={inviteUrl} readOnly className="font-mono text-xs" />
                         <Button
@@ -198,26 +200,26 @@ export default function AgencyDetailPage({ params }: { params: Promise<{ agencyI
                           size="sm"
                           onClick={() => {
                             navigator.clipboard.writeText(inviteUrl);
-                            toast.success('Copiado');
+                            toast.success(t('adminAgencyDetail.toastCopied'));
                           }}
                         >
                           <Copy className="h-4 w-4" />
                         </Button>
                       </div>
                       <Button variant="outline" size="sm" onClick={() => { setInviteUrl(null); setShowInvite(false); }}>
-                        Fechar
+                        {t('adminAgencyDetail.close')}
                       </Button>
                     </>
                   ) : (
                     <>
-                      <Input placeholder="Nome do gestor" value={adminName} onChange={(e) => setAdminName(e.target.value)} />
-                      <Input type="email" placeholder="Email" value={adminEmail} onChange={(e) => setAdminEmail(e.target.value)} />
+                      <Input placeholder={t('adminAgencyDetail.managerNamePlaceholder')} value={adminName} onChange={(e) => setAdminName(e.target.value)} />
+                      <Input type="email" placeholder={t('adminAgencyDetail.emailPlaceholder')} value={adminEmail} onChange={(e) => setAdminEmail(e.target.value)} />
                       <Button
                         size="sm"
                         onClick={() => invite.mutate({ email: adminEmail, fullName: adminName })}
                         disabled={!adminEmail || !adminName || invite.isPending}
                       >
-                        {invite.isPending ? 'Criando...' : 'Gerar convite'}
+                        {invite.isPending ? t('adminAgencyDetail.creating') : t('adminAgencyDetail.generateInvite')}
                       </Button>
                     </>
                   )}
@@ -226,7 +228,7 @@ export default function AgencyDetailPage({ params }: { params: Promise<{ agencyI
             )}
 
             {agency.memberships.length === 0 && (
-              <p className="text-sm text-muted-foreground">Sem gestores. Convide o primeiro.</p>
+              <p className="text-sm text-muted-foreground">{t('adminAgencyDetail.noManagers')}</p>
             )}
             {agency.memberships.map((m) => (
               <div key={m.id} className="flex items-center justify-between rounded-md border p-3">
@@ -246,16 +248,16 @@ export default function AgencyDetailPage({ params }: { params: Promise<{ agencyI
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-base">Clientes ({agency.subAccounts.filter((s) => s.status !== 'archived').length})</CardTitle>
+            <CardTitle className="text-base">{t('adminAgencyDetail.clients')} ({agency.subAccounts.filter((s) => s.status !== 'archived').length})</CardTitle>
             <Link href={`/admin/agencies/${agencyId}/new-client` as never}>
               <Button size="sm">
-                <Plus className="h-4 w-4" /> Novo cliente
+                <Plus className="h-4 w-4" /> {t('adminAgencyDetail.newClient')}
               </Button>
             </Link>
           </CardHeader>
           <CardContent className="space-y-2">
             {agency.subAccounts.length === 0 && (
-              <p className="text-sm text-muted-foreground">Essa agência ainda não tem clientes.</p>
+              <p className="text-sm text-muted-foreground">{t('adminAgencyDetail.noClients')}</p>
             )}
             {agency.subAccounts.map((s) => (
               <div
@@ -274,7 +276,7 @@ export default function AgencyDetailPage({ params }: { params: Promise<{ agencyI
                     size="sm"
                     variant="ghost"
                     onClick={() => {
-                      if (confirm(`Arquivar cliente "${s.name}"?`)) deleteClient.mutate(s.id);
+                      if (confirm(t('adminAgencyDetail.confirmArchiveClient').replace('{name}', s.name))) deleteClient.mutate(s.id);
                     }}
                   >
                     <Trash2 className="h-4 w-4" />

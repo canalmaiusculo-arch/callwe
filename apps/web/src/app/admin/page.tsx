@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { useTranslate } from '@/i18n/provider';
 
 interface Agency {
   id: string;
@@ -21,6 +22,7 @@ interface Agency {
 }
 
 export default function AdminAgenciesPage() {
+  const { t } = useTranslate();
   const qc = useQueryClient();
   const [showForm, setShowForm] = useState(false);
   const [name, setName] = useState('');
@@ -48,7 +50,7 @@ export default function AdminAgenciesPage() {
       return null;
     },
     onSuccess: (url) => {
-      toast.success('Agência criada');
+      toast.success(t('adminAgencies.toastCreated'));
       if (url) setInviteUrl(url);
       qc.invalidateQueries({ queryKey: ['agencies'] });
       if (!url) setShowForm(false);
@@ -75,53 +77,53 @@ export default function AdminAgenciesPage() {
     <div className="p-8">
       <header className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Agências</h1>
-          <p className="mt-1 text-muted-foreground">{agencies.length} agências no sistema</p>
+          <h1 className="text-3xl font-bold">{t('adminAgencies.title')}</h1>
+          <p className="mt-1 text-muted-foreground">
+            {agencies.length} {t('adminAgencies.countSuffix')}
+          </p>
         </div>
         <Button onClick={() => setShowForm(!showForm)}>
-          <Plus className="h-4 w-4" /> Nova agência
+          <Plus className="h-4 w-4" /> {t('adminAgencies.newAgency')}
         </Button>
       </header>
 
       {showForm && (
         <Card className="mb-6">
           <CardHeader>
-            <CardTitle className="text-base">Cadastrar nova agência</CardTitle>
+            <CardTitle className="text-base">{t('adminAgencies.formTitle')}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             {inviteUrl ? (
               <>
-                <p className="text-sm">
-                  Agência criada. Envie este link ao gestor comercial para ele ativar a conta:
-                </p>
+                <p className="text-sm">{t('adminAgencies.inviteLinkInfo')}</p>
                 <div className="flex gap-2">
                   <Input value={inviteUrl} readOnly className="font-mono text-xs" />
                   <Button
                     variant="outline"
                     onClick={() => {
                       navigator.clipboard.writeText(inviteUrl);
-                      toast.success('Copiado');
+                      toast.success(t('adminAgencies.toastCopied'));
                     }}
                   >
                     <Copy className="h-4 w-4" />
                   </Button>
                 </div>
                 <Button variant="outline" onClick={reset}>
-                  Fechar
+                  {t('adminAgencies.close')}
                 </Button>
               </>
             ) : (
               <>
                 <div>
-                  <label className="text-sm font-medium">Nome da agência</label>
-                  <Input value={name} onChange={(e) => handleName(e.target.value)} placeholder="Ex: RK Pulse Digital" />
+                  <label className="text-sm font-medium">{t('adminAgencies.nameLabel')}</label>
+                  <Input value={name} onChange={(e) => handleName(e.target.value)} placeholder={t('adminAgencies.namePlaceholder')} />
                 </div>
                 <div>
-                  <label className="text-sm font-medium">Slug</label>
+                  <label className="text-sm font-medium">{t('adminAgencies.slugLabel')}</label>
                   <Input value={slug} onChange={(e) => setSlug(e.target.value)} placeholder="rk-pulse" />
                 </div>
                 <div>
-                  <label className="text-sm font-medium">Email de cobrança</label>
+                  <label className="text-sm font-medium">{t('adminAgencies.billingEmailLabel')}</label>
                   <Input
                     type="email"
                     value={billingEmail}
@@ -130,11 +132,9 @@ export default function AdminAgenciesPage() {
                   />
                 </div>
                 <div className="border-t pt-3">
-                  <p className="mb-2 text-xs text-muted-foreground">
-                    Convide o primeiro gestor (opcional, pode convidar depois)
-                  </p>
+                  <p className="mb-2 text-xs text-muted-foreground">{t('adminAgencies.inviteManagerHint')}</p>
                   <div className="space-y-2">
-                    <Input value={adminName} onChange={(e) => setAdminName(e.target.value)} placeholder="Nome do gestor" />
+                    <Input value={adminName} onChange={(e) => setAdminName(e.target.value)} placeholder={t('adminAgencies.managerNamePlaceholder')} />
                     <Input
                       type="email"
                       value={adminEmail}
@@ -148,10 +148,10 @@ export default function AdminAgenciesPage() {
                     onClick={() => create.mutate()}
                     disabled={!name || !slug || !billingEmail || create.isPending}
                   >
-                    {create.isPending ? 'Criando...' : 'Criar agência'}
+                    {create.isPending ? t('adminAgencies.creating') : t('adminAgencies.createButton')}
                   </Button>
                   <Button variant="outline" onClick={reset}>
-                    Cancelar
+                    {t('adminAgencies.cancel')}
                   </Button>
                 </div>
               </>
@@ -164,7 +164,7 @@ export default function AdminAgenciesPage() {
         {agencies.length === 0 && (
           <Card>
             <CardContent className="p-6 text-center text-sm text-muted-foreground">
-              Nenhuma agência cadastrada.
+              {t('adminAgencies.empty')}
             </CardContent>
           </Card>
         )}
@@ -180,7 +180,7 @@ export default function AdminAgenciesPage() {
                 </div>
                 <div className="flex items-center gap-3">
                   <span className="text-xs text-muted-foreground">
-                    {a._count.subAccounts} clientes
+                    {a._count.subAccounts} {t('adminAgencies.clientsSuffix')}
                   </span>
                   <Badge variant={a.status === 'active' ? 'success' : 'secondary'}>{a.status}</Badge>
                   <ChevronRight className="h-4 w-4 text-muted-foreground" />

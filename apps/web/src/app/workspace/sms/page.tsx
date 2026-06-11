@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { MessageSquare } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
 import { useTenantStore } from '@/stores/tenant-store';
+import { useTranslate } from '@/i18n/provider';
 
 interface SmsInteraction {
   id: string;
@@ -15,6 +16,7 @@ interface SmsInteraction {
 }
 
 export default function SmsPage() {
+  const { t } = useTranslate();
   const subAccountId = useTenantStore((s) => s.subAccountId);
   const { data: messages = [], isLoading } = useQuery<SmsInteraction[]>({
     queryKey: ['sms', subAccountId],
@@ -25,11 +27,13 @@ export default function SmsPage() {
   return (
     <div className="p-8">
       <header className="mb-6">
-        <h1 className="text-3xl font-bold">SMS</h1>
-        <p className="mt-1 text-muted-foreground">{messages.length} mensagens</p>
+        <h1 className="text-3xl font-bold">{t('wsSms.title')}</h1>
+        <p className="mt-1 text-muted-foreground">
+          {messages.length} {t('wsSms.messagesCount')}
+        </p>
       </header>
 
-      {isLoading && <p className="text-muted-foreground">Carregando...</p>}
+      {isLoading && <p className="text-muted-foreground">{t('wsSms.loading')}</p>}
 
       <div className="space-y-2">
         {messages.map((m) => (
@@ -38,7 +42,7 @@ export default function SmsPage() {
             <div className="flex-1">
               <div className="flex items-center justify-between text-xs text-muted-foreground">
                 <span>
-                  {m.direction === 'inbound' ? 'De' : 'Para'}:{' '}
+                  {m.direction === 'inbound' ? t('wsSms.from') : t('wsSms.to')}:{' '}
                   <span className="font-mono">
                     {m.direction === 'inbound' ? m.fromNumber : m.toNumber}
                   </span>

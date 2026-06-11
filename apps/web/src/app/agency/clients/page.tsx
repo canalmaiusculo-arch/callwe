@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { HelpHint } from '@/components/help-hint';
 import { useAdminViewStore } from '@/stores/admin-view-store';
+import { useTranslate } from '@/i18n/provider';
 
 interface Client {
   id: string;
@@ -22,6 +23,7 @@ interface Client {
 }
 
 export default function ClientsPage() {
+  const { t } = useTranslate();
   const qc = useQueryClient();
   const [showForm, setShowForm] = useState(false);
   const [name, setName] = useState('');
@@ -36,7 +38,7 @@ export default function ClientsPage() {
   const create = useMutation({
     mutationFn: (input: { name: string; slug: string }) => apiClient.post('/sub-accounts', input),
     onSuccess: () => {
-      toast.success('Cliente criado');
+      toast.success(t('agencyClients.toastCreated'));
       qc.invalidateQueries({ queryKey: ['agency-clients'] });
       setShowForm(false);
       setName('');
@@ -57,20 +59,20 @@ export default function ClientsPage() {
       <header className="mb-6 flex items-start justify-between">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-3xl font-bold">Clientes</h1>
+            <h1 className="text-3xl font-bold">{t('agencyClients.title')}</h1>
             <HelpHint topic="clientes" />
           </div>
-          <p className="mt-1 text-muted-foreground">{clients.length} sob sua agência.</p>
+          <p className="mt-1 text-muted-foreground">{t('agencyClients.subtitle').replace('{count}', String(clients.length))}</p>
         </div>
         <Button onClick={() => setShowForm((v) => !v)}>
-          <Plus className="h-4 w-4" /> Novo cliente
+          <Plus className="h-4 w-4" /> {t('agencyClients.newClient')}
         </Button>
       </header>
 
       {showForm && (
         <Card className="mb-6">
           <CardHeader>
-            <CardTitle className="text-base">Novo cliente</CardTitle>
+            <CardTitle className="text-base">{t('agencyClients.newClient')}</CardTitle>
           </CardHeader>
           <CardContent>
             <form
@@ -82,19 +84,19 @@ export default function ClientsPage() {
               className="flex flex-col gap-3 sm:flex-row sm:items-end"
             >
               <div className="flex-1">
-                <label className="text-xs font-medium text-muted-foreground">Nome</label>
-                <Input value={name} onChange={(e) => handleNameChange(e.target.value)} placeholder="Ex.: Padaria do João" required />
+                <label className="text-xs font-medium text-muted-foreground">{t('agencyClients.nameLabel')}</label>
+                <Input value={name} onChange={(e) => handleNameChange(e.target.value)} placeholder={t('agencyClients.namePlaceholder')} required />
               </div>
               <div className="flex-1">
-                <label className="text-xs font-medium text-muted-foreground">Identificador (slug)</label>
+                <label className="text-xs font-medium text-muted-foreground">{t('agencyClients.slugLabel')}</label>
                 <Input value={slug} onChange={(e) => setSlug(slugify(e.target.value))} placeholder="padaria-do-joao" required />
               </div>
               <Button type="submit" disabled={create.isPending}>
-                {create.isPending ? 'Criando...' : 'Criar'}
+                {create.isPending ? t('agencyClients.creating') : t('agencyClients.create')}
               </Button>
             </form>
             <p className="mt-2 text-xs text-muted-foreground">
-              Depois de criar, abra o cliente para convidar o acesso dele e atribuir números.
+              {t('agencyClients.formHint')}
             </p>
           </CardContent>
         </Card>
@@ -104,7 +106,7 @@ export default function ClientsPage() {
         {clients.length === 0 && (
           <Card>
             <CardContent className="p-6 text-center text-sm text-muted-foreground">
-              Nenhum cliente atribuído à sua agência ainda.
+              {t('agencyClients.empty')}
             </CardContent>
           </Card>
         )}

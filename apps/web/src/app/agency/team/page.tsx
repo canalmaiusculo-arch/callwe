@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { useAdminViewStore } from '@/stores/admin-view-store';
+import { useTranslate } from '@/i18n/provider';
 
 interface TeamMember {
   id: string;
@@ -32,6 +33,7 @@ interface SubAccount {
 }
 
 export default function TeamPage() {
+  const { t } = useTranslate();
   const qc = useQueryClient();
   const [showInvite, setShowInvite] = useState(false);
   const [email, setEmail] = useState('');
@@ -56,7 +58,7 @@ export default function TeamPage() {
     mutationFn: (input: { email: string; fullName: string; subAccountIds: string[]; role: 'agent' | 'client_viewer' }) =>
       apiClient.post<{ inviteUrl: string }>('/team/invite', input),
     onSuccess: (data) => {
-      toast.success('Convite criado');
+      toast.success(t('agencyTeam.toastInviteCreated'));
       setInviteUrl(data.inviteUrl);
       setEmail('');
       setFullName('');
@@ -69,7 +71,7 @@ export default function TeamPage() {
   const remove = useMutation({
     mutationFn: (userId: string) => apiClient.del(`/team/${userId}`),
     onSuccess: () => {
-      toast.success('Usuário removido');
+      toast.success(t('agencyTeam.toastUserRemoved'));
       qc.invalidateQueries({ queryKey: ['team'] });
     },
   });
@@ -77,7 +79,7 @@ export default function TeamPage() {
   function copyInviteUrl() {
     if (!inviteUrl) return;
     navigator.clipboard.writeText(inviteUrl);
-    toast.success('Link copiado');
+    toast.success(t('agencyTeam.toastLinkCopied'));
   }
 
   function toggleSub(id: string) {
@@ -90,22 +92,22 @@ export default function TeamPage() {
   return (
     <div className="p-8">
       <header className="mb-6">
-        <h1 className="text-3xl font-bold">Time alocado</h1>
+        <h1 className="text-3xl font-bold">{t('agencyTeam.title')}</h1>
         <p className="mt-1 text-muted-foreground">
-          {team.length} pessoas atendendo seus clientes. Para cadastrar novos atendentes, fale com a CallWe.
+          {team.length} {t('agencyTeam.subtitle')}
         </p>
       </header>
 
       {false && showInvite && (
         <Card className="mb-6">
           <CardHeader>
-            <CardTitle className="text-base">Novo convite</CardTitle>
+            <CardTitle className="text-base">{t('agencyTeam.newInvite')}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             {inviteUrl ? (
               <div>
                 <p className="text-sm">
-                  Link de convite gerado. Envie para o atendente:
+                  {t('agencyTeam.inviteLinkGenerated')}
                 </p>
                 <div className="mt-2 flex gap-2">
                   <Input value={inviteUrl ?? ''} readOnly className="font-mono text-xs" />
@@ -114,41 +116,41 @@ export default function TeamPage() {
                   </Button>
                 </div>
                 <Button className="mt-3" variant="outline" onClick={() => { setInviteUrl(null); setShowInvite(false); }}>
-                  Fechar
+                  {t('agencyTeam.close')}
                 </Button>
               </div>
             ) : (
               <>
                 <div>
-                  <label className="text-sm font-medium">Tipo de acesso</label>
+                  <label className="text-sm font-medium">{t('agencyTeam.accessType')}</label>
                   <div className="mt-1 flex gap-2">
                     <button
                       type="button"
                       onClick={() => setInviteRole('agent')}
                       className={`flex-1 rounded-md border p-2 text-sm ${inviteRole === 'agent' ? 'border-primary bg-primary/10' : ''}`}
                     >
-                      Atendente (faz/atende chamadas)
+                      {t('agencyTeam.roleAgent')}
                     </button>
                     <button
                       type="button"
                       onClick={() => setInviteRole('client_viewer')}
                       className={`flex-1 rounded-md border p-2 text-sm ${inviteRole === 'client_viewer' ? 'border-primary bg-primary/10' : ''}`}
                     >
-                      Cliente final (só visualização)
+                      {t('agencyTeam.roleClientViewer')}
                     </button>
                   </div>
                 </div>
                 <div>
-                  <label className="text-sm font-medium">Nome completo</label>
-                  <Input value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Pedro da Cruz" />
+                  <label className="text-sm font-medium">{t('agencyTeam.fullName')}</label>
+                  <Input value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder={t('agencyTeam.fullNamePlaceholder')} />
                 </div>
                 <div>
-                  <label className="text-sm font-medium">Email</label>
-                  <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="pedro@empresa.com" />
+                  <label className="text-sm font-medium">{t('agencyTeam.email')}</label>
+                  <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder={t('agencyTeam.emailPlaceholder')} />
                 </div>
                 <div>
                   <label className="text-sm font-medium">
-                    Atende quais clientes? ({selectedSubs.length} selecionado{selectedSubs.length !== 1 ? 's' : ''})
+                    {t('agencyTeam.servesWhichClients')} ({selectedSubs.length} {selectedSubs.length !== 1 ? t('agencyTeam.selectedPlural') : t('agencyTeam.selectedSingular')})
                   </label>
                   <div className="mt-1 max-h-48 space-y-1 overflow-auto rounded-md border p-2">
                     {subAccounts.map((s) => (
@@ -168,10 +170,10 @@ export default function TeamPage() {
                     onClick={() => invite.mutate({ email, fullName, subAccountIds: selectedSubs, role: inviteRole })}
                     disabled={!email || !fullName || invite.isPending}
                   >
-                    {invite.isPending ? 'Criando...' : 'Gerar convite'}
+                    {invite.isPending ? t('agencyTeam.creating') : t('agencyTeam.generateInvite')}
                   </Button>
                   <Button variant="outline" onClick={() => setShowInvite(false)}>
-                    Cancelar
+                    {t('agencyTeam.cancel')}
                   </Button>
                 </div>
               </>
@@ -182,7 +184,7 @@ export default function TeamPage() {
 
       {admins.length > 0 && (
         <section className="mb-6">
-          <h2 className="mb-2 text-sm font-medium uppercase text-muted-foreground">Admins</h2>
+          <h2 className="mb-2 text-sm font-medium uppercase text-muted-foreground">{t('agencyTeam.admins')}</h2>
           <div className="space-y-2">
             {admins.map((u) => (
               <UserRow key={u.id} user={u} subAccounts={subAccounts} onRemove={() => remove.mutate(u.id)} />
@@ -192,12 +194,12 @@ export default function TeamPage() {
       )}
 
       <section>
-        <h2 className="mb-2 text-sm font-medium uppercase text-muted-foreground">Atendentes</h2>
+        <h2 className="mb-2 text-sm font-medium uppercase text-muted-foreground">{t('agencyTeam.agents')}</h2>
         <div className="space-y-2">
           {agents.length === 0 && (
             <Card>
               <CardContent className="p-6 text-center text-sm text-muted-foreground">
-                Nenhum atendente convidado ainda.
+                {t('agencyTeam.noAgentsYet')}
               </CardContent>
             </Card>
           )}
@@ -227,6 +229,7 @@ function UserRow({
   onRemove: () => void;
   isAgent?: boolean;
 }) {
+  const { t } = useTranslate();
   const [editing, setEditing] = useState(false);
   const subNames = user.memberships
     .filter((m) => m.subAccountName)
@@ -240,18 +243,18 @@ function UserRow({
           <div className="flex-1">
             <p className="font-medium">{user.fullName}</p>
             <p className="text-xs text-muted-foreground">{user.email}</p>
-            {subNames && <p className="mt-1 text-xs text-muted-foreground">Atende: {subNames}</p>}
+            {subNames && <p className="mt-1 text-xs text-muted-foreground">{t('agencyTeam.serves')} {subNames}</p>}
           </div>
           <div className="flex items-center gap-2">
             <Badge variant={user.status === 'active' ? 'success' : user.status === 'invited' ? 'warning' : 'secondary'}>
-              {user.status}
+              {t(`agencyTeam.status_${user.status}`)}
             </Badge>
             {isAgent && (
-              <Button size="sm" variant="outline" onClick={() => setEditing(true)} title="Editar clientes atendidos">
+              <Button size="sm" variant="outline" onClick={() => setEditing(true)} title={t('agencyTeam.editServedClients')}>
                 <Pencil className="h-4 w-4" />
               </Button>
             )}
-            <Button size="sm" variant="ghost" onClick={onRemove} title="Remover do time">
+            <Button size="sm" variant="ghost" onClick={onRemove} title={t('agencyTeam.removeFromTeam')}>
               <UserX className="h-4 w-4" />
             </Button>
           </div>
@@ -273,6 +276,7 @@ function EditAgentSubAccounts({
   subAccounts: SubAccount[];
   onClose: () => void;
 }) {
+  const { t } = useTranslate();
   const qc = useQueryClient();
   const initial = user.memberships
     .filter((m) => m.subAccountId)
@@ -289,7 +293,7 @@ function EditAgentSubAccounts({
       apiClient.post(`/team/${user.id}/sub-accounts`, { subAccountIds: Array.from(selected) }),
     onSuccess: (r: unknown) => {
       const res = r as { added: number; removed: number; total: number };
-      toast.success(`Atualizado: +${res.added} / −${res.removed} → ${res.total} clientes`);
+      toast.success(`${t('agencyTeam.toastUpdated')}: +${res.added} / −${res.removed} → ${res.total} ${t('agencyTeam.clients')}`);
       qc.invalidateQueries({ queryKey: ['team'] });
       onClose();
     },
@@ -306,8 +310,8 @@ function EditAgentSubAccounts({
       <Card className="max-h-[80vh] w-full max-w-lg overflow-hidden" onClick={(e) => e.stopPropagation()}>
         <CardHeader className="flex flex-row items-center justify-between space-y-0">
           <div>
-            <CardTitle className="text-base">Clientes atendidos por {user.fullName}</CardTitle>
-            <p className="mt-0.5 text-xs text-muted-foreground">{selected.size} de {subAccounts.length} selecionados</p>
+            <CardTitle className="text-base">{t('agencyTeam.clientsServedBy')} {user.fullName}</CardTitle>
+            <p className="mt-0.5 text-xs text-muted-foreground">{selected.size} {t('agencyTeam.of')} {subAccounts.length} {t('agencyTeam.selectedPlural')}</p>
           </div>
           <Button size="sm" variant="ghost" onClick={onClose}>
             <XIcon className="h-4 w-4" />
@@ -315,14 +319,14 @@ function EditAgentSubAccounts({
         </CardHeader>
         <CardContent className="flex max-h-[60vh] flex-col gap-2 overflow-hidden">
           <div className="flex items-center gap-2">
-            <Input placeholder="Filtrar clientes..." value={filter} onChange={(e) => setFilter(e.target.value)} />
+            <Input placeholder={t('agencyTeam.filterClientsPlaceholder')} value={filter} onChange={(e) => setFilter(e.target.value)} />
             <Button size="sm" variant="outline" onClick={toggleAll}>
-              {selected.size === visible.length && visible.length > 0 ? 'Limpar' : 'Todos'}
+              {selected.size === visible.length && visible.length > 0 ? t('agencyTeam.clear') : t('agencyTeam.all')}
             </Button>
           </div>
           <div className="flex-1 space-y-0.5 overflow-auto rounded-md border p-2">
             {visible.length === 0 && (
-              <p className="py-4 text-center text-sm text-muted-foreground">Nenhum cliente bate com o filtro.</p>
+              <p className="py-4 text-center text-sm text-muted-foreground">{t('agencyTeam.noClientsMatchFilter')}</p>
             )}
             {visible.map((s) => (
               <label key={s.id} className="flex cursor-pointer items-center gap-2 rounded p-1.5 hover:bg-muted/40">
@@ -343,9 +347,9 @@ function EditAgentSubAccounts({
             ))}
           </div>
           <div className="flex items-center justify-end gap-2">
-            <Button size="sm" variant="ghost" onClick={onClose}>Cancelar</Button>
+            <Button size="sm" variant="ghost" onClick={onClose}>{t('agencyTeam.cancel')}</Button>
             <Button size="sm" onClick={() => sync.mutate()} disabled={sync.isPending}>
-              {sync.isPending ? 'Salvando...' : 'Salvar'}
+              {sync.isPending ? t('agencyTeam.saving') : t('agencyTeam.save')}
             </Button>
           </div>
         </CardContent>

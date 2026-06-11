@@ -7,15 +7,16 @@ import { toast } from 'sonner';
 import { apiClient } from '@/lib/api-client';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { useTranslate } from '@/i18n/provider';
 
 type LeadStatus = 'new' | 'contacted' | 'qualified' | 'won' | 'lost';
 
-const COLUMNS: { key: LeadStatus; label: string; color: string }[] = [
-  { key: 'new', label: 'Novos', color: 'border-blue-300 bg-blue-50' },
-  { key: 'contacted', label: 'Contatados', color: 'border-purple-300 bg-purple-50' },
-  { key: 'qualified', label: 'Qualificados', color: 'border-amber-300 bg-amber-50' },
-  { key: 'won', label: 'Ganhos', color: 'border-emerald-300 bg-emerald-50' },
-  { key: 'lost', label: 'Perdidos', color: 'border-red-300 bg-red-50' },
+const COLUMNS: { key: LeadStatus; labelKey: string; color: string }[] = [
+  { key: 'new', labelKey: 'columnNew', color: 'border-blue-300 bg-blue-50' },
+  { key: 'contacted', labelKey: 'columnContacted', color: 'border-purple-300 bg-purple-50' },
+  { key: 'qualified', labelKey: 'columnQualified', color: 'border-amber-300 bg-amber-50' },
+  { key: 'won', labelKey: 'columnWon', color: 'border-emerald-300 bg-emerald-50' },
+  { key: 'lost', labelKey: 'columnLost', color: 'border-red-300 bg-red-50' },
 ];
 
 interface Lead {
@@ -30,6 +31,7 @@ interface Lead {
 }
 
 export default function LeadsKanbanPage() {
+  const { t } = useTranslate();
   const qc = useQueryClient();
   const { data: leads = [] } = useQuery<Lead[]>({
     queryKey: ['leads-kanban'],
@@ -41,7 +43,7 @@ export default function LeadsKanbanPage() {
     mutationFn: ({ id, status }: { id: string; status: LeadStatus }) =>
       apiClient.patch(`/leads/${id}`, { status }),
     onSuccess: () => {
-      toast.success('Status atualizado');
+      toast.success(t('leadsKanban.statusUpdated'));
       qc.invalidateQueries({ queryKey: ['leads-kanban'] });
     },
     onError: (err: Error) => toast.error(err.message),
@@ -73,12 +75,12 @@ export default function LeadsKanbanPage() {
     <div className="p-4 md:p-8">
       <header className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Leads — Kanban</h1>
-          <p className="mt-1 text-muted-foreground">{leads.length} leads · arraste pra mudar status</p>
+          <h1 className="text-3xl font-bold">{t('leadsKanban.title')}</h1>
+          <p className="mt-1 text-muted-foreground">{leads.length} {t('leadsKanban.subtitle')}</p>
         </div>
         <Link href={'/workspace/leads' as never}>
           <Button variant="outline">
-            <List className="h-4 w-4" /> Ver em lista
+            <List className="h-4 w-4" /> {t('leadsKanban.viewAsList')}
           </Button>
         </Link>
       </header>
@@ -92,8 +94,8 @@ export default function LeadsKanbanPage() {
             className={`flex flex-col rounded-lg border-2 ${col.color} min-h-[400px]`}
           >
             <div className="border-b-2 border-inherit px-3 py-2">
-              <h3 className="text-sm font-semibold">{col.label}</h3>
-              <p className="text-xs text-muted-foreground">{byStatus[col.key].length} leads</p>
+              <h3 className="text-sm font-semibold">{t(`leadsKanban.${col.labelKey}`)}</h3>
+              <p className="text-xs text-muted-foreground">{byStatus[col.key].length} {t('leadsKanban.leadsCount')}</p>
             </div>
             <div className="flex-1 space-y-2 p-2 overflow-auto">
               {byStatus[col.key].map((lead) => (
@@ -105,7 +107,7 @@ export default function LeadsKanbanPage() {
                 >
                   <CardContent className="p-3">
                     <Link href={`/workspace/leads/${lead.id}` as never} className="block">
-                      <p className="truncate text-sm font-medium">{lead.name ?? 'Sem nome'}</p>
+                      <p className="truncate text-sm font-medium">{lead.name ?? t('leadsKanban.noName')}</p>
                       {lead.phoneE164 && (
                         <div className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
                           <Phone className="h-3 w-3" />

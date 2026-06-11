@@ -19,6 +19,7 @@ import { Badge } from '@/components/ui/badge';
 import { MiniLineChart } from '@/components/line-chart';
 import { HelpHint } from '@/components/help-hint';
 import { useTenantStore } from '@/stores/tenant-store';
+import { useTranslate } from '@/i18n/provider';
 
 interface RecentCall {
   at: string;
@@ -68,21 +69,21 @@ const EMPTY: DashboardStats = {
 };
 
 const SOURCE_LABEL: Record<string, string> = {
-  inbound_call: 'Chamada entrante', outbound_call: 'Chamada saída', meta_ads: 'Meta Ads',
-  sms: 'SMS', manual: 'Manual', import: 'Importação', api: 'API', form: 'Formulário',
+  inbound_call: 'clientDash.sourceInboundCall', outbound_call: 'clientDash.sourceOutboundCall', meta_ads: 'clientDash.sourceMetaAds',
+  sms: 'clientDash.sourceSms', manual: 'clientDash.sourceManual', import: 'clientDash.sourceImport', api: 'clientDash.sourceApi', form: 'clientDash.sourceForm',
 };
 const STATUS_LABEL: Record<string, string> = {
-  new: 'Novo', contacted: 'Contatado', qualified: 'Qualificado', won: 'Ganho', lost: 'Perdido',
+  new: 'clientDash.statusNew', contacted: 'clientDash.statusContacted', qualified: 'clientDash.statusQualified', won: 'clientDash.statusWon', lost: 'clientDash.statusLost',
 };
 const STATUS_ORDER = ['new', 'contacted', 'qualified', 'won', 'lost'];
 const STATUS_COLOR: Record<string, string> = {
   new: 'bg-slate-400', contacted: 'bg-blue-500', qualified: 'bg-amber-500',
   won: 'bg-emerald-500', lost: 'bg-red-500',
 };
-const SENTIMENT: Record<string, { label: string; variant: 'success' | 'secondary' | 'destructive' }> = {
-  positive: { label: 'positivo', variant: 'success' },
-  neutral: { label: 'neutro', variant: 'secondary' },
-  negative: { label: 'negativo', variant: 'destructive' },
+const SENTIMENT: Record<string, { labelKey: string; variant: 'success' | 'secondary' | 'destructive' }> = {
+  positive: { labelKey: 'clientDash.sentimentPositive', variant: 'success' },
+  neutral: { labelKey: 'clientDash.sentimentNeutral', variant: 'secondary' },
+  negative: { labelKey: 'clientDash.sentimentNegative', variant: 'destructive' },
 };
 
 function fmtTime(iso: string) {
@@ -93,6 +94,7 @@ function fmtClock(s: number) {
 }
 
 export default function ClientDashboard() {
+  const { t } = useTranslate();
   const { setTenant, subAccountId } = useTenantStore();
 
   const { data: mySubs } = useQuery<Array<{ id: string; name: string }>>({
@@ -119,46 +121,46 @@ export default function ClientDashboard() {
   return (
     <div className="p-4 md:p-8">
       <div className="flex items-center gap-2">
-        <h1 className="text-3xl font-bold">Meu painel</h1>
+        <h1 className="text-3xl font-bold">{t('clientDash.title')}</h1>
         <HelpHint topic="dashboard" />
       </div>
-      <p className="mt-1 text-muted-foreground">Visão de hoje e dos últimos 7 dias</p>
+      <p className="mt-1 text-muted-foreground">{t('clientDash.subtitle')}</p>
 
       {/* KPIs do dia (com detalhes no hover) */}
       <div className="mt-6 grid grid-cols-2 gap-3 md:grid-cols-4">
-        <KpiCard title="Leads hoje" value={s.leadsToday} icon={Users}>
+        <KpiCard title={t('clientDash.leadsToday')} value={s.leadsToday} icon={Users}>
           <DetailLeads rows={s.details.recentLeads} />
         </KpiCard>
-        <KpiCard title="Chamadas hoje" value={s.callsToday} icon={Phone}>
+        <KpiCard title={t('clientDash.callsToday')} value={s.callsToday} icon={Phone}>
           <DetailCalls rows={s.details.recentCalls} />
         </KpiCard>
-        <KpiCard title="Perdidas hoje" value={s.missedCalls} icon={PhoneMissed} tone="warning">
+        <KpiCard title={t('clientDash.missedToday')} value={s.missedCalls} icon={PhoneMissed} tone="warning">
           <DetailMissed rows={s.details.missed} />
         </KpiCard>
-        <KpiCard title="TMA" value={fmtClock(s.avgHandleTime)} icon={Clock}>
+        <KpiCard title={t('clientDash.aht')} value={fmtClock(s.avgHandleTime)} icon={Clock}>
           <DetailTalk talk={s.details.talk} wait={s.avgWaitingTime} />
         </KpiCard>
       </div>
 
       {/* KPIs da semana */}
       <div className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-4">
-        <Kpi title="Chamadas (7d)" value={s.callsWeek} icon={Phone} sub={`${s.inboundWeek} receb. · ${s.outboundWeek} feitas`} />
-        <Kpi title="Leads (7d)" value={s.leadsWeek} icon={Users} />
-        <Kpi title="Leads fechados" value={s.wonWeek} icon={Trophy} sub={`${s.qualifiedWeek} qualificados`} />
-        <Kpi title="Conversão" value={`${s.conversionRateWon}%`} icon={Target} sub={`win rate ${s.winRate}%`} />
+        <Kpi title={t('clientDash.callsWeek')} value={s.callsWeek} icon={Phone} sub={`${s.inboundWeek} ${t('clientDash.received')} · ${s.outboundWeek} ${t('clientDash.made')}`} />
+        <Kpi title={t('clientDash.leadsWeek')} value={s.leadsWeek} icon={Users} />
+        <Kpi title={t('clientDash.leadsWon')} value={s.wonWeek} icon={Trophy} sub={`${s.qualifiedWeek} ${t('clientDash.qualified')}`} />
+        <Kpi title={t('clientDash.conversion')} value={`${s.conversionRateWon}%`} icon={Target} sub={`${t('clientDash.winRate')} ${s.winRate}%`} />
       </div>
 
       {/* Feedback da IA */}
       <Card className="mt-6">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
-            <Sparkles className="h-4 w-4 text-secondary" /> Resumo das ligações (IA)
+            <Sparkles className="h-4 w-4 text-secondary" /> {t('clientDash.aiSummaryTitle')}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           {aiCalls.length === 0 && (
             <p className="text-sm text-muted-foreground">
-              Os resumos gerados por IA aparecerão aqui conforme as ligações forem analisadas.
+              {t('clientDash.aiSummaryEmpty')}
             </p>
           )}
           {aiCalls.map((c, i) => (
@@ -174,9 +176,9 @@ export default function ClientDashboard() {
                   <span className="text-xs text-muted-foreground">{fmtTime(c.at)}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  {c.aiScore != null && <Badge variant="outline">nota {c.aiScore}</Badge>}
+                  {c.aiScore != null && <Badge variant="outline">{t('clientDash.score')} {c.aiScore}</Badge>}
                   {c.sentiment && SENTIMENT[c.sentiment] && (
-                    <Badge variant={SENTIMENT[c.sentiment]!.variant}>{SENTIMENT[c.sentiment]!.label}</Badge>
+                    <Badge variant={SENTIMENT[c.sentiment]!.variant}>{t(SENTIMENT[c.sentiment]!.labelKey)}</Badge>
                   )}
                 </div>
               </div>
@@ -189,15 +191,15 @@ export default function ClientDashboard() {
       {/* Gráficos */}
       <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
         <Card>
-          <CardHeader><CardTitle>Volume de chamadas — 7 dias</CardTitle></CardHeader>
+          <CardHeader><CardTitle>{t('clientDash.callVolumeTitle')}</CardTitle></CardHeader>
           <CardContent><MiniLineChart data={s.series} height={140} color="#3b82f6" /></CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle>Horários de pico</CardTitle>
+            <CardTitle>{t('clientDash.peakHoursTitle')}</CardTitle>
             <p className="text-xs text-muted-foreground">
-              {peakHour.count > 0 ? `Mais movimento às ${String(peakHour.hour).padStart(2, '0')}h` : 'Sem dados ainda'}
+              {peakHour.count > 0 ? `${t('clientDash.peakHoursBusiest')} ${String(peakHour.hour).padStart(2, '0')}h` : t('clientDash.peakHoursNoData')}
             </p>
           </CardHeader>
           <CardContent>
@@ -218,7 +220,7 @@ export default function ClientDashboard() {
       <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
         {/* Funil */}
         <Card>
-          <CardHeader><CardTitle>Funil de leads</CardTitle></CardHeader>
+          <CardHeader><CardTitle>{t('clientDash.funnelTitle')}</CardTitle></CardHeader>
           <CardContent className="space-y-2">
             {STATUS_ORDER.map((st) => {
               const row = s.statusBreakdown.find((r) => r.status === st);
@@ -227,7 +229,7 @@ export default function ClientDashboard() {
               return (
                 <div key={st}>
                   <div className="flex items-center justify-between text-sm">
-                    <span>{STATUS_LABEL[st] ?? st}</span>
+                    <span>{STATUS_LABEL[st] ? t(STATUS_LABEL[st]!) : st}</span>
                     <span className="text-muted-foreground">{count} · {percent}%</span>
                   </div>
                   <div className="mt-1 h-2 w-full overflow-hidden rounded-full bg-muted">
@@ -241,13 +243,13 @@ export default function ClientDashboard() {
 
         {/* Origem */}
         <Card>
-          <CardHeader><CardTitle>Leads por origem (7d)</CardTitle></CardHeader>
+          <CardHeader><CardTitle>{t('clientDash.bySourceTitle')}</CardTitle></CardHeader>
           <CardContent className="space-y-2">
-            {s.leadsBySource.length === 0 && <p className="text-sm text-muted-foreground">Sem leads no período.</p>}
+            {s.leadsBySource.length === 0 && <p className="text-sm text-muted-foreground">{t('clientDash.bySourceEmpty')}</p>}
             {s.leadsBySource.map((r) => (
               <div key={r.source}>
                 <div className="flex items-center justify-between text-sm">
-                  <span>{SOURCE_LABEL[r.source] ?? r.source}</span>
+                  <span>{SOURCE_LABEL[r.source] ? t(SOURCE_LABEL[r.source]!) : r.source}</span>
                   <span className="font-medium">{r.count}</span>
                 </div>
                 <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-muted">
@@ -308,10 +310,12 @@ function KpiCard({
 }
 
 function Empty() {
-  return <p className="text-muted-foreground">Sem registros no período.</p>;
+  const { t } = useTranslate();
+  return <p className="text-muted-foreground">{t('clientDash.emptyPeriod')}</p>;
 }
 
 function DetailLeads({ rows }: { rows: DashboardStats['details']['recentLeads'] }) {
+  const { t } = useTranslate();
   if (rows.length === 0) return <Empty />;
   return (
     <ul className="space-y-1.5">
@@ -319,7 +323,7 @@ function DetailLeads({ rows }: { rows: DashboardStats['details']['recentLeads'] 
         <li key={i} className="flex items-center justify-between gap-3">
           <span className="truncate font-medium">{r.name}</span>
           <span className="shrink-0 text-muted-foreground">
-            {SOURCE_LABEL[r.source] ?? r.source} · {STATUS_LABEL[r.status] ?? r.status}
+            {SOURCE_LABEL[r.source] ? t(SOURCE_LABEL[r.source]!) : r.source} · {STATUS_LABEL[r.status] ? t(STATUS_LABEL[r.status]!) : r.status}
           </span>
         </li>
       ))}
@@ -328,6 +332,7 @@ function DetailLeads({ rows }: { rows: DashboardStats['details']['recentLeads'] 
 }
 
 function DetailCalls({ rows }: { rows: RecentCall[] }) {
+  const { t } = useTranslate();
   if (rows.length === 0) return <Empty />;
   return (
     <ul className="space-y-1.5">
@@ -342,7 +347,7 @@ function DetailCalls({ rows }: { rows: RecentCall[] }) {
             <span className="truncate">{c.leadName ?? c.number ?? '—'}</span>
           </span>
           <span className="shrink-0 text-muted-foreground">
-            {c.status === 'missed' ? 'perdida' : fmtClock(c.durationSeconds)} · {fmtTime(c.at)}
+            {c.status === 'missed' ? t('clientDash.callMissed') : fmtClock(c.durationSeconds)} · {fmtTime(c.at)}
           </span>
         </li>
       ))}
@@ -365,18 +370,19 @@ function DetailMissed({ rows }: { rows: DashboardStats['details']['missed'] }) {
 }
 
 function DetailTalk({ talk, wait }: { talk: DashboardStats['details']['talk']; wait: number }) {
+  const { t } = useTranslate();
   return (
     <div className="space-y-1.5">
       <div className="flex items-center justify-between">
-        <span className="text-muted-foreground">Média por chamada</span>
+        <span className="text-muted-foreground">{t('clientDash.avgPerCall')}</span>
         <span className="font-medium">{fmtClock(talk.avgSeconds)}</span>
       </div>
       <div className="flex items-center justify-between">
-        <span className="text-muted-foreground">Tempo médio de espera</span>
+        <span className="text-muted-foreground">{t('clientDash.avgWaitTime')}</span>
         <span className="font-medium">{fmtClock(wait)}</span>
       </div>
       <div className="flex items-center justify-between">
-        <span className="text-muted-foreground">Chamada mais longa</span>
+        <span className="text-muted-foreground">{t('clientDash.longestCall')}</span>
         <span className="font-medium">
           {talk.longest ? `${fmtClock(talk.longest.seconds)}${talk.longest.leadName ? ` · ${talk.longest.leadName}` : ''}` : '—'}
         </span>

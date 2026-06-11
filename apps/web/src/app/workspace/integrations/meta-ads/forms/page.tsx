@@ -5,6 +5,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Check, Facebook } from 'lucide-react';
 import { toast } from 'sonner';
 import { apiClient } from '@/lib/api-client';
+import { useTranslate } from '@/i18n/provider';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -31,6 +32,7 @@ interface EnabledForm {
 }
 
 export default function MetaAdsFormsPage() {
+  const { t } = useTranslate();
   const qc = useQueryClient();
   const [selectedPage, setSelectedPage] = useState<MetaPage | null>(null);
 
@@ -62,7 +64,7 @@ export default function MetaAdsFormsPage() {
         formName: form.name,
       }),
     onSuccess: () => {
-      toast.success('Formulário ativado');
+      toast.success(t('metaForms.formActivated'));
       qc.invalidateQueries({ queryKey: ['meta-enabled-forms'] });
     },
     onError: (err: Error) => toast.error(err.message),
@@ -71,7 +73,7 @@ export default function MetaAdsFormsPage() {
   const unsubscribe = useMutation({
     mutationFn: (formId: string) => apiClient.del(`/integrations/meta-ads/forms/${formId}`),
     onSuccess: () => {
-      toast.success('Formulário desativado');
+      toast.success(t('metaForms.formDeactivated'));
       qc.invalidateQueries({ queryKey: ['meta-enabled-forms'] });
     },
   });
@@ -81,9 +83,9 @@ export default function MetaAdsFormsPage() {
   return (
     <div className="p-8">
       <header className="mb-6">
-        <h1 className="text-3xl font-bold">Meta Ads — formulários</h1>
+        <h1 className="text-3xl font-bold">{t('metaForms.title')}</h1>
         <p className="mt-1 text-muted-foreground">
-          Selecione uma página e ative os formulários cujos leads devem cair no CRM.
+          {t('metaForms.subtitle')}
         </p>
       </header>
 
@@ -91,13 +93,13 @@ export default function MetaAdsFormsPage() {
         {/* Páginas */}
         <Card className="col-span-4">
           <CardHeader>
-            <CardTitle className="text-base">Suas páginas</CardTitle>
+            <CardTitle className="text-base">{t('metaForms.yourPages')}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-1">
-            {loadingPages && <p className="text-sm text-muted-foreground">Carregando...</p>}
+            {loadingPages && <p className="text-sm text-muted-foreground">{t('metaForms.loading')}</p>}
             {!loadingPages && pages.length === 0 && (
               <p className="text-sm text-muted-foreground">
-                Nenhuma página encontrada. Verifique permissões no Facebook.
+                {t('metaForms.noPages')}
               </p>
             )}
             {pages.map((p) => (
@@ -122,17 +124,17 @@ export default function MetaAdsFormsPage() {
         <Card className="col-span-8">
           <CardHeader>
             <CardTitle className="text-base">
-              {selectedPage ? `Formulários — ${selectedPage.name}` : 'Selecione uma página'}
+              {selectedPage ? `${t('metaForms.formsFor')} — ${selectedPage.name}` : t('metaForms.selectPage')}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
             {!selectedPage && (
               <p className="text-sm text-muted-foreground">
-                Escolha uma página à esquerda para ver seus formulários de Lead Ads.
+                {t('metaForms.choosePage')}
               </p>
             )}
             {selectedPage && loadingForms && (
-              <p className="text-sm text-muted-foreground">Carregando formulários...</p>
+              <p className="text-sm text-muted-foreground">{t('metaForms.loadingForms')}</p>
             )}
             {selectedPage &&
               forms.map((f) => {
@@ -151,14 +153,14 @@ export default function MetaAdsFormsPage() {
                     {isEnabled ? (
                       <div className="flex items-center gap-2">
                         <span className="flex items-center gap-1 text-sm text-emerald-600">
-                          <Check className="h-4 w-4" /> Ativo
+                          <Check className="h-4 w-4" /> {t('metaForms.active')}
                         </span>
                         <Button
                           size="sm"
                           variant="outline"
                           onClick={() => unsubscribe.mutate(f.id)}
                         >
-                          Desativar
+                          {t('metaForms.deactivate')}
                         </Button>
                       </div>
                     ) : (
@@ -167,7 +169,7 @@ export default function MetaAdsFormsPage() {
                         onClick={() => subscribe.mutate(f)}
                         disabled={subscribe.isPending}
                       >
-                        Ativar
+                        {t('metaForms.activate')}
                       </Button>
                     )}
                   </div>

@@ -6,6 +6,7 @@ import { Phone, MessageSquare, Voicemail, FormInput, Save, PhoneCall } from 'luc
 import Link from 'next/link';
 import { toast } from 'sonner';
 import { apiClient } from '@/lib/api-client';
+import { useTranslate } from '@/i18n/provider';
 import { RecordingPlayer } from '@/components/recording-player';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -15,13 +16,7 @@ import { Textarea } from '@/components/ui/textarea';
 
 type LeadStatus = 'new' | 'contacted' | 'qualified' | 'won' | 'lost';
 
-const STATUS_LABELS: Record<LeadStatus, string> = {
-  new: 'Novo',
-  contacted: 'Contatado',
-  qualified: 'Qualificado',
-  won: 'Ganho',
-  lost: 'Perdido',
-};
+const STATUS_KEYS: LeadStatus[] = ['new', 'contacted', 'qualified', 'won', 'lost'];
 
 interface Interaction {
   id: string;
@@ -56,9 +51,9 @@ interface LeadDetail {
   }>;
 }
 
-const ROLE_LABEL: Record<string, string> = {
-  client_viewer: 'Cliente', agent: 'Atendente', sub_account_admin: 'Atendente',
-  agency_admin: 'Agência', super_admin: 'Agência',
+const ROLE_KEY: Record<string, string> = {
+  client_viewer: 'roleClient', agent: 'roleAgent', sub_account_admin: 'roleAgent',
+  agency_admin: 'roleAgency', super_admin: 'roleAgency',
 };
 
 const ICONS = {
@@ -69,6 +64,7 @@ const ICONS = {
 };
 
 export default function LeadDetailPage({ params }: { params: Promise<{ leadId: string }> }) {
+  const { t } = useTranslate();
   const { leadId } = use(params);
   const qc = useQueryClient();
   const [newNote, setNewNote] = useState('');
@@ -81,7 +77,7 @@ export default function LeadDetailPage({ params }: { params: Promise<{ leadId: s
   const update = useMutation({
     mutationFn: (input: Partial<LeadDetail>) => apiClient.patch(`/leads/${leadId}`, input),
     onSuccess: () => {
-      toast.success('Lead atualizado');
+      toast.success(t('leadDetail.toastUpdated'));
       qc.invalidateQueries({ queryKey: ['lead', leadId] });
     },
     onError: (err: Error) => toast.error(err.message),
@@ -92,18 +88,18 @@ export default function LeadDetailPage({ params }: { params: Promise<{ leadId: s
     onSuccess: () => {
       setNewNote('');
       qc.invalidateQueries({ queryKey: ['lead', leadId] });
-      toast.success('Observação adicionada');
+      toast.success(t('leadDetail.toastNoteAdded'));
     },
   });
 
   const callLead = useMutation({
     mutationFn: () => apiClient.post(`/leads/${leadId}/call`, {}),
-    onSuccess: () => toast.success('Ligando... atenda no seu softphone'),
+    onSuccess: () => toast.success(t('leadDetail.toastCalling')),
     onError: (err: Error) => toast.error(err.message),
   });
 
-  if (isLoading) return <div className="p-8 text-muted-foreground">Carregando...</div>;
-  if (!lead) return <div className="p-8">Lead não encontrado.</div>;
+  if (isLoading) return <div className="p-8 text-muted-foreground">{t('leadDetail.loading')}</div>;
+  if (!lead) return <div className="p-8">{t('leadDetail.notFound')}</div>;
 
   // Observações internas (o chat compartilhado fica no widget de conversas).
   const internalNotes = lead.notes.filter((n) => !n.shared);
@@ -113,14 +109,14 @@ export default function LeadDetailPage({ params }: { params: Promise<{ leadId: s
       <section className="col-span-8 space-y-4">
         <header>
           <Link href={'/workspace/leads' as never} className="text-sm text-muted-foreground hover:underline">
-            ← Leads
+            ← {t('leadDetail.backToLeads')}
           </Link>
           <div className="mt-2 flex items-start justify-between">
             <div>
               <Input
                 value={lead.name ?? ''}
                 onChange={(e) => update.mutate({ name: e.target.value })}
-                placeholder="Sem nome — clique para editar"
+                placeholder={t('leadDetail.namePlaceholder')}
                 className="border-0 px-0 text-3xl font-bold shadow-none focus-visible:ring-0"
               />
               <div className="mt-2 flex gap-2 text-sm text-muted-foreground">
@@ -135,15 +131,15 @@ export default function LeadDetailPage({ params }: { params: Promise<{ leadId: s
                 disabled={!lead.phoneE164 || callLead.isPending}
               >
                 <PhoneCall className="h-4 w-4" />
-                {callLead.isPending ? 'Chamando...' : 'Ligar'}
+                {callLead.isPending ? t('leadDetail.calling') : t('leadDetail.call')}
               </Button>
               <select
                 value={lead.status}
                 onChange={(e) => update.mutate({ status: e.target.value as LeadStatus })}
                 className="h-9 rounded-md border border-border bg-background px-3 text-sm"
               >
-                {(Object.keys(STATUS_LABELS) as LeadStatus[]).map((s) => (
-                  <option key={s} value={s}>{STATUS_LABELS[s]}</option>
+                {STATUS_KEYS.map((s) => (
+                  <option key={s} value={s}>{t(`leadDetail.status_${s}`)}</option>
                 ))}
               </select>
             </div>
@@ -152,11 +148,11 @@ export default function LeadDetailPage({ params }: { params: Promise<{ leadId: s
 
         <Card>
           <CardHeader>
-            <CardTitle>Timeline ({lead.interactions.length})</CardTitle>
+            <CardTitle>{t('leadDetail.timeline')} ({lead.interactions.length})</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             {lead.interactions.length === 0 && (
-              <p className="text-sm text-muted-foreground">Sem interações ainda.</p>
+              <p className="text-sm text-muted-foreground">{t('leadDetail.noInteractions')}</p>
             )}
             {lead.interactions.map((i) => (
               <InteractionRow key={i.id} interaction={i} />
@@ -168,16 +164,16 @@ export default function LeadDetailPage({ params }: { params: Promise<{ leadId: s
       <aside className="col-span-4 space-y-4">
         <Card>
           <CardHeader>
-            <CardTitle>Observações (internas)</CardTitle>
+            <CardTitle>{t('leadDetail.notesTitle')}</CardTitle>
             <p className="text-xs text-muted-foreground">
-              Só atendente/agência veem. Para falar com o cliente, use o chat (botão no canto).
+              {t('leadDetail.notesHint')}
             </p>
           </CardHeader>
           <CardContent className="space-y-2">
             <Textarea
               value={newNote}
               onChange={(e) => setNewNote(e.target.value)}
-              placeholder="Resumo da chamada, próximos passos..."
+              placeholder={t('leadDetail.notePlaceholder')}
               rows={4}
             />
             <Button
@@ -185,24 +181,24 @@ export default function LeadDetailPage({ params }: { params: Promise<{ leadId: s
               onClick={() => addNote.mutate(newNote)}
               disabled={!newNote.trim() || addNote.isPending}
             >
-              <Save className="h-4 w-4" /> Salvar observação
+              <Save className="h-4 w-4" /> {t('leadDetail.saveNote')}
             </Button>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle>Histórico de observações</CardTitle>
+            <CardTitle>{t('leadDetail.notesHistory')}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
             {internalNotes.length === 0 && (
-              <p className="text-sm text-muted-foreground">Sem observações.</p>
+              <p className="text-sm text-muted-foreground">{t('leadDetail.noNotes')}</p>
             )}
             {internalNotes.map((n) => (
               <div key={n.id} className="rounded-md border p-3">
                 <p className="text-xs text-muted-foreground">
                   {n.author?.fullName ?? '—'}
-                  {n.authorRole && ` · ${ROLE_LABEL[n.authorRole] ?? n.authorRole}`} ·{' '}
+                  {n.authorRole && ` · ${ROLE_KEY[n.authorRole] ? t(`leadDetail.${ROLE_KEY[n.authorRole]}`) : n.authorRole}`} ·{' '}
                   {new Date(n.createdAt).toLocaleString('pt-BR')}
                 </p>
                 <p className="mt-1 text-sm whitespace-pre-wrap">{n.body}</p>
@@ -216,6 +212,7 @@ export default function LeadDetailPage({ params }: { params: Promise<{ leadId: s
 }
 
 function InteractionRow({ interaction }: { interaction: Interaction }) {
+  const { t } = useTranslate();
   const Icon = ICONS[interaction.type];
   return (
     <div className="flex gap-3 rounded-md border p-3">
@@ -224,12 +221,12 @@ function InteractionRow({ interaction }: { interaction: Interaction }) {
         <div className="flex items-center justify-between">
           <p className="text-sm font-medium">
             {interaction.type === 'call'
-              ? `Chamada ${interaction.direction === 'inbound' ? 'recebida' : 'realizada'}`
+              ? interaction.direction === 'inbound' ? t('leadDetail.callInbound') : t('leadDetail.callOutbound')
               : interaction.type === 'sms'
-                ? `SMS ${interaction.direction === 'inbound' ? 'recebido' : 'enviado'}`
+                ? interaction.direction === 'inbound' ? t('leadDetail.smsInbound') : t('leadDetail.smsOutbound')
                 : interaction.type === 'voicemail'
-                  ? 'Voicemail'
-                  : 'Formulário Meta'}
+                  ? t('leadDetail.voicemail')
+                  : t('leadDetail.metaForm')}
           </p>
           <span className="text-xs text-muted-foreground">
             {new Date(interaction.startedAt).toLocaleString('pt-BR')}
@@ -237,9 +234,9 @@ function InteractionRow({ interaction }: { interaction: Interaction }) {
         </div>
         <div className="mt-1 flex gap-3 text-xs text-muted-foreground">
           {interaction.durationSeconds !== null && (
-            <span>Duração: {formatDuration(interaction.durationSeconds)}</span>
+            <span>{t('leadDetail.duration')}: {formatDuration(interaction.durationSeconds)}</span>
           )}
-          {interaction.agent && <span>Atendente: {interaction.agent.fullName}</span>}
+          {interaction.agent && <span>{t('leadDetail.agent')}: {interaction.agent.fullName}</span>}
           <Badge variant="secondary" className="text-xs">{interaction.status}</Badge>
         </div>
         {interaction.smsBody && <p className="mt-2 text-sm">{interaction.smsBody}</p>}

@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { HelpHint } from '@/components/help-hint';
 import { useAdminViewStore } from '@/stores/admin-view-store';
+import { useTranslate } from '@/i18n/provider';
 
 interface ZapiConfig {
   configured: boolean;
@@ -21,6 +22,7 @@ interface ZapiConfig {
 }
 
 export default function AgencySettingsPage() {
+  const { t } = useTranslate();
   const qc = useQueryClient();
   const viewAsAgencyId = useAdminViewStore((s) => s.viewAsAgencyId);
   const qs = viewAsAgencyId ? `?agencyId=${viewAsAgencyId}` : '';
@@ -42,7 +44,7 @@ export default function AgencySettingsPage() {
         clientToken: clientToken.trim(),
       }),
     onSuccess: () => {
-      toast.success('Z-API configurada');
+      toast.success(t('agencySettings.toastSaved'));
       setInstanceId('');
       setTokenVal('');
       setClientToken('');
@@ -56,8 +58,8 @@ export default function AgencySettingsPage() {
   return (
     <div className="p-8">
       <header className="mb-6">
-        <h1 className="text-3xl font-bold">Configurações</h1>
-        <p className="mt-1 text-muted-foreground">Integrações e preferências da agência.</p>
+        <h1 className="text-3xl font-bold">{t('agencySettings.title')}</h1>
+        <p className="mt-1 text-muted-foreground">{t('agencySettings.subtitle')}</p>
       </header>
 
       <Card className="max-w-2xl">
@@ -69,15 +71,15 @@ export default function AgencySettingsPage() {
                 WhatsApp (Z-API) <HelpHint topic="whatsapp" />
               </CardTitle>
               <p className="mt-0.5 text-xs text-muted-foreground">
-                Use o número de WhatsApp da sua agência para enviar os resumos aos clientes.
+                {t('agencySettings.whatsappDesc')}
               </p>
             </div>
             {config?.configured ? (
-              <Badge variant="success">Configurado</Badge>
+              <Badge variant="success">{t('agencySettings.statusConfigured')}</Badge>
             ) : config?.globalFallback ? (
-              <Badge variant="secondary">Usando número padrão</Badge>
+              <Badge variant="secondary">{t('agencySettings.statusDefaultNumber')}</Badge>
             ) : (
-              <Badge variant="secondary">Não configurado</Badge>
+              <Badge variant="secondary">{t('agencySettings.statusNotConfigured')}</Badge>
             )}
           </div>
         </CardHeader>
@@ -86,40 +88,39 @@ export default function AgencySettingsPage() {
             <div className="flex items-center gap-2 rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm dark:border-emerald-900 dark:bg-emerald-950/40">
               <CheckCircle2 className="h-4 w-4 text-emerald-600" />
               <span>
-                Conectado — Instance ID atual: <code className="font-mono">{config.instanceId}</code>. Preencha
-                de novo abaixo para trocar.
+                {t('agencySettings.connectedPrefix')} <code className="font-mono">{config.instanceId}</code>
+                {t('agencySettings.connectedSuffix')}
               </span>
             </div>
           )}
 
           <p className="text-sm text-muted-foreground">
-            Pegue esses dados no painel da{' '}
+            {t('agencySettings.credentialsHintPrefix')}{' '}
             <a href="https://z-api.io" target="_blank" rel="noreferrer" className="text-primary hover:underline">
               Z-API
             </a>{' '}
-            (sua instância conectada ao WhatsApp da agência).
+            {t('agencySettings.credentialsHintSuffix')}
           </p>
 
           <div>
-            <label className="text-xs font-medium text-muted-foreground">Instance ID</label>
-            <Input value={instanceId} onChange={(e) => setInstanceId(e.target.value)} placeholder="ex.: 3D1A2B..." />
+            <label className="text-xs font-medium text-muted-foreground">{t('agencySettings.labelInstanceId')}</label>
+            <Input value={instanceId} onChange={(e) => setInstanceId(e.target.value)} placeholder={t('agencySettings.placeholderInstanceId')} />
           </div>
           <div>
-            <label className="text-xs font-medium text-muted-foreground">Token (da instância)</label>
+            <label className="text-xs font-medium text-muted-foreground">{t('agencySettings.labelToken')}</label>
             <Input type="password" value={tokenVal} onChange={(e) => setTokenVal(e.target.value)} placeholder="••••••••" />
           </div>
           <div>
-            <label className="text-xs font-medium text-muted-foreground">Client-Token (segurança da conta)</label>
+            <label className="text-xs font-medium text-muted-foreground">{t('agencySettings.labelClientToken')}</label>
             <Input type="password" value={clientToken} onChange={(e) => setClientToken(e.target.value)} placeholder="••••••••" />
           </div>
 
           <Button onClick={() => save.mutate()} disabled={!canSave || save.isPending}>
-            {save.isPending ? 'Salvando...' : 'Salvar credenciais'}
+            {save.isPending ? t('agencySettings.saving') : t('agencySettings.saveCredentials')}
           </Button>
 
           <p className="text-xs text-muted-foreground">
-            Depois de configurar, escolha o grupo de WhatsApp de cada cliente no detalhe do cliente.
-            Recomendado cada agência usar o próprio número (evita bloqueio do WhatsApp).
+            {t('agencySettings.footerHint')}
           </p>
         </CardContent>
       </Card>

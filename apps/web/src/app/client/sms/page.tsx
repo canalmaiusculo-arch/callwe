@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { ArrowDownLeft, ArrowUpRight } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
 import { useTenantStore } from '@/stores/tenant-store';
+import { useTranslate } from '@/i18n/provider';
 
 interface SmsInteraction {
   id: string;
@@ -16,6 +17,7 @@ interface SmsInteraction {
 }
 
 export default function ClientSmsPage() {
+  const { t } = useTranslate();
   const subAccountId = useTenantStore((s) => s.subAccountId);
   const { data: sms = [], isLoading } = useQuery<SmsInteraction[]>({
     queryKey: ['client-sms', subAccountId],
@@ -26,12 +28,12 @@ export default function ClientSmsPage() {
   return (
     <div className="p-4 md:p-8">
       <header className="mb-6">
-        <h1 className="text-3xl font-bold">Meus SMS</h1>
-        <p className="mt-1 text-muted-foreground">{sms.length} mensagens</p>
+        <h1 className="text-3xl font-bold">{t('clientSms.title')}</h1>
+        <p className="mt-1 text-muted-foreground">{sms.length} {t('clientSms.messages')}</p>
       </header>
 
-      {isLoading && <p className="text-muted-foreground">Carregando...</p>}
-      {!isLoading && sms.length === 0 && <p className="text-muted-foreground">Nenhum SMS ainda.</p>}
+      {isLoading && <p className="text-muted-foreground">{t('clientSms.loading')}</p>}
+      {!isLoading && sms.length === 0 && <p className="text-muted-foreground">{t('clientSms.empty')}</p>}
 
       <div className="space-y-2">
         {sms.map((m) => {

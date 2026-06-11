@@ -22,6 +22,7 @@ import { MiniLineChart } from '@/components/line-chart';
 import { Button } from '@/components/ui/button';
 import { useAuthStore } from '@/stores/auth-store';
 import { useTenantStore } from '@/stores/tenant-store';
+import { useTranslate } from '@/i18n/provider';
 
 interface DashboardStats {
   leadsToday: number;
@@ -48,12 +49,12 @@ interface DashboardStats {
   statusBreakdown: Array<{ status: string; count: number; percent: number }>;
 }
 
-const STATUS_LABEL: Record<string, string> = {
-  new: 'Novos',
-  contacted: 'Contatados',
-  qualified: 'Qualificados',
-  won: 'Ganhos',
-  lost: 'Perdidos',
+const STATUS_LABEL_KEY: Record<string, string> = {
+  new: 'wsDash.statusNew',
+  contacted: 'wsDash.statusContacted',
+  qualified: 'wsDash.statusQualified',
+  won: 'wsDash.statusWon',
+  lost: 'wsDash.statusLost',
 };
 
 const STATUS_COLOR: Record<string, string> = {
@@ -65,6 +66,7 @@ const STATUS_COLOR: Record<string, string> = {
 };
 
 export default function WorkspaceDashboard() {
+  const { t } = useTranslate();
   const token = useAuthStore((s) => s.accessToken);
   const subAccountId = useTenantStore((s) => s.subAccountId);
 
@@ -108,44 +110,44 @@ export default function WorkspaceDashboard() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-3xl font-bold">Dashboard</h1>
+            <h1 className="text-3xl font-bold">{t('wsDash.title')}</h1>
             <HelpHint topic="dashboard" />
           </div>
-          <p className="mt-1 text-muted-foreground">Visão geral do cliente</p>
+          <p className="mt-1 text-muted-foreground">{t('wsDash.subtitle')}</p>
         </div>
         <Button variant="outline" onClick={downloadMonthlyReport}>
-          <FileDown className="h-4 w-4" /> Relatório do mês
+          <FileDown className="h-4 w-4" /> {t('wsDash.monthlyReport')}
         </Button>
       </div>
 
-      <h2 className="mt-6 mb-3 text-xs font-semibold uppercase text-muted-foreground">Hoje</h2>
+      <h2 className="mt-6 mb-3 text-xs font-semibold uppercase text-muted-foreground">{t('wsDash.sectionToday')}</h2>
       <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
-        <KPI title="Leads hoje" value={s.leadsToday} icon={Users} />
-        <KPI title="Chamadas hoje" value={s.callsToday} icon={Phone} />
-        <KPI title="Perdidas" value={s.missedCalls} icon={PhoneMissed} tone="warning" />
-        <KPI title="TMA" value={formatDuration(s.avgHandleTime)} icon={Clock} hint="Tempo médio" />
-        <KPI title="T. espera" value={formatDuration(s.avgWaitingTime)} icon={Timer} hint="Cliente esperou" />
+        <KPI title={t('wsDash.leadsToday')} value={s.leadsToday} icon={Users} />
+        <KPI title={t('wsDash.callsToday')} value={s.callsToday} icon={Phone} />
+        <KPI title={t('wsDash.missed')} value={s.missedCalls} icon={PhoneMissed} tone="warning" />
+        <KPI title={t('wsDash.aht')} value={formatDuration(s.avgHandleTime)} icon={Clock} hint={t('wsDash.ahtHint')} />
+        <KPI title={t('wsDash.waitTime')} value={formatDuration(s.avgWaitingTime)} icon={Timer} hint={t('wsDash.waitTimeHint')} />
       </div>
 
-      <h2 className="mt-6 mb-3 text-xs font-semibold uppercase text-muted-foreground">Últimos 7 dias</h2>
+      <h2 className="mt-6 mb-3 text-xs font-semibold uppercase text-muted-foreground">{t('wsDash.sectionLast7')}</h2>
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        <KPI title="Chamadas (7d)" value={s.callsWeek} icon={Phone} />
-        <KPI title="Recebidas" value={s.inboundWeek} icon={PhoneIncoming} />
-        <KPI title="Realizadas" value={s.outboundWeek} icon={PhoneOutgoing} />
-        <KPI title="Leads (7d)" value={s.leadsWeek} icon={Users} />
+        <KPI title={t('wsDash.calls7d')} value={s.callsWeek} icon={Phone} />
+        <KPI title={t('wsDash.inbound')} value={s.inboundWeek} icon={PhoneIncoming} />
+        <KPI title={t('wsDash.outbound')} value={s.outboundWeek} icon={PhoneOutgoing} />
+        <KPI title={t('wsDash.leads7d')} value={s.leadsWeek} icon={Users} />
       </div>
 
       <div className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-4">
-        <KPI title="Chamadas frias" value={s.coldCallsWeek} icon={Snowflake} hint="Lead novo" />
-        <KPI title="Follow-ups" value={s.followupCallsWeek} icon={Repeat} hint="Lead já contatado" />
-        <KPI title="Qualificação" value={`${s.conversionRateQualified}%`} icon={TrendingUp} hint="Leads que qualificaram" />
-        <KPI title="Win rate" value={`${s.winRate}%`} icon={Trophy} hint="Qualificados ganhos" tone={s.winRate > 20 ? 'success' : undefined} />
+        <KPI title={t('wsDash.coldCalls')} value={s.coldCallsWeek} icon={Snowflake} hint={t('wsDash.coldCallsHint')} />
+        <KPI title={t('wsDash.followups')} value={s.followupCallsWeek} icon={Repeat} hint={t('wsDash.followupsHint')} />
+        <KPI title={t('wsDash.qualification')} value={`${s.conversionRateQualified}%`} icon={TrendingUp} hint={t('wsDash.qualificationHint')} />
+        <KPI title={t('wsDash.winRate')} value={`${s.winRate}%`} icon={Trophy} hint={t('wsDash.winRateHint')} tone={s.winRate > 20 ? 'success' : undefined} />
       </div>
 
       <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>Volume por dia (7d)</CardTitle>
+            <CardTitle>{t('wsDash.volumePerDay')}</CardTitle>
           </CardHeader>
           <CardContent>
             <MiniLineChart data={s.series} height={140} color="#3b82f6" />
@@ -154,10 +156,10 @@ export default function WorkspaceDashboard() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Horários de pico</CardTitle>
+            <CardTitle>{t('wsDash.peakHours')}</CardTitle>
             {peakHour.count > 0 && (
               <p className="text-xs text-muted-foreground">
-                Pico: {String(peakHour.hour).padStart(2, '0')}:00 — {peakHour.count} chamadas
+                {t('wsDash.peakLabel')}: {String(peakHour.hour).padStart(2, '0')}:00 — {peakHour.count} {t('wsDash.callsUnit')}
               </p>
             )}
           </CardHeader>
@@ -170,16 +172,16 @@ export default function WorkspaceDashboard() {
       <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>Funil de leads</CardTitle>
+            <CardTitle>{t('wsDash.leadsFunnel')}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
             {s.statusBreakdown.length === 0 && (
-              <p className="text-sm text-muted-foreground">Sem leads ainda.</p>
+              <p className="text-sm text-muted-foreground">{t('wsDash.noLeads')}</p>
             )}
             {s.statusBreakdown.map((b) => (
               <div key={b.status}>
                 <div className="flex items-center justify-between text-sm">
-                  <span>{STATUS_LABEL[b.status] ?? b.status}</span>
+                  <span>{STATUS_LABEL_KEY[b.status] ? t(STATUS_LABEL_KEY[b.status]!) : b.status}</span>
                   <span className="text-muted-foreground">{b.count} ({b.percent}%)</span>
                 </div>
                 <div className="mt-1 h-2 rounded-full bg-muted">
@@ -195,18 +197,18 @@ export default function WorkspaceDashboard() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Top atendentes (7d)</CardTitle>
+            <CardTitle>{t('wsDash.topAgents')}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
             {s.topAgents.length === 0 && (
-              <p className="text-sm text-muted-foreground">Sem dados ainda.</p>
+              <p className="text-sm text-muted-foreground">{t('wsDash.noData')}</p>
             )}
             {s.topAgents.map((a) => (
               <div key={a.userId} className="flex items-center justify-between rounded-md border p-3">
                 <span className="text-sm font-medium">{a.name}</span>
                 <div className="text-right">
-                  <p className="text-sm">{a.calls} chamadas</p>
-                  <p className="text-xs text-muted-foreground">{formatDuration(a.talkTime)} falados</p>
+                  <p className="text-sm">{a.calls} {t('wsDash.callsUnit')}</p>
+                  <p className="text-xs text-muted-foreground">{formatDuration(a.talkTime)} {t('wsDash.talkedUnit')}</p>
                 </div>
               </div>
             ))}

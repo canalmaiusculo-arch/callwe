@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { HelpHint } from '@/components/help-hint';
 import { useAuthStore } from '@/stores/auth-store';
 import { useTenantStore } from '@/stores/tenant-store';
+import { useTranslate } from '@/i18n/provider';
 
 type LeadStatus = 'new' | 'contacted' | 'qualified' | 'won' | 'lost';
 type LeadSource = 'inbound_call' | 'outbound_call' | 'meta_ads' | 'sms' | 'manual' | 'import' | 'api' | 'form';
@@ -36,26 +37,35 @@ const STATUS_VARIANT: Record<LeadStatus, 'default' | 'secondary' | 'success' | '
   lost: 'destructive',
 };
 
-const STATUS_LABEL: Record<LeadStatus, string> = {
-  new: 'Novo',
-  contacted: 'Contatado',
-  qualified: 'Qualificado',
-  won: 'Ganho',
-  lost: 'Perdido',
-};
+type TranslateFn = (key: string) => string;
 
-const SOURCE_LABEL: Record<LeadSource, string> = {
-  inbound_call: 'Chamada entrante',
-  outbound_call: 'Chamada saída',
-  meta_ads: 'Meta Ads',
-  sms: 'SMS',
-  manual: 'Manual',
-  import: 'Importação',
-  api: 'API',
-  form: 'Formulário',
-};
+function statusLabels(t: TranslateFn): Record<LeadStatus, string> {
+  return {
+    new: t('wsLeads.statusNew'),
+    contacted: t('wsLeads.statusContacted'),
+    qualified: t('wsLeads.statusQualified'),
+    won: t('wsLeads.statusWon'),
+    lost: t('wsLeads.statusLost'),
+  };
+}
+
+function sourceLabels(t: TranslateFn): Record<LeadSource, string> {
+  return {
+    inbound_call: t('wsLeads.sourceInboundCall'),
+    outbound_call: t('wsLeads.sourceOutboundCall'),
+    meta_ads: 'Meta Ads',
+    sms: 'SMS',
+    manual: t('wsLeads.sourceManual'),
+    import: t('wsLeads.sourceImport'),
+    api: 'API',
+    form: t('wsLeads.sourceForm'),
+  };
+}
 
 export default function LeadsPage() {
+  const { t } = useTranslate();
+  const STATUS_LABEL = statusLabels(t);
+  const SOURCE_LABEL = sourceLabels(t);
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState<LeadStatus | ''>('');
   const [source, setSource] = useState<LeadSource | ''>('');
@@ -111,27 +121,27 @@ export default function LeadsPage() {
       <header className="mb-6 flex items-center justify-between">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-3xl font-bold">Leads</h1>
+            <h1 className="text-3xl font-bold">{t('wsLeads.title')}</h1>
             <HelpHint topic="leads" />
           </div>
-          <p className="mt-1 text-muted-foreground">{leads.length} leads {hasFilters && '(filtrados)'}</p>
+          <p className="mt-1 text-muted-foreground">{leads.length} {t('wsLeads.countLabel')} {hasFilters && t('wsLeads.filteredSuffix')}</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Link href={'/workspace/leads/kanban' as never}>
             <Button variant="outline">
-              <LayoutGrid className="h-4 w-4" /> Kanban
+              <LayoutGrid className="h-4 w-4" /> {t('wsLeads.kanban')}
             </Button>
           </Link>
           <Button variant="outline" onClick={handleExport} disabled={leads.length === 0}>
-            <Download className="h-4 w-4" /> Exportar CSV
+            <Download className="h-4 w-4" /> {t('wsLeads.exportCsv')}
           </Button>
-          <Button>Novo lead</Button>
+          <Button>{t('wsLeads.newLead')}</Button>
         </div>
       </header>
 
       <div className="mb-4 flex flex-wrap items-center gap-2">
         <Input
-          placeholder="Buscar por nome, telefone, email..."
+          placeholder={t('wsLeads.searchPlaceholder')}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="max-w-sm"
@@ -141,17 +151,17 @@ export default function LeadsPage() {
           onChange={(e) => setStatus(e.target.value as LeadStatus | '')}
           className="h-9 rounded-md border border-border bg-background px-3 text-sm"
         >
-          <option value="">Todos os status</option>
+          <option value="">{t('wsLeads.allStatuses')}</option>
           {Object.entries(STATUS_LABEL).map(([k, v]) => (
             <option key={k} value={k}>{v}</option>
           ))}
         </select>
         <Button variant="outline" size="sm" onClick={() => setShowFilters(!showFilters)}>
-          <Filter className="h-4 w-4" /> {showFilters ? 'Menos filtros' : 'Mais filtros'}
+          <Filter className="h-4 w-4" /> {showFilters ? t('wsLeads.fewerFilters') : t('wsLeads.moreFilters')}
         </Button>
         {hasFilters && (
           <Button variant="ghost" size="sm" onClick={clearFilters}>
-            Limpar filtros
+            {t('wsLeads.clearFilters')}
           </Button>
         )}
       </div>
@@ -159,24 +169,24 @@ export default function LeadsPage() {
       {showFilters && (
         <div className="mb-4 grid grid-cols-3 gap-3 rounded-md border bg-muted/20 p-3">
           <div>
-            <label className="text-xs font-medium text-muted-foreground">Origem</label>
+            <label className="text-xs font-medium text-muted-foreground">{t('wsLeads.source')}</label>
             <select
               value={source}
               onChange={(e) => setSource(e.target.value as LeadSource | '')}
               className="mt-1 h-9 w-full rounded-md border border-border bg-background px-3 text-sm"
             >
-              <option value="">Todas</option>
+              <option value="">{t('wsLeads.allSources')}</option>
               {Object.entries(SOURCE_LABEL).map(([k, v]) => (
                 <option key={k} value={k}>{v}</option>
               ))}
             </select>
           </div>
           <div>
-            <label className="text-xs font-medium text-muted-foreground">De</label>
+            <label className="text-xs font-medium text-muted-foreground">{t('wsLeads.dateFrom')}</label>
             <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="mt-1" />
           </div>
           <div>
-            <label className="text-xs font-medium text-muted-foreground">Até</label>
+            <label className="text-xs font-medium text-muted-foreground">{t('wsLeads.dateTo')}</label>
             <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="mt-1" />
           </div>
         </div>
@@ -186,20 +196,20 @@ export default function LeadsPage() {
         <table className="w-full min-w-[700px] text-sm">
           <thead className="border-b bg-muted/40 text-left text-xs uppercase text-muted-foreground">
             <tr>
-              <th className="p-3">Nome</th>
-              <th className="p-3">Telefone</th>
-              <th className="p-3">Origem</th>
-              <th className="p-3">Atendente</th>
-              <th className="p-3">Status</th>
-              <th className="p-3">Criado</th>
+              <th className="p-3">{t('wsLeads.colName')}</th>
+              <th className="p-3">{t('wsLeads.colPhone')}</th>
+              <th className="p-3">{t('wsLeads.colSource')}</th>
+              <th className="p-3">{t('wsLeads.colAgent')}</th>
+              <th className="p-3">{t('wsLeads.colStatus')}</th>
+              <th className="p-3">{t('wsLeads.colCreated')}</th>
             </tr>
           </thead>
           <tbody>
             {isLoading && (
-              <tr><td colSpan={6} className="p-8 text-center text-muted-foreground">Carregando...</td></tr>
+              <tr><td colSpan={6} className="p-8 text-center text-muted-foreground">{t('wsLeads.loading')}</td></tr>
             )}
             {!isLoading && leads.length === 0 && (
-              <tr><td colSpan={6} className="p-8 text-center text-muted-foreground">Nenhum lead.</td></tr>
+              <tr><td colSpan={6} className="p-8 text-center text-muted-foreground">{t('wsLeads.empty')}</td></tr>
             )}
             {leads.map((lead) => (
               <tr key={lead.id} className="border-b hover:bg-muted/20">

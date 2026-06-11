@@ -9,18 +9,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { RecordingPlayer } from '@/components/recording-player';
 import { useTenantStore } from '@/stores/tenant-store';
+import { useTranslate } from '@/i18n/provider';
 
 type LeadStatus = 'new' | 'contacted' | 'qualified' | 'won' | 'lost';
 
-const STATUS_LABEL: Record<string, string> = {
-  new: 'Novo', contacted: 'Contatado', qualified: 'Qualificado', won: 'Ganho', lost: 'Perdido',
-};
 const STATUS_VARIANT: Record<string, 'default' | 'secondary' | 'success' | 'warning' | 'destructive'> = {
   new: 'default', contacted: 'secondary', qualified: 'warning', won: 'success', lost: 'destructive',
-};
-const SOURCE_LABEL: Record<string, string> = {
-  inbound_call: 'Chamada entrante', outbound_call: 'Chamada saída', meta_ads: 'Meta Ads',
-  sms: 'SMS', manual: 'Manual', import: 'Importação', api: 'API', form: 'Formulário',
 };
 const ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   call: Phone, sms: MessageSquare, voicemail: Voicemail, meta_form: FormInput,
@@ -56,8 +50,27 @@ function fmtDur(s: number) {
 }
 
 export default function ClientLeadDetailPage({ params }: { params: Promise<{ leadId: string }> }) {
+  const { t } = useTranslate();
   const { leadId } = use(params);
   const subAccountId = useTenantStore((s) => s.subAccountId);
+
+  const STATUS_LABEL: Record<string, string> = {
+    new: t('clientLeadDetail.statusNew'),
+    contacted: t('clientLeadDetail.statusContacted'),
+    qualified: t('clientLeadDetail.statusQualified'),
+    won: t('clientLeadDetail.statusWon'),
+    lost: t('clientLeadDetail.statusLost'),
+  };
+  const SOURCE_LABEL: Record<string, string> = {
+    inbound_call: t('clientLeadDetail.sourceInboundCall'),
+    outbound_call: t('clientLeadDetail.sourceOutboundCall'),
+    meta_ads: t('clientLeadDetail.sourceMetaAds'),
+    sms: t('clientLeadDetail.sourceSms'),
+    manual: t('clientLeadDetail.sourceManual'),
+    import: t('clientLeadDetail.sourceImport'),
+    api: t('clientLeadDetail.sourceApi'),
+    form: t('clientLeadDetail.sourceForm'),
+  };
 
   const { data: lead, isLoading } = useQuery<LeadDetail>({
     queryKey: ['client-lead', leadId, subAccountId],
@@ -65,8 +78,8 @@ export default function ClientLeadDetailPage({ params }: { params: Promise<{ lea
     enabled: !!subAccountId,
   });
 
-  if (isLoading) return <div className="p-8 text-muted-foreground">Carregando...</div>;
-  if (!lead) return <div className="p-8">Lead não encontrado.</div>;
+  if (isLoading) return <div className="p-8 text-muted-foreground">{t('clientLeadDetail.loading')}</div>;
+  if (!lead) return <div className="p-8">{t('clientLeadDetail.notFound')}</div>;
 
   const fields = Object.entries(lead.customFields ?? {}).filter(
     ([k, v]) => !HIDDEN_FIELDS.has(k.toLowerCase()) && v != null && typeof v !== 'object',
@@ -75,12 +88,12 @@ export default function ClientLeadDetailPage({ params }: { params: Promise<{ lea
   return (
     <div className="p-4 md:p-8">
       <Link href={'/client/leads' as never} className="text-sm text-muted-foreground hover:underline">
-        ← Leads
+        ← {t('clientLeadDetail.backToLeads')}
       </Link>
 
       <div className="mt-2 flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-bold">{lead.name ?? 'Lead sem nome'}</h1>
+          <h1 className="text-3xl font-bold">{lead.name ?? t('clientLeadDetail.unnamedLead')}</h1>
           <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
             {lead.phoneE164 && <span className="font-mono">{lead.phoneE164}</span>}
             {lead.email && <span>· {lead.email}</span>}
@@ -94,7 +107,7 @@ export default function ClientLeadDetailPage({ params }: { params: Promise<{ lea
       <div className="mt-6 max-w-4xl space-y-4">
         {(fields.length > 0 || lead.tags.length > 0) && (
           <Card>
-            <CardHeader><CardTitle className="text-base">Informações do lead</CardTitle></CardHeader>
+            <CardHeader><CardTitle className="text-base">{t('clientLeadDetail.leadInfo')}</CardTitle></CardHeader>
             <CardContent className="space-y-3">
               {lead.tags.length > 0 && (
                 <div className="flex flex-wrap gap-1">
@@ -116,10 +129,10 @@ export default function ClientLeadDetailPage({ params }: { params: Promise<{ lea
         )}
 
         <Card>
-          <CardHeader><CardTitle className="text-base">Histórico ({lead.interactions.length})</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-base">{t('clientLeadDetail.history')} ({lead.interactions.length})</CardTitle></CardHeader>
           <CardContent className="space-y-3">
             {lead.interactions.length === 0 && (
-              <p className="text-sm text-muted-foreground">Sem interações ainda.</p>
+              <p className="text-sm text-muted-foreground">{t('clientLeadDetail.noInteractions')}</p>
             )}
             {lead.interactions.map((i) => {
               const Icon = ICONS[i.type] ?? Phone;
@@ -130,19 +143,23 @@ export default function ClientLeadDetailPage({ params }: { params: Promise<{ lea
                     <div className="flex items-center justify-between gap-2">
                       <p className="text-sm font-medium">
                         {i.type === 'call'
-                          ? `Chamada ${i.direction === 'inbound' ? 'recebida' : 'realizada'}`
+                          ? i.direction === 'inbound'
+                            ? t('clientLeadDetail.callInbound')
+                            : t('clientLeadDetail.callOutbound')
                           : i.type === 'sms'
-                            ? `SMS ${i.direction === 'inbound' ? 'recebido' : 'enviado'}`
+                            ? i.direction === 'inbound'
+                              ? t('clientLeadDetail.smsInbound')
+                              : t('clientLeadDetail.smsOutbound')
                             : i.type === 'voicemail'
-                              ? 'Voicemail'
-                              : 'Formulário'}
+                              ? t('clientLeadDetail.voicemail')
+                              : t('clientLeadDetail.form')}
                       </p>
                       <span className="text-xs text-muted-foreground">
                         {new Date(i.startedAt).toLocaleString('pt-BR')}
                       </span>
                     </div>
                     <div className="mt-1 flex flex-wrap gap-3 text-xs text-muted-foreground">
-                      {i.durationSeconds != null && <span>Duração: {fmtDur(i.durationSeconds)}</span>}
+                      {i.durationSeconds != null && <span>{t('clientLeadDetail.duration')}: {fmtDur(i.durationSeconds)}</span>}
                       <Badge variant="secondary" className="text-xs">{i.status}</Badge>
                     </div>
                     {i.smsBody && <p className="mt-2 text-sm">{i.smsBody}</p>}
