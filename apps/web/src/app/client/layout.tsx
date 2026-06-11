@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
-import { LayoutDashboard, Users, Phone, MessageSquare, Voicemail, LogOut } from 'lucide-react';
+import { LayoutDashboard, Users, Phone, MessageSquare, Voicemail, LogOut, HelpCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { apiClient } from '@/lib/api-client';
 import { useAuthStore } from '@/stores/auth-store';
@@ -66,6 +66,15 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
             );
           })}
         </nav>
+
+        <Link
+          href={'/help' as never}
+          target="_blank"
+          className="m-2 flex items-center gap-3 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-muted"
+        >
+          <HelpCircle className="h-4 w-4" />
+          Ajuda
+        </Link>
 
         <button
           onClick={() => {

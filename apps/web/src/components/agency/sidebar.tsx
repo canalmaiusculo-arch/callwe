@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Building2, Users, LayoutDashboard, LogOut, Menu, X } from 'lucide-react';
+import { Building2, Users, LayoutDashboard, LogOut, HelpCircle, Menu, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores/auth-store';
 import { useTenantStore } from '@/stores/tenant-store';
@@ -58,6 +58,15 @@ export function AgencySidebar() {
           );
         })}
       </nav>
+
+      <Link
+        href={'/help' as never}
+        target="_blank"
+        className="m-2 flex items-center gap-3 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-muted"
+      >
+        <HelpCircle className="h-4 w-4" />
+        Ajuda
+      </Link>
 
       <button
         onClick={() => {

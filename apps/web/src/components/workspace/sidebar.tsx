@@ -13,6 +13,7 @@ import {
   LogOut,
   Link2,
   Building2,
+  HelpCircle,
   Menu,
   X,
 } from 'lucide-react';
@@ -82,6 +83,15 @@ export function WorkspaceSidebar() {
       >
         <Building2 className="h-4 w-4" />
         {t('agent.title').includes('Live') ? 'Agency panel' : 'Painel da agência'}
+      </Link>
+
+      <Link
+        href={'/help' as never}
+        target="_blank"
+        className="m-2 flex items-center gap-3 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-muted"
+      >
+        <HelpCircle className="h-4 w-4" />
+        Ajuda
       </Link>
 
       <div className="mx-2 mt-1">

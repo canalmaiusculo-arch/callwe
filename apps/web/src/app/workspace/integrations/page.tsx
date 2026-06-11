@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useTenantStore } from '@/stores/tenant-store';
+import { HelpHint } from '@/components/help-hint';
 
 interface Integration {
   id: string;
@@ -160,7 +161,10 @@ function FormWebhookCard() {
         <div className="flex items-center gap-3">
           <Webhook className="h-5 w-5" />
           <div>
-            <CardTitle>Formulário / Quizz (webhook)</CardTitle>
+            <CardTitle className="flex items-center gap-1.5">
+              Formulário / Quizz (webhook)
+              <HelpHint topic="leads-webhook" />
+            </CardTitle>
             <CardDescription>
               Cole esta URL no webhook do seu formulário, quizz ou landing page — os leads caem
               direto no CRM com origem &quot;Formulário&quot;.
