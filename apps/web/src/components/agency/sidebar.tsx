@@ -9,6 +9,7 @@ import { useAuthStore } from '@/stores/auth-store';
 import { useTenantStore } from '@/stores/tenant-store';
 import { useAdminViewStore } from '@/stores/admin-view-store';
 import { Logo } from '@/components/logo';
+import { LanguageSwitcher } from '@/components/language-switcher';
 
 const items = [
   { href: '/agency' as const, icon: LayoutDashboard, label: 'Visão geral' },
@@ -59,6 +60,10 @@ export function AgencySidebar() {
           );
         })}
       </nav>
+
+      <div className="mx-2 mt-1">
+        <LanguageSwitcher />
+      </div>
 
       <Link
         href={'/help' as never}

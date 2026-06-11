@@ -11,6 +11,7 @@ import { useAuthStore } from '@/stores/auth-store';
 import { useTenantStore } from '@/stores/tenant-store';
 import { ChatWidget } from '@/components/chat-widget';
 import { NotificationCenter } from '@/components/notification-center';
+import { LanguageSwitcher } from '@/components/language-switcher';
 
 const items = [
   { href: '/client' as const, icon: LayoutDashboard, label: 'Dashboard' },
@@ -66,6 +67,10 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
             );
           })}
         </nav>
+
+        <div className="mx-2 mt-1">
+          <LanguageSwitcher />
+        </div>
 
         <Link
           href={'/help' as never}
