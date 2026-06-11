@@ -32,11 +32,10 @@ build_image() {
   docker build -f "$INFRA_DIR/docker/${dockerfile}" -t "callwe-$name" "$@" "$APP_DIR"
 }
 
-# Recria os serviços de forma limpa: remove os containers (tolerando ausência)
-# e sobe de novo. Evita os erros "No such container" / "name already in use" que
-# o `--force-recreate` causa quando o estado do compose fica dessincronizado.
+# Sobe/recria os serviços. `up -d` (sem --force-recreate e sem rm) recria sozinho
+# os containers cuja imagem mudou e deixa os demais — sem corrida de remoção nem
+# erro "No such container" do --force-recreate.
 recreate() {
-  $COMPOSE rm -fs "$@" || true
   $COMPOSE up -d --no-deps "$@"
 }
 
