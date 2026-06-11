@@ -25,6 +25,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { SoftphoneFrame } from '@/components/agent/softphone-frame';
 import { InteractionDrawer } from '@/components/interaction-drawer';
+import { LeadDrawer, type LeadDrawerTarget } from '@/components/lead-drawer';
 import { NotificationBanner } from '@/components/agent/notification-banner';
 import { BriefingDisplay } from '@/components/agent/briefing-display';
 import { useAuthStore } from '@/stores/auth-store';
@@ -83,6 +84,7 @@ export default function AgentPage() {
   const [tab, setTab] = useState<Tab>('calls');
   const [onlyMine, setOnlyMine] = useState(true);
   const [drawerId, setDrawerId] = useState<string | null>(null);
+  const [leadDrawer, setLeadDrawer] = useState<LeadDrawerTarget | null>(null);
   const [smsBadge, setSmsBadge] = useState(0);
   const [filterSubAccountId, setFilterSubAccountId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
@@ -215,7 +217,12 @@ export default function AgentPage() {
             isSeen={seenSms.isSeen}
           />
         ) : tab === 'leads' ? (
-          <LeadsView filterSubAccountId={filterSubAccountId} search={search} clients={clients} />
+          <LeadsView
+            filterSubAccountId={filterSubAccountId}
+            search={search}
+            clients={clients}
+            onOpenLead={setLeadDrawer}
+          />
         ) : (
           <BriefingsView clients={clients} initialSelectedId={filterSubAccountId} />
         )}
@@ -232,6 +239,11 @@ export default function AgentPage() {
         </Card>
       </aside>
 
+      <LeadDrawer
+        lead={leadDrawer}
+        onClose={() => setLeadDrawer(null)}
+        onOpenInteraction={openInteraction}
+      />
       <InteractionDrawer interactionId={drawerId} onClose={() => setDrawerId(null)} />
     </div>
   );
@@ -783,10 +795,12 @@ function LeadsView({
   filterSubAccountId,
   search,
   clients,
+  onOpenLead,
 }: {
   filterSubAccountId: string | null;
   search: string;
   clients: AssignedClient[];
+  onOpenLead: (lead: LeadDrawerTarget) => void;
 }) {
   const { t } = useTranslate();
   const [dateRange, setDateRange] = useState<DateRange>('30d');
@@ -909,7 +923,7 @@ function LeadsView({
           </div>
         )}
         {filtered.map((l) => (
-          <LeadRow key={l.id} lead={l} />
+          <LeadRow key={l.id} lead={l} onOpen={onOpenLead} />
         ))}
       </CardContent>
     </Card>
@@ -956,7 +970,7 @@ const SOURCE_LABEL_KEYS: Record<string, string> = {
   form: 'agentPanel.sourceForm',
 };
 
-function LeadRow({ lead }: { lead: AgentLead }) {
+function LeadRow({ lead, onOpen }: { lead: AgentLead; onOpen: (lead: LeadDrawerTarget) => void }) {
   const { t } = useTranslate();
   const ch = lead.customFields?.acquisitionChannel as string | undefined;
   const sourceKey = SOURCE_LABEL_KEYS[lead.source];
@@ -970,7 +984,21 @@ function LeadRow({ lead }: { lead: AgentLead }) {
     ageMin < 1 ? t('agentPanel.ageNow') : ageMin < 60 ? `${ageMin}min` : ageMin < 1440 ? `${Math.floor(ageMin / 60)}h` : when.toLocaleDateString('pt-BR');
 
   return (
-    <div className="flex items-start gap-3 rounded-md border p-3 hover:bg-muted/40">
+    <button
+      onClick={() =>
+        onOpen({
+          id: lead.id,
+          subAccountId: lead.subAccount?.id,
+          subAccountName: lead.subAccount?.name,
+          name: lead.name,
+          phoneE164: lead.phoneE164,
+          email: lead.email,
+          status: lead.status,
+          createdAt: lead.createdAt,
+        })
+      }
+      className="flex w-full items-start gap-3 rounded-md border p-3 text-left transition-colors hover:bg-muted/40"
+    >
       <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-blue-50">
         <UserPlus className="h-4 w-4 text-blue-600" />
       </div>
@@ -1006,7 +1034,7 @@ function LeadRow({ lead }: { lead: AgentLead }) {
           <p className="mt-1 text-[11px] text-muted-foreground">📝 {formName}</p>
         )}
       </div>
-    </div>
+    </button>
   );
 }
 
