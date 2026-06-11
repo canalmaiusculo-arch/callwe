@@ -29,6 +29,7 @@ import { NotificationBanner } from '@/components/agent/notification-banner';
 import { BriefingDisplay } from '@/components/agent/briefing-display';
 import { useAuthStore } from '@/stores/auth-store';
 import { ChatWidget } from '@/components/chat-widget';
+import { NotificationCenter } from '@/components/notification-center';
 import { useRealtimeCalls, useRealtimeSms } from '@/hooks/use-realtime-calls';
 import {
   LEAD_STATUS_COLOR,
@@ -117,6 +118,7 @@ export default function AgentPage() {
   return (
     <div className="grid h-screen grid-cols-12 gap-3 bg-muted/20 p-3">
       <ChatWidget />
+      <NotificationCenter />
       <aside className="col-span-2 flex flex-col rounded-lg border bg-background p-3">
         <div className="mb-3">
           <p className="text-xs uppercase text-muted-foreground">Atendente</p>

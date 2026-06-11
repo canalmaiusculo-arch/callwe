@@ -10,6 +10,7 @@ import { LanguageSwitcher } from '@/components/language-switcher';
 import { useTranslate } from '@/i18n/provider';
 import { Logo } from '@/components/logo';
 import { ChatWidget } from '@/components/chat-widget';
+import { NotificationCenter } from '@/components/notification-center';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -76,6 +77,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       </aside>
       <main className="flex-1 overflow-auto">{children}</main>
       <ChatWidget />
+      <NotificationCenter />
     </div>
   );
 }
