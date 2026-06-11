@@ -85,11 +85,11 @@ export function NotificationCenter() {
             key={n.id}
             className={`flex items-start gap-3 rounded-lg border border-l-4 p-3 shadow-lg ${
               missed
-                ? 'border-l-amber-400 bg-amber-50 dark:bg-amber-950/40'
+                ? 'border-l-blue-500 bg-blue-50 dark:bg-blue-950/40'
                 : 'border-l-sky-400 bg-sky-50 dark:bg-sky-950/40'
             }`}
           >
-            <Icon className={`mt-0.5 h-5 w-5 shrink-0 ${missed ? 'text-amber-600' : 'text-sky-600'}`} />
+            <Icon className={`mt-0.5 h-5 w-5 shrink-0 ${missed ? 'text-blue-600' : 'text-sky-600'}`} />
             <div className="min-w-0 flex-1">
               <p className="text-sm font-semibold">{n.title}</p>
               <p className="truncate text-xs text-muted-foreground">{n.subtitle}</p>
