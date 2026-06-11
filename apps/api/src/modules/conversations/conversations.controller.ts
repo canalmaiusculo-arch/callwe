@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
+import { Controller, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { z } from 'zod';
 import { ConversationsService } from './conversations.service.js';
@@ -16,6 +16,12 @@ export class ConversationsController {
   @Get()
   list(@CurrentUser() user: AuthUser) {
     return this.svc.list(user);
+  }
+
+  /** Busca leads para iniciar uma conversa nova. */
+  @Get('leads')
+  searchLeads(@CurrentUser() user: AuthUser, @Query('search') search?: string) {
+    return this.svc.searchLeads(user, search);
   }
 
   @Get(':leadId/messages')

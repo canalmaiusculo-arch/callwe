@@ -118,6 +118,42 @@ export class ConversationsService {
       .map(({ lastAt: _lastAt, ...rest }) => rest);
   }
 
+  /** Busca leads acessíveis ao usuário para iniciar uma conversa nova. */
+  async searchLeads(user: Caller, search?: string) {
+    const subIds = await this.accessibleSubIds(user);
+    if (subIds.length === 0) return [];
+    const rows = await this.prisma.lead.findMany({
+      where: {
+        subAccountId: { in: subIds },
+        deletedAt: null,
+        ...(search
+          ? {
+              OR: [
+                { name: { contains: search, mode: 'insensitive' } },
+                { phoneE164: { contains: search } },
+                { email: { contains: search, mode: 'insensitive' } },
+              ],
+            }
+          : {}),
+      },
+      select: {
+        id: true,
+        name: true,
+        phoneE164: true,
+        subAccountId: true,
+        subAccount: { select: { name: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 20,
+    });
+    return rows.map((r) => ({
+      leadId: r.id,
+      leadName: r.name ?? r.phoneE164 ?? 'Lead sem nome',
+      subAccountId: r.subAccountId,
+      subAccountName: r.subAccount?.name ?? '—',
+    }));
+  }
+
   async messages(user: Caller, leadId: string) {
     await this.assertAccess(user, leadId);
     return this.prisma.leadNote.findMany({

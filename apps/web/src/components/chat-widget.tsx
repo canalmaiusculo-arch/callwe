@@ -2,10 +2,11 @@
 
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { MessageCircle, X, ChevronLeft, Send } from 'lucide-react';
+import { MessageCircle, X, ChevronLeft, Send, Plus, Search } from 'lucide-react';
 import { toast } from 'sonner';
 import { apiClient } from '@/lib/api-client';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useAuthStore } from '@/stores/auth-store';
 
@@ -16,6 +17,12 @@ interface Conversation {
   subAccountName: string;
   lastMessage: { body: string; at: string; authorRole: string | null };
   unread: number;
+}
+interface LeadHit {
+  leadId: string;
+  leadName: string;
+  subAccountId: string;
+  subAccountName: string;
 }
 interface Message {
   id: string;
@@ -41,6 +48,7 @@ function jwtSub(token: string): string {
 }
 
 function fmtTime(iso: string) {
+  if (!iso) return '';
   return new Date(iso).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
 }
 
@@ -49,6 +57,8 @@ export function ChatWidget() {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState<Conversation | null>(null);
+  const [newMode, setNewMode] = useState(false);
+  const [leadSearch, setLeadSearch] = useState('');
   const [msg, setMsg] = useState('');
 
   const myId = token ? jwtSub(token) : '';
@@ -65,6 +75,12 @@ export function ChatWidget() {
     queryFn: () => apiClient.get(`/conversations/${selected!.leadId}/messages`),
     enabled: open && !!selected,
     refetchInterval: 8_000,
+  });
+
+  const { data: foundLeads = [] } = useQuery<LeadHit[]>({
+    queryKey: ['conv-leads', leadSearch],
+    queryFn: () => apiClient.get(`/conversations/leads?search=${encodeURIComponent(leadSearch)}`),
+    enabled: open && newMode,
   });
 
   const markRead = useMutation({
@@ -88,7 +104,14 @@ export function ChatWidget() {
 
   function openConversation(c: Conversation) {
     setSelected(c);
+    setNewMode(false);
     if (c.unread > 0) markRead.mutate(c.leadId);
+  }
+
+  function startConversation(l: LeadHit) {
+    setSelected({ ...l, lastMessage: { body: '', at: '', authorRole: null }, unread: 0 });
+    setNewMode(false);
+    setLeadSearch('');
   }
 
   return (
@@ -109,42 +132,8 @@ export function ChatWidget() {
 
       {open && (
         <div className="fixed bottom-24 right-6 z-50 flex h-[70vh] max-h-[600px] w-[92vw] max-w-sm flex-col overflow-hidden rounded-2xl border bg-card shadow-2xl">
-          {!selected ? (
-            <>
-              <div className="border-b p-4">
-                <h3 className="font-semibold">Conversas</h3>
-                <p className="text-xs text-muted-foreground">Mensagens sobre seus leads</p>
-              </div>
-              <div className="flex-1 overflow-auto">
-                {conversations.length === 0 && (
-                  <p className="p-4 text-sm text-muted-foreground">Nenhuma conversa ainda.</p>
-                )}
-                {conversations.map((c) => (
-                  <button
-                    key={c.leadId}
-                    type="button"
-                    onClick={() => openConversation(c)}
-                    className="flex w-full items-start gap-3 border-b p-3 text-left hover:bg-muted/40"
-                  >
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="truncate text-sm font-medium">{c.leadName}</span>
-                        <span className="shrink-0 text-[10px] text-muted-foreground">{fmtTime(c.lastMessage.at)}</span>
-                      </div>
-                      <p className="truncate text-xs text-muted-foreground">
-                        {c.subAccountName} · {c.lastMessage.body}
-                      </p>
-                    </div>
-                    {c.unread > 0 && (
-                      <span className="mt-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-600 px-1 text-[11px] font-bold text-white">
-                        {c.unread}
-                      </span>
-                    )}
-                  </button>
-                ))}
-              </div>
-            </>
-          ) : (
+          {selected ? (
+            /* ---- Thread ---- */
             <>
               <div className="flex items-center gap-2 border-b p-3">
                 <button type="button" onClick={() => setSelected(null)} className="rounded-md p-1 hover:bg-muted">
@@ -157,7 +146,7 @@ export function ChatWidget() {
               </div>
               <div className="flex-1 space-y-3 overflow-auto p-3">
                 {messages.length === 0 && (
-                  <p className="text-sm text-muted-foreground">Nenhuma mensagem. Comece a conversa.</p>
+                  <p className="text-sm text-muted-foreground">Nenhuma mensagem. Mande a primeira abaixo.</p>
                 )}
                 {messages.map((m) => {
                   const mine = m.authorUserId === myId;
@@ -196,6 +185,86 @@ export function ChatWidget() {
                   <Send className="h-4 w-4" />
                 </Button>
               </form>
+            </>
+          ) : newMode ? (
+            /* ---- Nova conversa ---- */
+            <>
+              <div className="flex items-center gap-2 border-b p-3">
+                <button type="button" onClick={() => setNewMode(false)} className="rounded-md p-1 hover:bg-muted">
+                  <ChevronLeft className="h-5 w-5" />
+                </button>
+                <p className="text-sm font-semibold">Nova conversa</p>
+              </div>
+              <div className="border-b p-3">
+                <div className="flex items-center gap-2 rounded-md border px-2">
+                  <Search className="h-4 w-4 text-muted-foreground" />
+                  <Input
+                    value={leadSearch}
+                    onChange={(e) => setLeadSearch(e.target.value)}
+                    placeholder="Buscar lead por nome ou telefone..."
+                    className="border-0 px-0 shadow-none focus-visible:ring-0"
+                  />
+                </div>
+              </div>
+              <div className="flex-1 overflow-auto">
+                {foundLeads.length === 0 && (
+                  <p className="p-4 text-sm text-muted-foreground">Nenhum lead encontrado.</p>
+                )}
+                {foundLeads.map((l) => (
+                  <button
+                    key={l.leadId}
+                    type="button"
+                    onClick={() => startConversation(l)}
+                    className="flex w-full flex-col border-b p-3 text-left hover:bg-muted/40"
+                  >
+                    <span className="text-sm font-medium">{l.leadName}</span>
+                    <span className="text-xs text-muted-foreground">{l.subAccountName}</span>
+                  </button>
+                ))}
+              </div>
+            </>
+          ) : (
+            /* ---- Lista de conversas ---- */
+            <>
+              <div className="flex items-center justify-between border-b p-4">
+                <div>
+                  <h3 className="font-semibold">Conversas</h3>
+                  <p className="text-xs text-muted-foreground">Mensagens sobre seus leads</p>
+                </div>
+                <Button size="icon" variant="outline" onClick={() => setNewMode(true)} aria-label="Nova conversa">
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
+              <div className="flex-1 overflow-auto">
+                {conversations.length === 0 && (
+                  <p className="p-4 text-sm text-muted-foreground">
+                    Nenhuma conversa ainda. Toque em <strong>+</strong> para iniciar uma.
+                  </p>
+                )}
+                {conversations.map((c) => (
+                  <button
+                    key={c.leadId}
+                    type="button"
+                    onClick={() => openConversation(c)}
+                    className="flex w-full items-start gap-3 border-b p-3 text-left hover:bg-muted/40"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="truncate text-sm font-medium">{c.leadName}</span>
+                        <span className="shrink-0 text-[10px] text-muted-foreground">{fmtTime(c.lastMessage.at)}</span>
+                      </div>
+                      <p className="truncate text-xs text-muted-foreground">
+                        {c.subAccountName} · {c.lastMessage.body}
+                      </p>
+                    </div>
+                    {c.unread > 0 && (
+                      <span className="mt-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-600 px-1 text-[11px] font-bold text-white">
+                        {c.unread}
+                      </span>
+                    )}
+                  </button>
+                ))}
+              </div>
             </>
           )}
         </div>
