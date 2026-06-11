@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { HelpHint } from '@/components/help-hint';
 import { useTenantStore } from '@/stores/tenant-store';
 
 interface ClientDetail {
@@ -398,7 +399,9 @@ function ClientAccessCard({ clientId }: { clientId: string }) {
   return (
     <Card className="mt-6">
       <CardHeader>
-        <CardTitle className="text-base">Acesso do cliente</CardTitle>
+        <CardTitle className="flex items-center gap-1.5 text-base">
+          Acesso do cliente <HelpHint topic="cliente-acesso" />
+        </CardTitle>
         <p className="mt-0.5 text-xs text-muted-foreground">
           Logins do cliente final — eles veem só os próprios leads e ligações.
         </p>
@@ -594,7 +597,9 @@ function ZapierWebhookCard({ clientId }: { clientId: string }) {
   return (
     <Card className="mt-6">
       <CardHeader>
-        <CardTitle className="text-base">Receber leads de formulários / quizz</CardTitle>
+        <CardTitle className="flex items-center gap-1.5 text-base">
+          Receber leads de formulários / quizz <HelpHint topic="leads-webhook" />
+        </CardTitle>
         <p className="mt-1 text-xs text-muted-foreground">
           Cole esta URL no webhook do seu formulário, quizz ou landing page. Cada lead enviado
           cai direto no CRM com origem &quot;Formulário&quot;. Funciona com Typeform, Jotform, Zapier,

@@ -13,6 +13,7 @@ import {
   ArrowDownRight,
 } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
+import { HelpHint } from '@/components/help-hint';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { MiniLineChart } from '@/components/line-chart';
 import { useAdminViewStore } from '@/stores/admin-view-store';
@@ -131,7 +132,10 @@ export default function AgencyDashboard() {
   return (
     <div className="p-8">
       <header className="mb-6">
-        <h1 className="text-3xl font-bold">Visão geral da agência</h1>
+        <div className="flex items-center gap-2">
+          <h1 className="text-3xl font-bold">Visão geral da agência</h1>
+          <HelpHint topic="dashboard" />
+        </div>
         <p className="mt-1 text-muted-foreground">{s.totalClients} clientes ativos</p>
       </header>
 

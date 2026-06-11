@@ -8,6 +8,7 @@ import { apiClient } from '@/lib/api-client';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { HelpHint } from '@/components/help-hint';
 import { useAuthStore } from '@/stores/auth-store';
 import { useTenantStore } from '@/stores/tenant-store';
 
@@ -109,7 +110,10 @@ export default function LeadsPage() {
     <div className="p-8">
       <header className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Leads</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-3xl font-bold">Leads</h1>
+            <HelpHint topic="leads" />
+          </div>
           <p className="mt-1 text-muted-foreground">{leads.length} leads {hasFilters && '(filtrados)'}</p>
         </div>
         <div className="flex flex-wrap gap-2">

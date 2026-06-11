@@ -2,6 +2,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { HelpHint } from '@/components/help-hint';
 import {
   Phone,
   PhoneIncoming,
@@ -106,7 +107,10 @@ export default function WorkspaceDashboard() {
     <div className="p-4 md:p-8">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-bold">Dashboard</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-3xl font-bold">Dashboard</h1>
+            <HelpHint topic="dashboard" />
+          </div>
           <p className="mt-1 text-muted-foreground">Visão geral do cliente</p>
         </div>
         <Button variant="outline" onClick={downloadMonthlyReport}>

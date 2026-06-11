@@ -17,6 +17,7 @@ import { apiClient } from '@/lib/api-client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { MiniLineChart } from '@/components/line-chart';
+import { HelpHint } from '@/components/help-hint';
 import { useTenantStore } from '@/stores/tenant-store';
 
 interface RecentCall {
@@ -117,7 +118,10 @@ export default function ClientDashboard() {
 
   return (
     <div className="p-4 md:p-8">
-      <h1 className="text-3xl font-bold">Meu painel</h1>
+      <div className="flex items-center gap-2">
+        <h1 className="text-3xl font-bold">Meu painel</h1>
+        <HelpHint topic="dashboard" />
+      </div>
       <p className="mt-1 text-muted-foreground">Visão de hoje e dos últimos 7 dias</p>
 
       {/* KPIs do dia (com detalhes no hover) */}

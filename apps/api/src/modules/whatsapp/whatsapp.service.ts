@@ -15,28 +15,91 @@ export class WhatsappService {
 
   constructor(private readonly prisma: PrismaService) {}
 
-  private get baseUrl(): string {
-    if (!env.ZAPI_INSTANCE_ID || !env.ZAPI_TOKEN) {
-      throw new BadRequestException('Z-API não configurada — defina ZAPI_INSTANCE_ID e ZAPI_TOKEN');
+  /**
+   * Resolve as credenciais Z-API: usa o número PRÓPRIO da agência (Agency.settings.zapi)
+   * se configurado; senão cai no número global (env). Cada agência usa o próprio número.
+   */
+  private async resolveCreds(
+    agencyId: string | null,
+  ): Promise<{ instanceId: string; token: string; clientToken: string }> {
+    if (agencyId) {
+      const agency = await this.prisma.agency.findUnique({
+        where: { id: agencyId },
+        select: { settings: true },
+      });
+      const zapi = ((agency?.settings ?? {}) as Record<string, unknown>).zapi as
+        | { instanceId?: string; token?: string; clientToken?: string }
+        | undefined;
+      if (zapi?.instanceId && zapi?.token && zapi?.clientToken) {
+        return { instanceId: zapi.instanceId, token: zapi.token, clientToken: zapi.clientToken };
+      }
     }
-    return `https://api.z-api.io/instances/${env.ZAPI_INSTANCE_ID}/token/${env.ZAPI_TOKEN}`;
+    if (env.ZAPI_INSTANCE_ID && env.ZAPI_TOKEN && env.ZAPI_CLIENT_TOKEN) {
+      return {
+        instanceId: env.ZAPI_INSTANCE_ID,
+        token: env.ZAPI_TOKEN,
+        clientToken: env.ZAPI_CLIENT_TOKEN,
+      };
+    }
+    throw new BadRequestException(
+      'Z-API não configurada. Configure o número da agência em Configurações → WhatsApp.',
+    );
   }
 
-  private get headers(): Record<string, string> {
-    if (!env.ZAPI_CLIENT_TOKEN) {
-      throw new BadRequestException('ZAPI_CLIENT_TOKEN não configurado');
-    }
+  private urlFor(c: { instanceId: string; token: string }): string {
+    return `https://api.z-api.io/instances/${c.instanceId}/token/${c.token}`;
+  }
+  private headersFor(c: { clientToken: string }): Record<string, string> {
+    return { 'Client-Token': c.clientToken, 'Content-Type': 'application/json' };
+  }
+
+  /** Config Z-API da agência (não devolve segredos — só indica o que está setado). */
+  async getConfig(agencyId: string) {
+    const agency = await this.prisma.agency.findUnique({
+      where: { id: agencyId },
+      select: { settings: true },
+    });
+    const zapi = (((agency?.settings ?? {}) as Record<string, unknown>).zapi ?? {}) as {
+      instanceId?: string;
+      token?: string;
+      clientToken?: string;
+    };
     return {
-      'Client-Token': env.ZAPI_CLIENT_TOKEN,
-      'Content-Type': 'application/json',
+      configured: !!(zapi.instanceId && zapi.token && zapi.clientToken),
+      instanceId: zapi.instanceId ?? '',
+      hasToken: !!zapi.token,
+      hasClientToken: !!zapi.clientToken,
+      globalFallback: !!(env.ZAPI_INSTANCE_ID && env.ZAPI_TOKEN && env.ZAPI_CLIENT_TOKEN),
     };
   }
 
-  /** Lista grupos do número conectado (usado pra dropdown de configuração). */
-  async listGroups(): Promise<ZapiGroup[]> {
+  async setConfig(
+    agencyId: string,
+    input: { instanceId: string; token: string; clientToken: string },
+  ) {
+    const agency = await this.prisma.agency.findUnique({
+      where: { id: agencyId },
+      select: { settings: true },
+    });
+    const settings = (agency?.settings ?? {}) as Record<string, unknown>;
+    await this.prisma.agency.update({
+      where: { id: agencyId },
+      data: {
+        settings: {
+          ...settings,
+          zapi: { instanceId: input.instanceId, token: input.token, clientToken: input.clientToken },
+        } as never,
+      },
+    });
+    return { ok: true };
+  }
+
+  /** Lista grupos do número Z-API da agência (ou global, fallback). */
+  async listGroups(agencyId: string | null): Promise<ZapiGroup[]> {
+    const creds = await this.resolveCreds(agencyId);
     try {
-      const res = await axios.get<unknown>(`${this.baseUrl}/groups`, {
-        headers: this.headers,
+      const res = await axios.get<unknown>(`${this.urlFor(creds)}/groups`, {
+        headers: this.headersFor(creds),
         timeout: 15_000,
       });
       const data = Array.isArray(res.data) ? res.data : [];
@@ -54,13 +117,16 @@ export class WhatsappService {
     }
   }
 
-  /** Envia mensagem de texto pra um número/grupo (formato Z-API: id sem @g.us). */
-  async sendText(phone: string, message: string): Promise<void> {
+  private async sendText(
+    creds: { instanceId: string; token: string; clientToken: string },
+    phone: string,
+    message: string,
+  ): Promise<void> {
     try {
       await axios.post(
-        `${this.baseUrl}/send-text`,
+        `${this.urlFor(creds)}/send-text`,
         { phone, message },
-        { headers: this.headers, timeout: 20_000 },
+        { headers: this.headersFor(creds), timeout: 20_000 },
       );
     } catch (err) {
       this.logger.error(`Z-API send-text falhou (phone=${phone}): ${this.formatError(err)}`);
@@ -68,7 +134,7 @@ export class WhatsappService {
     }
   }
 
-  /** Carrega interaction, valida acesso, monta mensagem (varia por cenário) e envia pro grupo da sub_account. */
+  /** Carrega interaction, valida acesso, monta mensagem e envia pelo número Z-API da agência. */
   async sendInteractionSummary(userId: string, interactionId: string): Promise<{ sent: true; phone: string; scenario: string }> {
     const interaction = await this.prisma.interaction.findUnique({
       where: { id: interactionId },
@@ -97,8 +163,9 @@ export class WhatsappService {
       );
     }
 
+    const creds = await this.resolveCreds(interaction.subAccount.agencyId);
     const message = buildMessage(scenario, interaction);
-    await this.sendText(phone, message);
+    await this.sendText(creds, phone, message);
     return { sent: true, phone, scenario };
   }
 

@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { HelpHint } from '@/components/help-hint';
 import { useAdminViewStore } from '@/stores/admin-view-store';
 
 interface Client {
@@ -55,7 +56,10 @@ export default function ClientsPage() {
     <div className="p-8">
       <header className="mb-6 flex items-start justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Clientes</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-3xl font-bold">Clientes</h1>
+            <HelpHint topic="clientes" />
+          </div>
           <p className="mt-1 text-muted-foreground">{clients.length} sob sua agência.</p>
         </div>
         <Button onClick={() => setShowForm((v) => !v)}>

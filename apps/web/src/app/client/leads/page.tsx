@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { apiClient } from '@/lib/api-client';
 import { useTenantStore } from '@/stores/tenant-store';
 import { Badge } from '@/components/ui/badge';
+import { HelpHint } from '@/components/help-hint';
 
 type LeadStatus = 'new' | 'contacted' | 'qualified' | 'won' | 'lost';
 type LeadSource = 'inbound_call' | 'outbound_call' | 'meta_ads' | 'sms' | 'manual' | 'import' | 'api' | 'form';
@@ -56,7 +57,10 @@ export default function ClientLeadsPage() {
   return (
     <div className="p-4 md:p-8">
       <header className="mb-6">
-        <h1 className="text-3xl font-bold">Meus leads</h1>
+        <div className="flex items-center gap-2">
+          <h1 className="text-3xl font-bold">Meus leads</h1>
+          <HelpHint topic="leads" />
+        </div>
         <p className="mt-1 text-muted-foreground">{leads.length} leads</p>
       </header>
 
