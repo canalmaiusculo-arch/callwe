@@ -41,6 +41,9 @@ recreate() {
   # hash, ex.: "<hash>_infra-web-1") direto pelo docker, antes do up. É o que mata
   # o estado fantasma do compose neste host.
   for svc in "$@"; do
+    # 1) nome exato (cobre o caso comum infra-<svc>-1)
+    docker rm -f "${PROJECT}-${svc}-1" >/dev/null 2>&1 || true
+    # 2) qualquer outro por filtro de nome (cobre zumbis "<hash>_infra-<svc>-1")
     local ids
     ids="$(docker ps -aq --filter "name=${PROJECT}-${svc}" 2>/dev/null || true)"
     if [ -n "$ids" ]; then docker rm -f $ids >/dev/null 2>&1 || true; fi
