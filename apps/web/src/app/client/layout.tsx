@@ -12,17 +12,19 @@ import { useTenantStore } from '@/stores/tenant-store';
 import { ChatWidget } from '@/components/chat-widget';
 import { NotificationCenter } from '@/components/notification-center';
 import { LanguageSwitcher } from '@/components/language-switcher';
+import { useTranslate } from '@/i18n/provider';
 
 const items = [
-  { href: '/client' as const, icon: LayoutDashboard, label: 'Dashboard' },
-  { href: '/client/leads' as const, icon: Users, label: 'Leads' },
-  { href: '/client/calls' as const, icon: Phone, label: 'Chamadas' },
-  { href: '/client/sms' as const, icon: MessageSquare, label: 'SMS' },
-  { href: '/client/voicemails' as const, icon: Voicemail, label: 'Voicemails' },
+  { href: '/client' as const, icon: LayoutDashboard, key: 'workspace.dashboard' },
+  { href: '/client/leads' as const, icon: Users, key: 'workspace.leads' },
+  { href: '/client/calls' as const, icon: Phone, key: 'workspace.calls' },
+  { href: '/client/sms' as const, icon: MessageSquare, key: 'workspace.sms' },
+  { href: '/client/voicemails' as const, icon: Voicemail, key: 'workspace.voicemails' },
 ];
 
 export default function ClientLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const { t } = useTranslate();
   const subAccountName = useTenantStore((s) => s.subAccountName);
   const subAccountId = useTenantStore((s) => s.subAccountId);
   const setTenant = useTenantStore((s) => s.setTenant);
@@ -44,7 +46,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
     <div className="flex h-screen">
       <aside className="flex h-screen w-60 flex-col border-r bg-muted/20">
         <div className="border-b p-4">
-          <p className="text-xs uppercase text-muted-foreground">Cliente</p>
+          <p className="text-xs uppercase text-muted-foreground">{t('client.title')}</p>
           <p className="truncate text-sm font-semibold">{subAccountName ?? '—'}</p>
         </div>
 
@@ -62,7 +64,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
                 )}
               >
                 <Icon className="h-4 w-4" />
-                {item.label}
+                {t(item.key)}
               </Link>
             );
           })}
@@ -78,7 +80,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
           className="m-2 flex items-center gap-3 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-muted"
         >
           <HelpCircle className="h-4 w-4" />
-          Ajuda
+          {t('common.help')}
         </Link>
 
         <button
@@ -90,7 +92,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
           className="m-2 flex items-center gap-3 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-muted"
         >
           <LogOut className="h-4 w-4" />
-          Sair
+          {t('common.logout')}
         </button>
       </aside>
       <main className="flex-1 overflow-auto">{children}</main>

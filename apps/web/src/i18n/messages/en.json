@@ -11,14 +11,18 @@
     "confirm": "Confirm",
     "close": "Close",
     "back": "Back",
-    "logout": "Log out"
+    "logout": "Log out",
+    "help": "Help"
   },
   "auth": {
     "login": "Log in",
     "loginTitle": "Log in to CallWe",
     "email": "Email",
     "password": "Password",
-    "invalidCredentials": "Invalid credentials"
+    "invalidCredentials": "Invalid credentials",
+    "accessPanel": "Access the panel",
+    "forgotPassword": "Forgot my password",
+    "loggingIn": "Logging in..."
   },
   "workspace": {
     "dashboard": "Dashboard",
@@ -40,7 +44,11 @@
     "title": "Agency",
     "overview": "Overview",
     "clients": "Clients",
-    "team": "Agents"
+    "team": "Agents",
+    "settings": "Settings"
+  },
+  "client": {
+    "title": "Client"
   },
   "kpi": {
     "leadsToday": "Leads today",

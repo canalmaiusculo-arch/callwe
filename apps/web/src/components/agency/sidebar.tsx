@@ -10,17 +10,19 @@ import { useTenantStore } from '@/stores/tenant-store';
 import { useAdminViewStore } from '@/stores/admin-view-store';
 import { Logo } from '@/components/logo';
 import { LanguageSwitcher } from '@/components/language-switcher';
+import { useTranslate } from '@/i18n/provider';
 
 const items = [
-  { href: '/agency' as const, icon: LayoutDashboard, label: 'Visão geral' },
-  { href: '/agency/clients' as const, icon: Building2, label: 'Clientes' },
-  { href: '/agency/team' as const, icon: Users, label: 'Atendentes' },
-  { href: '/agency/settings' as const, icon: Settings, label: 'Configurações' },
+  { href: '/agency' as const, icon: LayoutDashboard, key: 'agency.overview' },
+  { href: '/agency/clients' as const, icon: Building2, key: 'agency.clients' },
+  { href: '/agency/team' as const, icon: Users, key: 'agency.team' },
+  { href: '/agency/settings' as const, icon: Settings, key: 'agency.settings' },
 ];
 
 export function AgencySidebar() {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
+  const { t } = useTranslate();
   const clearAuth = useAuthStore((s) => s.clear);
   const clearTenant = useTenantStore((s) => s.clear);
   const viewAsAgencyName = useAdminViewStore((s) => s.viewAsAgencyName);
@@ -31,7 +33,7 @@ export function AgencySidebar() {
         <div className="flex min-w-0 flex-1 items-center gap-2">
           <Logo variant="icon" className="h-7 w-7 shrink-0" />
           <div className="min-w-0">
-            <p className="text-xs uppercase text-muted-foreground">Agência</p>
+            <p className="text-xs uppercase text-muted-foreground">{t('agency.title')}</p>
             <p className="truncate text-sm font-semibold">{viewAsAgencyName ?? 'CallWe'}</p>
           </div>
         </div>
@@ -55,7 +57,7 @@ export function AgencySidebar() {
               )}
             >
               <Icon className="h-4 w-4" />
-              {item.label}
+              {t(item.key)}
             </Link>
           );
         })}
@@ -71,7 +73,7 @@ export function AgencySidebar() {
         className="m-2 flex items-center gap-3 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-muted"
       >
         <HelpCircle className="h-4 w-4" />
-        Ajuda
+        {t('common.help')}
       </Link>
 
       <button
@@ -83,7 +85,7 @@ export function AgencySidebar() {
         className="m-2 flex items-center gap-3 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-muted"
       >
         <LogOut className="h-4 w-4" />
-        Sair
+        {t('common.logout')}
       </button>
     </>
   );

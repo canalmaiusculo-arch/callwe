@@ -3,12 +3,14 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import ptBR from './messages/pt-BR.json';
 import en from './messages/en.json';
+import es from './messages/es.json';
 
-type Locale = 'pt-BR' | 'en';
+type Locale = 'pt-BR' | 'en' | 'es';
 
 const DICT: Record<Locale, typeof ptBR> = {
   'pt-BR': ptBR,
   en: en as typeof ptBR,
+  es: es as typeof ptBR,
 };
 
 interface I18nContextValue {
@@ -28,11 +30,12 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const saved = (typeof window !== 'undefined' && localStorage.getItem('callwe-locale')) as Locale | null;
-    if (saved && (saved === 'pt-BR' || saved === 'en')) {
+    if (saved && (saved === 'pt-BR' || saved === 'en' || saved === 'es')) {
       setLocaleState(saved);
     } else if (typeof window !== 'undefined') {
-      const browser = navigator.language;
+      const browser = navigator.language.toLowerCase();
       if (browser.startsWith('en')) setLocaleState('en');
+      else if (browser.startsWith('es')) setLocaleState('es');
     }
   }, []);
 

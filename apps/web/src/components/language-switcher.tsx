@@ -5,6 +5,7 @@ import { useTranslate } from '@/i18n/provider';
 const LANGS = [
   { code: 'pt-BR' as const, flag: '/flags/br.png', label: 'Português' },
   { code: 'en' as const, flag: '/flags/us.png', label: 'English' },
+  { code: 'es' as const, flag: '/flags/es.png', label: 'Español' },
 ];
 
 export function LanguageSwitcher() {

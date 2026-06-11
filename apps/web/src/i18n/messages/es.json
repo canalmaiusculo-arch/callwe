@@ -1,0 +1,93 @@
+{
+  "common": {
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "delete": "Eliminar",
+    "edit": "Editar",
+    "new": "Nuevo",
+    "search": "Buscar",
+    "loading": "Cargando...",
+    "empty": "Sin datos",
+    "confirm": "Confirmar",
+    "close": "Cerrar",
+    "back": "Volver",
+    "logout": "Salir",
+    "help": "Ayuda"
+  },
+  "auth": {
+    "login": "Entrar",
+    "loginTitle": "Entrar en CallWe",
+    "email": "Email",
+    "password": "Contraseña",
+    "invalidCredentials": "Credenciales inválidas",
+    "accessPanel": "Accede al panel",
+    "forgotPassword": "Olvidé mi contraseña",
+    "loggingIn": "Entrando..."
+  },
+  "workspace": {
+    "dashboard": "Panel",
+    "leads": "Leads",
+    "calls": "Llamadas",
+    "sms": "SMS",
+    "voicemails": "Buzón de voz",
+    "briefing": "Briefing",
+    "integrations": "Integraciones"
+  },
+  "admin": {
+    "title": "Super-admin",
+    "agencies": "Agencias",
+    "team": "Agentes",
+    "newAgency": "Nueva agencia",
+    "newClient": "Nuevo cliente"
+  },
+  "agency": {
+    "title": "Agencia",
+    "overview": "Resumen",
+    "clients": "Clientes",
+    "team": "Agentes",
+    "settings": "Configuración"
+  },
+  "client": {
+    "title": "Cliente"
+  },
+  "kpi": {
+    "leadsToday": "Leads hoy",
+    "callsToday": "Llamadas hoy",
+    "missedToday": "Perdidas hoy",
+    "avgHandleTime": "TMA",
+    "avgWaitingTime": "T. espera",
+    "callsWeek": "Llamadas (7d)",
+    "leadsWeek": "Leads (7d)",
+    "conversion": "Conversión",
+    "inboundCalls": "Entrantes",
+    "outboundCalls": "Salientes",
+    "coldCalls": "Llamadas frías",
+    "followUps": "Seguimientos",
+    "winRate": "Win rate"
+  },
+  "agent": {
+    "title": "Panel en vivo",
+    "myClients": "Mis clientes",
+    "softphone": "Softphone",
+    "incomingCall": "Llamada entrante",
+    "dashboard": "Panel",
+    "onlyMine": "Solo las mías",
+    "viewAll": "Ver todas"
+  },
+  "leadStatus": {
+    "new": "Nuevo",
+    "contacted": "Contactado",
+    "qualified": "Calificado",
+    "won": "Ganado",
+    "lost": "Perdido"
+  },
+  "leadSource": {
+    "inbound_call": "Llamada entrante",
+    "outbound_call": "Llamada saliente",
+    "meta_ads": "Meta Ads",
+    "sms": "SMS",
+    "manual": "Manual",
+    "import": "Importación",
+    "api": "API"
+  }
+}

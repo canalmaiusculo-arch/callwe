@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { apiClient } from '@/lib/api-client';
 import { useAuthStore } from '@/stores/auth-store';
 import { Logo } from '@/components/logo';
+import { useTranslate } from '@/i18n/provider';
 
 interface LoginResponse {
   accessToken: string;
@@ -24,6 +25,7 @@ function decodeJwt(token: string): JwtClaims {
 
 export default function LoginPage() {
   const router = useRouter();
+  const { t } = useTranslate();
   const setTokens = useAuthStore((s) => s.setTokens);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -55,7 +57,7 @@ export default function LoginPage() {
         router.push('/select-sub-account');
       }
     } catch {
-      toast.error('Credenciais inválidas');
+      toast.error(t('auth.invalidCredentials'));
     } finally {
       setLoading(false);
     }
@@ -69,13 +71,13 @@ export default function LoginPage() {
       >
         <div className="flex flex-col items-center gap-2 pb-2">
           <Logo variant="full" className="h-9 w-auto" />
-          <p className="text-sm text-muted-foreground">Acesse o painel</p>
+          <p className="text-sm text-muted-foreground">{t('auth.accessPanel')}</p>
         </div>
         <input
           type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          placeholder="Email"
+          placeholder={t('auth.email')}
           required
           className="w-full rounded-md border px-3 py-2"
         />
@@ -83,7 +85,7 @@ export default function LoginPage() {
           type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          placeholder="Senha"
+          placeholder={t('auth.password')}
           required
           className="w-full rounded-md border px-3 py-2"
         />
@@ -92,13 +94,13 @@ export default function LoginPage() {
           disabled={loading}
           className="w-full rounded-md bg-brand-gradient px-4 py-2 font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50"
         >
-          {loading ? 'Entrando...' : 'Entrar'}
+          {loading ? t('auth.loggingIn') : t('auth.login')}
         </button>
         <Link
           href="/forgot-password"
           className="block text-center text-sm text-blue-600 hover:underline"
         >
-          Esqueci minha senha
+          {t('auth.forgotPassword')}
         </Link>
       </form>
     </main>
