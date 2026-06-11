@@ -69,10 +69,16 @@ case "$TARGET" in
   all)
     build_image api api.Dockerfile
     build_image worker worker.Dockerfile
+    build_image migrate migrate.Dockerfile
     build_image web web.Dockerfile \
       --build-arg "NEXT_PUBLIC_API_URL=https://api.callwe.digital" \
       --build-arg "NEXT_PUBLIC_CLOUDTALK_PARTNER_ID="
-    recreate api worker web
+    # Recria o stack do zero: o `down` remove TODOS os containers do projeto pelo
+    # label (inclusive zumbis que confundem o compose), e o `up` completo sobe na
+    # ordem certa — postgres → migrate (aplica migrations) → api/worker/web/nginx.
+    echo "→ Recriando o stack (down + up)..."
+    $COMPOSE down --remove-orphans
+    $COMPOSE up -d
     ;;
   *)
     echo "Uso: $0 [api|web|worker|all]"
