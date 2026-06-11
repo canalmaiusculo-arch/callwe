@@ -32,10 +32,14 @@ build_image() {
   docker build -f "$INFRA_DIR/docker/${dockerfile}" -t "callwe-$name" "$@" "$APP_DIR"
 }
 
-# Sobe/recria os serviços. `up -d` (sem --force-recreate e sem rm) recria sozinho
-# os containers cuja imagem mudou e deixa os demais — sem corrida de remoção nem
-# erro "No such container" do --force-recreate.
+# Sobe/recria os serviços. Remove os containers direto pelo docker (síncrono, por
+# nome) antes do `up` — isso evita o estado fantasma do compose neste host, que
+# causa "No such container" / "name already in use" no --force-recreate.
+PROJECT="$(basename "$INFRA_DIR")" # nome do projeto compose (ex.: 'infra')
 recreate() {
+  for svc in "$@"; do
+    docker rm -f "${PROJECT}-${svc}-1" >/dev/null 2>&1 || true
+  done
   $COMPOSE up -d --no-deps "$@"
 }
 
