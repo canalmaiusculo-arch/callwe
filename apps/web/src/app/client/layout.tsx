@@ -9,6 +9,7 @@ import { cn } from '@/lib/utils';
 import { apiClient } from '@/lib/api-client';
 import { useAuthStore } from '@/stores/auth-store';
 import { useTenantStore } from '@/stores/tenant-store';
+import { ChatWidget } from '@/components/chat-widget';
 
 const items = [
   { href: '/client' as const, icon: LayoutDashboard, label: 'Dashboard' },
@@ -78,6 +79,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
         </button>
       </aside>
       <main className="flex-1 overflow-auto">{children}</main>
+      <ChatWidget />
     </div>
   );
 }

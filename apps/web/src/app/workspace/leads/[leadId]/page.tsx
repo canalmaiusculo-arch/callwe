@@ -72,7 +72,6 @@ export default function LeadDetailPage({ params }: { params: Promise<{ leadId: s
   const { leadId } = use(params);
   const qc = useQueryClient();
   const [newNote, setNewNote] = useState('');
-  const [shareNext, setShareNext] = useState(false);
 
   const { data: lead, isLoading } = useQuery<LeadDetail>({
     queryKey: ['lead', leadId],
@@ -89,11 +88,11 @@ export default function LeadDetailPage({ params }: { params: Promise<{ leadId: s
   });
 
   const addNote = useMutation({
-    mutationFn: (body: string) => apiClient.post(`/leads/${leadId}/notes`, { body, shared: shareNext }),
+    mutationFn: (body: string) => apiClient.post(`/leads/${leadId}/notes`, { body }),
     onSuccess: () => {
       setNewNote('');
       qc.invalidateQueries({ queryKey: ['lead', leadId] });
-      toast.success(shareNext ? 'Mensagem enviada ao cliente' : 'Nota interna adicionada');
+      toast.success('Observação adicionada');
     },
   });
 
@@ -105,6 +104,9 @@ export default function LeadDetailPage({ params }: { params: Promise<{ leadId: s
 
   if (isLoading) return <div className="p-8 text-muted-foreground">Carregando...</div>;
   if (!lead) return <div className="p-8">Lead não encontrado.</div>;
+
+  // Observações internas (o chat compartilhado fica no widget de conversas).
+  const internalNotes = lead.notes.filter((n) => !n.shared);
 
   return (
     <div className="grid h-screen grid-cols-12 gap-4 overflow-auto p-8">
@@ -166,54 +168,43 @@ export default function LeadDetailPage({ params }: { params: Promise<{ leadId: s
       <aside className="col-span-4 space-y-4">
         <Card>
           <CardHeader>
-            <CardTitle>Adicionar nota</CardTitle>
+            <CardTitle>Observações (internas)</CardTitle>
+            <p className="text-xs text-muted-foreground">
+              Só atendente/agência veem. Para falar com o cliente, use o chat (botão no canto).
+            </p>
           </CardHeader>
           <CardContent className="space-y-2">
             <Textarea
               value={newNote}
               onChange={(e) => setNewNote(e.target.value)}
-              placeholder={shareNext ? 'Mensagem visível ao cliente...' : 'Nota interna (só atendente/agência)...'}
+              placeholder="Resumo da chamada, próximos passos..."
               rows={4}
             />
-            <label className="flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                checked={shareNext}
-                onChange={(e) => setShareNext(e.target.checked)}
-                className="h-4 w-4"
-              />
-              Compartilhar com o cliente (aparece no painel dele)
-            </label>
             <Button
               size="sm"
               onClick={() => addNote.mutate(newNote)}
               disabled={!newNote.trim() || addNote.isPending}
             >
-              <Save className="h-4 w-4" /> {shareNext ? 'Enviar ao cliente' : 'Salvar nota interna'}
+              <Save className="h-4 w-4" /> Salvar observação
             </Button>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle>Notas ({lead.notes.length})</CardTitle>
+            <CardTitle>Histórico de observações</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
-            {lead.notes.length === 0 && (
-              <p className="text-sm text-muted-foreground">Sem notas.</p>
+            {internalNotes.length === 0 && (
+              <p className="text-sm text-muted-foreground">Sem observações.</p>
             )}
-            {lead.notes.map((n) => (
-              <div key={n.id} className={`rounded-md border p-3 ${n.shared ? 'border-secondary/40 bg-secondary/5' : ''}`}>
-                <div className="flex items-center justify-between gap-2">
-                  <p className="text-xs text-muted-foreground">
-                    {n.author?.fullName ?? '—'}
-                    {n.authorRole && ` · ${ROLE_LABEL[n.authorRole] ?? n.authorRole}`} ·{' '}
-                    {new Date(n.createdAt).toLocaleString('pt-BR')}
-                  </p>
-                  <Badge variant={n.shared ? 'success' : 'secondary'} className="shrink-0 text-[10px]">
-                    {n.shared ? 'compartilhada' : 'interna'}
-                  </Badge>
-                </div>
+            {internalNotes.map((n) => (
+              <div key={n.id} className="rounded-md border p-3">
+                <p className="text-xs text-muted-foreground">
+                  {n.author?.fullName ?? '—'}
+                  {n.authorRole && ` · ${ROLE_LABEL[n.authorRole] ?? n.authorRole}`} ·{' '}
+                  {new Date(n.createdAt).toLocaleString('pt-BR')}
+                </p>
                 <p className="mt-1 text-sm whitespace-pre-wrap">{n.body}</p>
               </div>
             ))}

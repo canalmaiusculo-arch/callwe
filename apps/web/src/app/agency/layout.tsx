@@ -1,5 +1,6 @@
 import { AgencySidebar } from '@/components/agency/sidebar';
 import { AdminImpersonationBanner } from '@/components/admin-impersonation-banner';
+import { ChatWidget } from '@/components/chat-widget';
 
 export default function AgencyLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -9,6 +10,7 @@ export default function AgencyLayout({ children }: { children: React.ReactNode }
         <AdminImpersonationBanner />
         <div className="flex-1 overflow-auto">{children}</div>
       </main>
+      <ChatWidget />
     </div>
   );
 }

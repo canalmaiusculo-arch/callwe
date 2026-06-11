@@ -308,6 +308,18 @@ model LeadNote {
   @@map("lead_notes")
 }
 
+// Controle de leitura do chat compartilhado, por usuário e por lead (conversa).
+model ConversationRead {
+  id         String   @id @default(uuid()) @db.Uuid
+  userId     String   @map("user_id") @db.Uuid
+  leadId     String   @map("lead_id") @db.Uuid
+  lastReadAt DateTime @map("last_read_at") @db.Timestamptz
+
+  @@unique([userId, leadId])
+  @@index([userId])
+  @@map("conversation_reads")
+}
+
 // ============================================================
 // Interações
 // ============================================================

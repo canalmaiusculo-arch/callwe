@@ -9,6 +9,7 @@ import { useTenantStore } from '@/stores/tenant-store';
 import { LanguageSwitcher } from '@/components/language-switcher';
 import { useTranslate } from '@/i18n/provider';
 import { Logo } from '@/components/logo';
+import { ChatWidget } from '@/components/chat-widget';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -74,6 +75,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </button>
       </aside>
       <main className="flex-1 overflow-auto">{children}</main>
+      <ChatWidget />
     </div>
   );
 }
