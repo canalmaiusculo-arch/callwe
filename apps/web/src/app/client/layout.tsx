@@ -10,7 +10,6 @@ import { apiClient } from '@/lib/api-client';
 import { useAuthStore } from '@/stores/auth-store';
 import { useTenantStore } from '@/stores/tenant-store';
 import { ChatWidget } from '@/components/chat-widget';
-import { NotificationCenter } from '@/components/notification-center';
 import { LanguageSwitcher } from '@/components/language-switcher';
 import { useTranslate } from '@/i18n/provider';
 
@@ -97,7 +96,6 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
       </aside>
       <main className="flex-1 overflow-auto">{children}</main>
       <ChatWidget />
-      <NotificationCenter />
     </div>
   );
 }
