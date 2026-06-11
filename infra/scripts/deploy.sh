@@ -37,8 +37,13 @@ build_image() {
 # causa "No such container" / "name already in use" no --force-recreate.
 PROJECT="$(basename "$INFRA_DIR")" # nome do projeto compose (ex.: 'infra')
 recreate() {
+  # Remove TODOS os containers do serviço (inclusive zumbis com nome prefixado por
+  # hash, ex.: "<hash>_infra-web-1") direto pelo docker, antes do up. É o que mata
+  # o estado fantasma do compose neste host.
   for svc in "$@"; do
-    docker rm -f "${PROJECT}-${svc}-1" >/dev/null 2>&1 || true
+    local ids
+    ids="$(docker ps -aq --filter "name=${PROJECT}-${svc}" 2>/dev/null || true)"
+    if [ -n "$ids" ]; then docker rm -f $ids >/dev/null 2>&1 || true; fi
   done
   $COMPOSE up -d --no-deps "$@"
 }
