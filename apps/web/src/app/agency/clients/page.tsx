@@ -36,7 +36,8 @@ export default function ClientsPage() {
   });
 
   const create = useMutation({
-    mutationFn: (input: { name: string; slug: string }) => apiClient.post('/sub-accounts', input),
+    mutationFn: (input: { name: string; slug: string }) =>
+      apiClient.post('/sub-accounts', viewAsAgencyId ? { ...input, agencyId: viewAsAgencyId } : input),
     onSuccess: () => {
       toast.success(t('agencyClients.toastCreated'));
       qc.invalidateQueries({ queryKey: ['agency-clients'] });
