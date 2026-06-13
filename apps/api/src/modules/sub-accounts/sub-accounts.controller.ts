@@ -55,8 +55,13 @@ export class SubAccountsController {
   @Roles(ROLES.SUPER_ADMIN, ROLES.AGENCY_ADMIN)
   create(@CurrentUser() user: AuthUser, @ZodBody(CreateDto) dto: z.infer<typeof CreateDto>) {
     const isSuperAdmin = user.memberships.some((m) => m.role === 'super_admin');
-    let agencyId = dto.agencyId;
-    if (!isSuperAdmin) {
+    let agencyId: string | undefined;
+    if (isSuperAdmin) {
+      // super_admin: usa o agencyId do corpo (impersonation) ou cai na própria agência
+      // (caso seja super_admin que também é dono de uma agência, vendo /agency sem impersonar).
+      agencyId = dto.agencyId ?? user.memberships.find((m) => m.agencyId)?.agencyId;
+    } else {
+      // agency_admin: sempre a própria agência (ignora dto.agencyId por segurança).
       agencyId = user.memberships.find((m) => m.role === 'agency_admin' && m.agencyId)?.agencyId;
     }
     if (!agencyId) throw new BadRequestException('agencyId obrigatório');
