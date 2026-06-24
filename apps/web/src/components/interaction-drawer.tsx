@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { RecordingPlayer } from '@/components/recording-player';
+import { LeadCustomFields, leadHasCustomFields } from '@/components/lead-custom-fields';
 import { useTenantStore } from '@/stores/tenant-store';
 import { useTranslate } from '@/i18n/provider';
 
@@ -399,6 +400,14 @@ export function InteractionDrawer({
                     ))}
                   </select>
                 </div>
+                {leadHasCustomFields(interaction.lead.customFields) && (
+                  <div className="mt-3 border-t pt-3">
+                    <p className="mb-2 text-[11px] font-semibold uppercase text-muted-foreground">
+                      {t('leadDrawer.formAnswers')}
+                    </p>
+                    <LeadCustomFields customFields={interaction.lead.customFields} compact />
+                  </div>
+                )}
                 <button
                   onClick={openFullLead}
                   className="mt-3 flex items-center gap-2 text-sm text-blue-600 hover:underline"

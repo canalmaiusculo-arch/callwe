@@ -21,6 +21,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { useTenantStore } from '@/stores/tenant-store';
 import { useTranslate } from '@/i18n/provider';
+import { LeadCustomFields, leadHasCustomFields } from '@/components/lead-custom-fields';
 import {
   LEAD_STATUS_COLOR,
   LEAD_STATUS_LABELS,
@@ -292,6 +293,16 @@ export function LeadDrawer({
               </button>
             )}
           </section>
+
+          {/* Respostas do quiz/formulário */}
+          {leadHasCustomFields(detail?.customFields) && (
+            <section className="rounded-md border p-3">
+              <p className="mb-2 text-xs font-medium uppercase text-muted-foreground">
+                {t('leadDrawer.formAnswers')}
+              </p>
+              <LeadCustomFields customFields={detail?.customFields} compact />
+            </section>
+          )}
 
           {/* Histórico de interações */}
           <section>

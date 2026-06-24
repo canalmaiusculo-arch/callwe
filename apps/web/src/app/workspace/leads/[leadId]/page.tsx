@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import { apiClient } from '@/lib/api-client';
 import { useTranslate } from '@/i18n/provider';
 import { RecordingPlayer } from '@/components/recording-player';
+import { LeadCustomFields, leadHasCustomFields } from '@/components/lead-custom-fields';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -39,6 +40,7 @@ interface LeadDetail {
   status: LeadStatus;
   source: string;
   lostReason: string | null;
+  customFields: Record<string, unknown> | null;
   createdAt: string;
   interactions: Interaction[];
   notes: Array<{
@@ -145,6 +147,17 @@ export default function LeadDetailPage({ params }: { params: Promise<{ leadId: s
             </div>
           </div>
         </header>
+
+        {leadHasCustomFields(lead.customFields) && (
+          <Card>
+            <CardHeader>
+              <CardTitle>{t('leadDrawer.formAnswers')}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <LeadCustomFields customFields={lead.customFields} />
+            </CardContent>
+          </Card>
+        )}
 
         <Card>
           <CardHeader>

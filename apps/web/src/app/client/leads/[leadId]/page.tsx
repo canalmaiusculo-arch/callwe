@@ -8,6 +8,7 @@ import { apiClient } from '@/lib/api-client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { RecordingPlayer } from '@/components/recording-player';
+import { LeadCustomFields, leadHasCustomFields } from '@/components/lead-custom-fields';
 import { useTenantStore } from '@/stores/tenant-store';
 import { useTranslate } from '@/i18n/provider';
 
@@ -19,8 +20,6 @@ const STATUS_VARIANT: Record<string, 'default' | 'secondary' | 'success' | 'warn
 const ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   call: Phone, sms: MessageSquare, voicemail: Voicemail, meta_form: FormInput,
 };
-const HIDDEN_FIELDS = new Set(['acquisitionchannel', 'receivedvia', 'zapierapikey']);
-
 interface Interaction {
   id: string;
   type: string;
@@ -81,9 +80,7 @@ export default function ClientLeadDetailPage({ params }: { params: Promise<{ lea
   if (isLoading) return <div className="p-8 text-muted-foreground">{t('clientLeadDetail.loading')}</div>;
   if (!lead) return <div className="p-8">{t('clientLeadDetail.notFound')}</div>;
 
-  const fields = Object.entries(lead.customFields ?? {}).filter(
-    ([k, v]) => !HIDDEN_FIELDS.has(k.toLowerCase()) && v != null && typeof v !== 'object',
-  );
+  const hasFields = leadHasCustomFields(lead.customFields);
 
   return (
     <div className="p-4 md:p-8">
@@ -105,7 +102,7 @@ export default function ClientLeadDetailPage({ params }: { params: Promise<{ lea
       </div>
 
       <div className="mt-6 max-w-4xl space-y-4">
-        {(fields.length > 0 || lead.tags.length > 0) && (
+        {(hasFields || lead.tags.length > 0) && (
           <Card>
             <CardHeader><CardTitle className="text-base">{t('clientLeadDetail.leadInfo')}</CardTitle></CardHeader>
             <CardContent className="space-y-3">
@@ -114,16 +111,7 @@ export default function ClientLeadDetailPage({ params }: { params: Promise<{ lea
                   {lead.tags.map((t) => <Badge key={t} variant="outline">{t}</Badge>)}
                 </div>
               )}
-              {fields.length > 0 && (
-                <dl className="grid grid-cols-1 gap-x-6 gap-y-2 sm:grid-cols-2">
-                  {fields.map(([k, v]) => (
-                    <div key={k} className="flex flex-col">
-                      <dt className="text-xs uppercase text-muted-foreground">{k}</dt>
-                      <dd className="text-sm">{String(v)}</dd>
-                    </div>
-                  ))}
-                </dl>
-              )}
+              <LeadCustomFields customFields={lead.customFields} />
             </CardContent>
           </Card>
         )}

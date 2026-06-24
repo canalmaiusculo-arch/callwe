@@ -943,5 +943,8 @@
     "ageNow": "now",
     "phone": "Phone",
     "email": "Email"
+  },
+  "leadDrawer": {
+    "formAnswers": "Form answers"
   }
 }
