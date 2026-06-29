@@ -533,7 +533,9 @@
     "activate": "Ativar",
     "deactivate": "Desativar",
     "formActivated": "Formulário ativado",
-    "formDeactivated": "Formulário desativado"
+    "formDeactivated": "Formulário desativado",
+    "formsError": "Não foi possível listar os formulários desta página. Verifique se você reconectou o Facebook com as permissões atualizadas.",
+    "noForms": "Nenhum formulário de leads encontrado nesta página."
   },
   "briefing": {
     "title": "Briefing do cliente",

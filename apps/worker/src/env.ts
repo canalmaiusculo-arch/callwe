@@ -18,6 +18,8 @@ const schema = z.object({
 
   META_GRAPH_VERSION: z.string().default('v20.0'),
   META_SYSTEM_USER_TOKEN: z.string().optional(),
+  // Mesma chave da API — usada para descriptografar as credenciais das integrações.
+  ENCRYPTION_KEY: z.string(),
 
   OPENAI_API_KEY: z.string().optional(),
   OPENAI_TRANSCRIPTION_MODEL: z.string().default('whisper-1'),

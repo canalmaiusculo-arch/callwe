@@ -113,6 +113,16 @@ export class MetaAdsService {
     });
     await client.subscribePageWebhook(input.pageId, input.pageAccessToken);
 
+    // Guarda o token da página (não expira, ao contrário do user token de ~60 dias)
+    // para o worker conseguir buscar o lead depois. Mescla sem apagar o userAccessToken.
+    const existing =
+      (await this.integrations.getDecrypted<Record<string, unknown>>(subAccountId, 'meta_ads')) ?? {};
+    await this.integrations.upsertCredentials(subAccountId, 'meta_ads', {
+      ...existing,
+      pageAccessToken: input.pageAccessToken,
+      pageId: input.pageId,
+    });
+
     return this.prisma.metaLeadForm.upsert({
       where: { pageId_formId: { pageId: input.pageId, formId: input.formId } },
       update: {

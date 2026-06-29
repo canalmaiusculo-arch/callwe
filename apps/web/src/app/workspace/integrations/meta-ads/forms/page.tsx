@@ -41,13 +41,18 @@ export default function MetaAdsFormsPage() {
     queryFn: () => apiClient.get<MetaPage[]>('/integrations/meta-ads/pages'),
   });
 
-  const { data: forms = [], isLoading: loadingForms } = useQuery<MetaForm[]>({
+  const {
+    data: forms = [],
+    isLoading: loadingForms,
+    isError: formsError,
+  } = useQuery<MetaForm[]>({
     queryKey: ['meta-forms', selectedPage?.id],
     queryFn: () =>
       apiClient.get<MetaForm[]>(
         `/integrations/meta-ads/pages/${selectedPage!.id}/forms?pageAccessToken=${encodeURIComponent(selectedPage!.access_token)}`,
       ),
     enabled: !!selectedPage,
+    retry: false,
   });
 
   const { data: enabled = [] } = useQuery<EnabledForm[]>({
@@ -135,6 +140,14 @@ export default function MetaAdsFormsPage() {
             )}
             {selectedPage && loadingForms && (
               <p className="text-sm text-muted-foreground">{t('metaForms.loadingForms')}</p>
+            )}
+            {selectedPage && !loadingForms && formsError && (
+              <p className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+                {t('metaForms.formsError')}
+              </p>
+            )}
+            {selectedPage && !loadingForms && !formsError && forms.length === 0 && (
+              <p className="text-sm text-muted-foreground">{t('metaForms.noForms')}</p>
             )}
             {selectedPage &&
               forms.map((f) => {

@@ -14,6 +14,7 @@ const SCOPES = [
   'pages_show_list',
   'pages_read_engagement',
   'pages_manage_metadata',
+  'pages_manage_ads', // necessário para ler /{page}/leadgen_forms (listar formulários)
   'leads_retrieval',
   'ads_management',
 ];

@@ -533,7 +533,9 @@
     "activate": "Enable",
     "deactivate": "Disable",
     "formActivated": "Form enabled",
-    "formDeactivated": "Form disabled"
+    "formDeactivated": "Form disabled",
+    "formsError": "Could not list this page's forms. Make sure you reconnected Facebook with the updated permissions.",
+    "noForms": "No lead forms found on this page."
   },
   "briefing": {
     "title": "Client briefing",

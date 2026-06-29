@@ -5,6 +5,7 @@ import { connection } from '../lib/redis.js';
 import { logger } from '../lib/logger.js';
 import { QUEUES } from '../queues.js';
 import { env } from '../env.js';
+import { decryptJson, isEncryptedPayload } from '../lib/crypto.js';
 
 interface LeadgenJob {
   leadgenId: string;
@@ -31,8 +32,15 @@ export function startMetaLeadgenWorker() {
         return;
       }
 
-      const creds = form.integration.credentials as { pageAccessToken?: string };
-      const token = creds.pageAccessToken ?? env.META_SYSTEM_USER_TOKEN;
+      // As credenciais são gravadas criptografadas pela API — precisamos descriptografar.
+      // Pode buscar o lead com o token da página OU com o user token (ambos têm
+      // leads_retrieval). O user token é o que guardamos no OAuth; o pageAccessToken
+      // é salvo ao ativar o formulário. Tenta página → user → token de sistema.
+      const rawCreds = form.integration.credentials as Record<string, unknown>;
+      const creds = isEncryptedPayload(rawCreds)
+        ? decryptJson<{ pageAccessToken?: string; userAccessToken?: string }>(rawCreds)
+        : (rawCreds as { pageAccessToken?: string; userAccessToken?: string });
+      const token = creds.pageAccessToken ?? creds.userAccessToken ?? env.META_SYSTEM_USER_TOKEN;
       if (!token) throw new Error('No token to fetch leadgen');
 
       const res = await axios.get(
