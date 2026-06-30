@@ -90,7 +90,7 @@ export default function ClientLeadDetailPage({ params }: { params: Promise<{ lea
 
       <div className="mt-2 flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-bold">{lead.name ?? t('clientLeadDetail.unnamedLead')}</h1>
+          <h1 className="text-2xl font-bold md:text-3xl">{lead.name ?? t('clientLeadDetail.unnamedLead')}</h1>
           <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
             {lead.phoneE164 && <span className="font-mono">{lead.phoneE164}</span>}
             {lead.email && <span>· {lead.email}</span>}

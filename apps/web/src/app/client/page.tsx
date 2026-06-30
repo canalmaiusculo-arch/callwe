@@ -121,7 +121,7 @@ export default function ClientDashboard() {
   return (
     <div className="p-4 md:p-8">
       <div className="flex items-center gap-2">
-        <h1 className="text-3xl font-bold">{t('clientDash.title')}</h1>
+        <h1 className="text-2xl font-bold md:text-3xl">{t('clientDash.title')}</h1>
         <HelpHint topic="dashboard" />
       </div>
       <p className="mt-1 text-muted-foreground">{t('clientDash.subtitle')}</p>

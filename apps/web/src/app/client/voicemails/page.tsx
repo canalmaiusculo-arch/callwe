@@ -28,7 +28,7 @@ export default function ClientVoicemailsPage() {
   return (
     <div className="p-4 md:p-8">
       <header className="mb-6">
-        <h1 className="text-3xl font-bold">{t('clientVoicemails.title')}</h1>
+        <h1 className="text-2xl font-bold md:text-3xl">{t('clientVoicemails.title')}</h1>
         <p className="mt-1 text-muted-foreground">{items.length} {t('clientVoicemails.voiceMessages')}</p>
       </header>
 
@@ -40,7 +40,7 @@ export default function ClientVoicemailsPage() {
       <div className="space-y-2">
         {items.map((v) => (
           <div key={v.id} className="rounded-md border p-3">
-            <div className="flex items-center justify-between gap-3">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-center gap-2">
                 <Voicemail className="h-4 w-4 text-muted-foreground" />
                 <span className="font-mono text-sm">{v.fromNumber ?? '—'}</span>

@@ -60,7 +60,7 @@ export default function ClientLeadsPage() {
     <div className="p-4 md:p-8">
       <header className="mb-6">
         <div className="flex items-center gap-2">
-          <h1 className="text-3xl font-bold">{t('clientLeads.title')}</h1>
+          <h1 className="text-2xl font-bold md:text-3xl">{t('clientLeads.title')}</h1>
           <HelpHint topic="leads" />
         </div>
         <p className="mt-1 text-muted-foreground">{leads.length} {t('clientLeads.leadsCount')}</p>
@@ -71,8 +71,32 @@ export default function ClientLeadsPage() {
         <p className="text-muted-foreground">{t('clientLeads.empty')}</p>
       )}
 
+      {/* Mobile: cards (sem scroll horizontal) */}
       {leads.length > 0 && (
-        <div className="overflow-x-auto rounded-lg border">
+        <div className="space-y-2 md:hidden">
+          {leads.map((l) => (
+            <button
+              key={l.id}
+              onClick={() => router.push(`/client/leads/${l.id}`)}
+              className="flex w-full items-start justify-between gap-3 rounded-lg border p-3 text-left active:bg-muted/40"
+            >
+              <div className="min-w-0 flex-1">
+                <p className="truncate font-medium">{l.name ?? '—'}</p>
+                <p className="truncate font-mono text-xs text-muted-foreground">{l.phoneE164 ?? '—'}</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {SOURCE_LABEL_KEY[l.source] ? t(SOURCE_LABEL_KEY[l.source]) : l.source} ·{' '}
+                  {new Date(l.createdAt).toLocaleDateString('pt-BR')}
+                </p>
+              </div>
+              <Badge variant={STATUS_VARIANT[l.status]} className="shrink-0">{t(STATUS_LABEL_KEY[l.status])}</Badge>
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Desktop: tabela */}
+      {leads.length > 0 && (
+        <div className="hidden overflow-x-auto rounded-lg border md:block">
           <table className="w-full min-w-[640px] text-sm">
             <thead className="border-b bg-muted/30 text-left text-xs uppercase text-muted-foreground">
               <tr>

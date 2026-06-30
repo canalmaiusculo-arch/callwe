@@ -28,7 +28,7 @@ export default function ClientSmsPage() {
   return (
     <div className="p-4 md:p-8">
       <header className="mb-6">
-        <h1 className="text-3xl font-bold">{t('clientSms.title')}</h1>
+        <h1 className="text-2xl font-bold md:text-3xl">{t('clientSms.title')}</h1>
         <p className="mt-1 text-muted-foreground">{sms.length} {t('clientSms.messages')}</p>
       </header>
 

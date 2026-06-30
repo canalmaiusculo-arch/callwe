@@ -41,9 +41,18 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
     }
   }, [mySubs, subAccountId, setTenant]);
 
+  const logout = () => {
+    clearAuth();
+    clearTenant();
+    window.location.href = '/login';
+  };
+
+  const isActive = (href: string) => pathname === href || pathname.startsWith(href + '/');
+
   return (
-    <div className="flex h-screen">
-      <aside className="flex h-screen w-60 flex-col border-r bg-muted/20">
+    <div className="flex h-screen flex-col md:flex-row">
+      {/* Sidebar (desktop) */}
+      <aside className="hidden h-screen w-60 flex-col border-r bg-muted/20 md:flex">
         <div className="border-b p-4">
           <p className="text-xs uppercase text-muted-foreground">{t('client.title')}</p>
           <p className="truncate text-sm font-semibold">{subAccountName ?? '—'}</p>
@@ -51,7 +60,6 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
 
         <nav className="flex-1 space-y-1 p-2">
           {items.map((item) => {
-            const active = pathname === item.href || pathname.startsWith(item.href + '/');
             const Icon = item.icon;
             return (
               <Link
@@ -59,7 +67,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
                 href={item.href as never}
                 className={cn(
                   'flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors',
-                  active ? 'bg-primary text-primary-foreground' : 'hover:bg-muted',
+                  isActive(item.href) ? 'bg-primary text-primary-foreground' : 'hover:bg-muted',
                 )}
               >
                 <Icon className="h-4 w-4" />
@@ -83,18 +91,64 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
         </Link>
 
         <button
-          onClick={() => {
-            clearAuth();
-            clearTenant();
-            window.location.href = '/login';
-          }}
+          onClick={logout}
           className="m-2 flex items-center gap-3 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-muted"
         >
           <LogOut className="h-4 w-4" />
           {t('common.logout')}
         </button>
       </aside>
-      <main className="flex-1 overflow-auto">{children}</main>
+
+      {/* Top bar (mobile) */}
+      <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center justify-between gap-2 border-b bg-background px-4 md:hidden">
+        <div className="min-w-0">
+          <p className="text-[10px] uppercase leading-none text-muted-foreground">{t('client.title')}</p>
+          <p className="truncate text-sm font-semibold leading-tight">{subAccountName ?? '—'}</p>
+        </div>
+        <div className="flex shrink-0 items-center gap-1">
+          <LanguageSwitcher />
+          <Link
+            href={'/help' as never}
+            target="_blank"
+            aria-label={t('common.help')}
+            className="flex h-9 w-9 items-center justify-center rounded-md text-muted-foreground hover:bg-muted"
+          >
+            <HelpCircle className="h-5 w-5" />
+          </Link>
+          <button
+            onClick={logout}
+            aria-label={t('common.logout')}
+            className="flex h-9 w-9 items-center justify-center rounded-md text-muted-foreground hover:bg-muted"
+          >
+            <LogOut className="h-5 w-5" />
+          </button>
+        </div>
+      </header>
+
+      {/* Conteúdo — padding inferior no mobile pra não ficar atrás da barra de navegação */}
+      <main className="flex-1 overflow-auto pb-20 md:pb-0">{children}</main>
+
+      {/* Bottom nav (mobile) */}
+      <nav className="fixed inset-x-0 bottom-0 z-40 flex h-16 border-t bg-background md:hidden">
+        {items.map((item) => {
+          const Icon = item.icon;
+          const active = isActive(item.href);
+          return (
+            <Link
+              key={item.href}
+              href={item.href as never}
+              className={cn(
+                'flex flex-1 flex-col items-center justify-center gap-0.5 text-[10px] font-medium transition-colors',
+                active ? 'text-primary' : 'text-muted-foreground',
+              )}
+            >
+              <Icon className={cn('h-5 w-5', active && 'scale-110')} />
+              <span className="truncate px-0.5">{t(item.key)}</span>
+            </Link>
+          );
+        })}
+      </nav>
+
       <ChatWidget />
     </div>
   );

@@ -40,7 +40,7 @@ export default function ClientCallsPage() {
   return (
     <div className="p-4 md:p-8">
       <header className="mb-6">
-        <h1 className="text-3xl font-bold">{t('clientCalls.title')}</h1>
+        <h1 className="text-2xl font-bold md:text-3xl">{t('clientCalls.title')}</h1>
         <p className="mt-1 text-muted-foreground">{calls.length} {t('clientCalls.callsCount')}</p>
       </header>
 
@@ -59,7 +59,7 @@ export default function ClientCallsPage() {
                 : 'text-blue-600';
           const number = c.direction === 'inbound' ? c.fromNumber : c.toNumber;
           return (
-            <div key={c.id} className="flex items-center gap-4 rounded-md border p-3">
+            <div key={c.id} className="flex flex-col gap-3 rounded-md border p-3 sm:flex-row sm:items-center sm:gap-4">
               <Link
                 href={`/client/calls/${c.id}` as never}
                 className="flex flex-1 items-center gap-4 hover:opacity-80"
