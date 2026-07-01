@@ -112,6 +112,31 @@ export default function AgentPage() {
     seenCalls.markSeen(id);
   };
 
+  // Leads novos em destaque: status 'new', recentes e ainda não abertos pelo agente.
+  const { isSeen: isLeadSeen, markSeen: markLeadSeen } = useSeenIds('leads');
+  const { data: allLeads = [] } = useQuery<AgentLead[]>({
+    queryKey: ['my-leads'],
+    queryFn: () => apiClient.get('/leads/mine?limit=500'),
+    refetchInterval: 30_000,
+  });
+  const pendingLeads = useMemo(() => {
+    const cutoff = Date.now() - 7 * 24 * 3600 * 1000;
+    return allLeads
+      .filter(
+        (l) =>
+          l.status === 'new' &&
+          new Date(l.createdAt).getTime() >= cutoff &&
+          !isLeadSeen(l.id) &&
+          (filterSubAccountId ? l.subAccount?.id === filterSubAccountId : true),
+      )
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }, [allLeads, isLeadSeen, filterSubAccountId]);
+
+  const openLead = (target: LeadDrawerTarget) => {
+    setLeadDrawer(target);
+    markLeadSeen(target.id);
+  };
+
   useEffect(() => {
     if (tab === 'sms') setSmsBadge(0);
   }, [tab]);
@@ -133,7 +158,7 @@ export default function AgentPage() {
           <TabButton active={tab === 'dashboard'} onClick={() => setTab('dashboard')} icon={Gauge} label={t('agentPanel.tabDashboard')} />
           <TabButton active={tab === 'calls'} onClick={() => setTab('calls')} icon={Phone} label={t('agentPanel.tabCalls')} />
           <TabButton active={tab === 'sms'} onClick={() => setTab('sms')} icon={MessageSquare} label={t('agentPanel.tabSms')} badge={smsBadge} />
-          <TabButton active={tab === 'leads'} onClick={() => setTab('leads')} icon={UserPlus} label={t('agentPanel.tabLeads')} />
+          <TabButton active={tab === 'leads'} onClick={() => setTab('leads')} icon={UserPlus} label={t('agentPanel.tabLeads')} badge={pendingLeads.length} pulse />
           <TabButton active={tab === 'briefings'} onClick={() => setTab('briefings')} icon={BookOpen} label={t('agentPanel.tabBriefings')} />
         </nav>
 
@@ -183,6 +208,9 @@ export default function AgentPage() {
             <ActiveCallView call={activeCall} onDismiss={dismissActiveCall} />
           </div>
         )}
+        {pendingLeads.length > 0 && (
+          <NewLeadsHighlight leads={pendingLeads} onOpen={openLead} />
+        )}
         {(tab === 'calls' || tab === 'sms' || tab === 'leads') && (
           <SearchBar
             value={search}
@@ -221,7 +249,7 @@ export default function AgentPage() {
             filterSubAccountId={filterSubAccountId}
             search={search}
             clients={clients}
-            onOpenLead={setLeadDrawer}
+            onOpenLead={openLead}
           />
         ) : (
           <BriefingsView clients={clients} initialSelectedId={filterSubAccountId} />
@@ -255,12 +283,14 @@ function TabButton({
   icon: Icon,
   label,
   badge,
+  pulse,
 }: {
   active: boolean;
   onClick: () => void;
   icon: React.ComponentType<{ className?: string }>;
   label: string;
   badge?: number;
+  pulse?: boolean;
 }) {
   return (
     <button
@@ -270,7 +300,11 @@ function TabButton({
       <Icon className="h-4 w-4" />
       <span className="flex-1 text-left">{label}</span>
       {badge && badge > 0 ? (
-        <span className="rounded-full bg-emerald-500 px-1.5 py-0.5 text-xs font-semibold text-white">
+        <span
+          className={`rounded-full px-1.5 py-0.5 text-xs font-semibold text-white ${
+            pulse ? 'animate-pulse bg-blue-600' : 'bg-emerald-500'
+          }`}
+        >
           {badge > 99 ? '99+' : badge}
         </span>
       ) : null}
@@ -790,6 +824,94 @@ const SOURCE_FILTER_LABEL_KEYS: Record<SourceFilter, string> = {
   api: 'agentPanel.sourceApi',
   form: 'agentPanel.sourceForm',
 };
+
+function NewLeadsHighlight({
+  leads,
+  onOpen,
+}: {
+  leads: AgentLead[];
+  onOpen: (lead: LeadDrawerTarget) => void;
+}) {
+  const { t } = useTranslate();
+  const [expanded, setExpanded] = useState(false);
+  const shown = expanded ? leads : leads.slice(0, 5);
+
+  return (
+    <div className="rounded-lg border-2 border-blue-400 bg-blue-50 p-3 shadow-sm">
+      <div className="mb-2 flex items-center gap-2">
+        <span className="relative flex h-2.5 w-2.5">
+          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-blue-500 opacity-75" />
+          <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-blue-600" />
+        </span>
+        <p className="text-sm font-semibold text-blue-800">
+          {t('agentPanel.newLeadsTitle')} ({leads.length})
+        </p>
+      </div>
+      <div className="space-y-1.5">
+        {shown.map((l) => {
+          const ch = l.customFields?.acquisitionChannel as string | undefined;
+          const sourceKey = SOURCE_LABEL_KEYS[l.source];
+          const channelLabel =
+            (ch && LEAD_ACQUISITION_LABELS[ch as keyof typeof LEAD_ACQUISITION_LABELS]) ??
+            (sourceKey ? t(sourceKey) : l.source);
+          const ageMin = Math.floor((Date.now() - new Date(l.createdAt).getTime()) / 60_000);
+          const ageLabel =
+            ageMin < 1
+              ? t('agentPanel.ageNow')
+              : ageMin < 60
+                ? `${ageMin}min`
+                : ageMin < 1440
+                  ? `${Math.floor(ageMin / 60)}h`
+                  : new Date(l.createdAt).toLocaleDateString('pt-BR');
+          return (
+            <button
+              key={l.id}
+              onClick={() =>
+                onOpen({
+                  id: l.id,
+                  subAccountId: l.subAccount?.id,
+                  subAccountName: l.subAccount?.name,
+                  name: l.name,
+                  phoneE164: l.phoneE164,
+                  email: l.email,
+                  status: l.status,
+                  createdAt: l.createdAt,
+                })
+              }
+              className="flex w-full items-center justify-between gap-3 rounded-md border border-blue-200 bg-white p-2 text-left transition-colors hover:bg-blue-100/60"
+            >
+              <div className="flex min-w-0 items-center gap-2">
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-blue-100">
+                  <UserPlus className="h-3.5 w-3.5 text-blue-600" />
+                </span>
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium">
+                    {l.name ?? l.phoneE164 ?? l.email ?? '—'}
+                  </p>
+                  <p className="truncate text-[11px] text-muted-foreground">
+                    {channelLabel}
+                    {l.subAccount?.name ? ` · ${l.subAccount.name}` : ''} · {ageLabel}
+                  </p>
+                </div>
+              </div>
+              <span className="shrink-0 rounded-md bg-blue-600 px-2 py-1 text-[11px] font-medium text-white">
+                {t('agentPanel.newLeadsView')}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+      {leads.length > 5 && (
+        <button
+          onClick={() => setExpanded((v) => !v)}
+          className="mt-2 text-xs font-medium text-blue-700 hover:underline"
+        >
+          {expanded ? t('agentPanel.newLeadsLess') : `+${leads.length - 5} ${t('agentPanel.newLeadsMore')}`}
+        </button>
+      )}
+    </div>
+  );
+}
 
 function LeadsView({
   filterSubAccountId,

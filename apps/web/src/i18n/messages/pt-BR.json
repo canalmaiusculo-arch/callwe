@@ -944,7 +944,11 @@
     "sourceImport": "Importação",
     "ageNow": "agora",
     "phone": "Telefone",
-    "email": "E-mail"
+    "email": "E-mail",
+    "newLeadsTitle": "Novos leads",
+    "newLeadsView": "Ver",
+    "newLeadsMore": "mais",
+    "newLeadsLess": "Ver menos"
   },
   "leadDrawer": {
     "formAnswers": "Respostas do formulário"

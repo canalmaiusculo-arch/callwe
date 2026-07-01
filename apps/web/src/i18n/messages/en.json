@@ -944,7 +944,11 @@
     "sourceImport": "Import",
     "ageNow": "now",
     "phone": "Phone",
-    "email": "Email"
+    "email": "Email",
+    "newLeadsTitle": "New leads",
+    "newLeadsView": "View",
+    "newLeadsMore": "more",
+    "newLeadsLess": "Show less"
   },
   "leadDrawer": {
     "formAnswers": "Form answers"
