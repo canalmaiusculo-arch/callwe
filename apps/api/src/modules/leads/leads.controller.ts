@@ -28,6 +28,16 @@ const UpdateLeadDto = z.object({
 
 const NoteDto = z.object({ body: z.string().min(1), shared: z.boolean().optional() });
 
+/** Limite máximo por requisição — evita payloads absurdos se vier limit=999999. */
+const MAX_LIMIT = 2000;
+
+function parseLimit(raw: string | undefined): number | undefined {
+  if (!raw) return undefined;
+  const n = Number(raw);
+  if (!Number.isFinite(n) || n <= 0) return undefined;
+  return Math.min(Math.floor(n), MAX_LIMIT);
+}
+
 function parseFilters(q: Record<string, string | undefined>) {
   return {
     status: q.status as never,
@@ -37,6 +47,9 @@ function parseFilters(q: Record<string, string | undefined>) {
     tags: q.tags ? q.tags.split(',').filter(Boolean) : undefined,
     from: q.from ? new Date(q.from) : undefined,
     to: q.to ? new Date(q.to) : undefined,
+    // Sem isso o `limit` da querystring era ignorado e todas as listas ficavam
+    // presas nos 100 leads mais recentes (leads antigos sumiam das telas).
+    limit: parseLimit(q.limit),
   };
 }
 

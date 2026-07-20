@@ -52,7 +52,7 @@ export default function ClientLeadsPage() {
   const subAccountId = useTenantStore((s) => s.subAccountId);
   const { data: leads = [], isLoading } = useQuery<Lead[]>({
     queryKey: ['client-leads', subAccountId],
-    queryFn: () => apiClient.get<Lead[]>('/leads'),
+    queryFn: () => apiClient.get<Lead[]>('/leads?limit=500'),
     enabled: !!subAccountId,
   });
 

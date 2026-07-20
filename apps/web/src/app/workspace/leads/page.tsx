@@ -76,6 +76,7 @@ export default function LeadsPage() {
   const subAccountId = useTenantStore((s) => s.subAccountId);
 
   const query = new URLSearchParams();
+  query.set('limit', '500');
   if (search) query.set('search', search);
   if (status) query.set('status', status);
   if (source) query.set('source', source);
