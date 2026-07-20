@@ -112,25 +112,23 @@ export default function AgentPage() {
     seenCalls.markSeen(id);
   };
 
-  // Leads novos em destaque: status 'new', recentes e ainda não abertos pelo agente.
+  // Leads novos em destaque: o servidor já devolve só status 'new' (mais recentes);
+  // aqui só aplicamos a janela de 7 dias, o "não visto" e o filtro de cliente.
   const { isSeen: isLeadSeen, markSeen: markLeadSeen } = useSeenIds('leads');
-  const { data: allLeads = [] } = useQuery<AgentLead[]>({
-    queryKey: ['my-leads'],
-    queryFn: () => apiClient.get('/leads/mine?limit=500'),
+  const { data: newLeads = [] } = useQuery<AgentLead[]>({
+    queryKey: ['my-leads-new'],
+    queryFn: () => apiClient.get('/leads/mine?status=new&limit=200'),
     refetchInterval: 30_000,
   });
   const pendingLeads = useMemo(() => {
     const cutoff = Date.now() - 7 * 24 * 3600 * 1000;
-    return allLeads
-      .filter(
-        (l) =>
-          l.status === 'new' &&
-          new Date(l.createdAt).getTime() >= cutoff &&
-          !isLeadSeen(l.id) &&
-          (filterSubAccountId ? l.subAccount?.id === filterSubAccountId : true),
-      )
-      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-  }, [allLeads, isLeadSeen, filterSubAccountId]);
+    return newLeads.filter(
+      (l) =>
+        new Date(l.createdAt).getTime() >= cutoff &&
+        !isLeadSeen(l.id) &&
+        (filterSubAccountId ? l.subAccount?.id === filterSubAccountId : true),
+    );
+  }, [newLeads, isLeadSeen, filterSubAccountId]);
 
   const openLead = (target: LeadDrawerTarget) => {
     setLeadDrawer(target);
@@ -929,61 +927,33 @@ function LeadsView({
   const [sourceFilter, setSourceFilter] = useState<SourceFilter>('all');
   const [clientFilter, setClientFilter] = useState<string>('');
 
-  const { data: leads = [], isLoading } = useQuery<AgentLead[]>({
-    queryKey: ['my-leads'],
-    queryFn: () => apiClient.get('/leads/mine?limit=500'),
+  // Sidebar global (filterSubAccountId) tem prioridade; senão usa o filtro local da tab.
+  const effectiveClientId = filterSubAccountId ?? (clientFilter || '');
+  // Debounce pra não disparar uma requisição a cada tecla digitada.
+  const debouncedSearch = useDebounced(search.trim(), 350);
+
+  // Filtros aplicados NO SERVIDOR — assim achamos leads de qualquer época,
+  // sem depender de quantos vieram na primeira carga.
+  const {
+    data: leads = [],
+    isLoading,
+    isFetching,
+  } = useQuery<AgentLead[]>({
+    queryKey: ['my-leads', dateRange, sourceFilter, effectiveClientId, debouncedSearch],
+    queryFn: () => {
+      const p = new URLSearchParams({ limit: '500' });
+      const from = rangeStart(dateRange);
+      if (from) p.set('from', from.toISOString());
+      if (sourceFilter !== 'all') p.set('source', sourceFilter);
+      if (effectiveClientId) p.set('subAccountId', effectiveClientId);
+      if (debouncedSearch) p.set('search', debouncedSearch);
+      return apiClient.get(`/leads/mine?${p.toString()}`);
+    },
     refetchInterval: 30_000,
+    placeholderData: (prev) => prev,
   });
 
-  const filtered = useMemo(() => {
-    let out = leads;
-
-    // Sidebar global (filterSubAccountId) tem prioridade; senão usa o filtro local da tab
-    const effectiveClientId = filterSubAccountId ?? (clientFilter || null);
-    if (effectiveClientId) out = out.filter((l) => l.subAccount?.id === effectiveClientId);
-
-    // Data
-    if (dateRange !== 'all') {
-      const now = Date.now();
-      const cutoff =
-        dateRange === 'today'
-          ? new Date().setHours(0, 0, 0, 0)
-          : dateRange === '7d'
-            ? now - 7 * 24 * 3600 * 1000
-            : now - 30 * 24 * 3600 * 1000;
-      out = out.filter((l) => new Date(l.createdAt).getTime() >= cutoff);
-    }
-
-    // Source: checa lead.source OU customFields.acquisitionChannel
-    if (sourceFilter !== 'all') {
-      out = out.filter((l) => {
-        const ch = String(l.customFields?.acquisitionChannel ?? '').toLowerCase();
-        return l.source === sourceFilter || ch === sourceFilter;
-      });
-    }
-
-    // Busca textual global
-    const q = search.trim().toLowerCase();
-    if (q) {
-      out = out.filter((l) => {
-        const haystack = [
-          l.name,
-          l.phoneE164,
-          l.email,
-          l.subAccount?.name,
-          l.source,
-          ...(l.customFields ? Object.values(l.customFields).map(String) : []),
-        ]
-          .filter(Boolean)
-          .join(' ')
-          .toLowerCase();
-        return haystack.includes(q);
-      });
-    }
-
-    return out;
-  }, [leads, filterSubAccountId, clientFilter, dateRange, sourceFilter, search]);
-
+  const filtered = leads;
   const hasActiveFilter =
     filterSubAccountId || clientFilter || dateRange !== '30d' || sourceFilter !== 'all' || search;
 
@@ -994,7 +964,10 @@ function LeadsView({
           <CardTitle>
             {t('agentPanel.leads')}
             {hasActiveFilter && (
-              <span className="ml-2 text-xs text-muted-foreground">{filtered.length}/{leads.length}</span>
+              <span className="ml-2 text-xs text-muted-foreground">{filtered.length}</span>
+            )}
+            {isFetching && !isLoading && (
+              <span className="ml-2 text-xs font-normal text-muted-foreground">…</span>
             )}
           </CardTitle>
         </div>
@@ -1165,4 +1138,26 @@ function formatDuration(seconds: number): string {
   const m = Math.floor(seconds / 60);
   const s = seconds % 60;
   return `${m}:${s.toString().padStart(2, '0')}`;
+}
+
+/** Atrasa o valor — evita uma requisição por tecla digitada na busca. */
+function useDebounced<T>(value: T, delayMs: number): T {
+  const [debounced, setDebounced] = useState(value);
+  useEffect(() => {
+    const id = setTimeout(() => setDebounced(value), delayMs);
+    return () => clearTimeout(id);
+  }, [value, delayMs]);
+  return debounced;
+}
+
+/** Início do período selecionado (null = sem limite de data). */
+function rangeStart(range: DateRange): Date | null {
+  if (range === 'all') return null;
+  if (range === 'today') {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    return d;
+  }
+  const days = range === '7d' ? 7 : 30;
+  return new Date(Date.now() - days * 24 * 3600 * 1000);
 }

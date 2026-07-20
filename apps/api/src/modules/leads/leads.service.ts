@@ -13,6 +13,8 @@ interface LeadFilters {
   from?: Date;
   to?: Date;
   limit?: number;
+  /** Restringe a uma sub-account específica (usado no /leads/mine do atendente). */
+  subAccountId?: string;
 }
 
 @Injectable()
@@ -164,9 +166,16 @@ export class LeadsService {
 
   /** Lista leads de múltiplas sub-accounts (pra atendente que atende vários clientes). */
   listMany(subAccountIds: string[], filters?: LeadFilters) {
+    // Se veio um cliente específico, restringe a ele — mas só se o atendente
+    // realmente atende esse cliente (nunca amplia o acesso).
+    const scoped =
+      filters?.subAccountId && subAccountIds.includes(filters.subAccountId)
+        ? [filters.subAccountId]
+        : subAccountIds;
+
     return this.prisma.lead.findMany({
       where: {
-        subAccountId: { in: subAccountIds },
+        subAccountId: { in: scoped },
         deletedAt: null,
         ...(filters?.status ? { status: filters.status } : {}),
         ...(filters?.source ? { source: filters.source } : {}),

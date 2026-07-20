@@ -120,6 +120,8 @@ export function LeadDrawer({
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: ['lead-detail', leadId] });
     qc.invalidateQueries({ queryKey: ['my-leads'] });
+    // box de "novos leads" do painel do agente (query própria, status=new)
+    qc.invalidateQueries({ queryKey: ['my-leads-new'] });
   };
 
   const updateStatus = useMutation({

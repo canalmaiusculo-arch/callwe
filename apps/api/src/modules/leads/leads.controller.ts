@@ -50,6 +50,8 @@ function parseFilters(q: Record<string, string | undefined>) {
     // Sem isso o `limit` da querystring era ignorado e todas as listas ficavam
     // presas nos 100 leads mais recentes (leads antigos sumiam das telas).
     limit: parseLimit(q.limit),
+    // Só usado no /leads/mine: restringe a um cliente que o atendente atende.
+    subAccountId: q.subAccountId,
   };
 }
 
