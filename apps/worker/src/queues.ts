@@ -5,6 +5,7 @@ export const QUEUES = {
   cloudtalkWebhook: 'cloudtalk-webhook',
   metaWebhook: 'meta-webhook',
   metaLeadgen: 'meta-leadgen',
+  metaMessenger: 'meta-messenger',
   recordingSync: 'recording-sync',
   transcription: 'transcription',
   slaChecker: 'sla-checker',
@@ -36,6 +37,7 @@ const slowExternalDefaults = {
 
 export const cloudtalkWebhookQueue = new Queue(QUEUES.cloudtalkWebhook, defaults);
 export const metaLeadgenQueue = new Queue(QUEUES.metaLeadgen, defaults);
+export const metaMessengerQueue = new Queue(QUEUES.metaMessenger, defaults);
 export const recordingSyncQueue = new Queue(QUEUES.recordingSync, slowExternalDefaults);
 export const transcriptionQueue = new Queue(QUEUES.transcription, slowExternalDefaults);
 export const slaCheckerQueue = new Queue(QUEUES.slaChecker, defaults);

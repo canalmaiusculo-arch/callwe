@@ -13,6 +13,7 @@ import { startRecordingSyncWorker } from './processors/recording-sync.processor.
 import { startTranscriptionWorker } from './processors/transcription.processor.js';
 import { startMetaWebhookWorker } from './processors/meta-webhook.processor.js';
 import { startMetaLeadgenWorker } from './processors/meta-leadgen.processor.js';
+import { startMetaMessengerWorker } from './processors/meta-messenger.processor.js';
 import { startSlaCheckerWorker } from './processors/sla-checker.processor.js';
 import { startUsageAggregatorWorker } from './processors/usage-aggregator.processor.js';
 import { scheduleRecurringJobs } from './scheduler.js';
@@ -25,6 +26,7 @@ async function main() {
   startRecordingSyncWorker();
   startTranscriptionWorker();
   startMetaLeadgenWorker();
+  startMetaMessengerWorker();
   startSlaCheckerWorker();
   startUsageAggregatorWorker();
 

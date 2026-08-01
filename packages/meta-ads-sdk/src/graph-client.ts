@@ -60,6 +60,58 @@ export class MetaGraphClient {
     );
   }
 
+  /** Subscreve a página aos campos de mensageria (Messenger). */
+  async subscribePageMessaging(pageId: string, pageAccessToken: string): Promise<void> {
+    await this.http.post(
+      `/${pageId}/subscribed_apps`,
+      {},
+      {
+        params: {
+          access_token: pageAccessToken,
+          subscribed_fields: 'messages,messaging_postbacks,message_reads,messaging_referrals',
+        },
+      },
+    );
+  }
+
+  /** Perfil público do usuário do Messenger (PSID). Requer page access token. */
+  async getMessengerProfile(
+    psid: string,
+    pageAccessToken: string,
+  ): Promise<{ name?: string; first_name?: string; last_name?: string; profile_pic?: string }> {
+    try {
+      const res = await this.http.get(`/${psid}`, {
+        params: { access_token: pageAccessToken, fields: 'name,first_name,last_name,profile_pic' },
+      });
+      return res.data ?? {};
+    } catch {
+      // Perfil pode não estar acessível (usuário sem permissão de perfil) — segue sem nome.
+      return {};
+    }
+  }
+
+  /** Envia uma mensagem de texto via Send API (Messenger). */
+  async sendMessengerText(
+    pageId: string,
+    pageAccessToken: string,
+    psid: string,
+    text: string,
+    messagingType: 'RESPONSE' | 'MESSAGE_TAG' = 'RESPONSE',
+    tag?: string,
+  ): Promise<{ message_id?: string; recipient_id?: string }> {
+    const res = await this.http.post(
+      `/${pageId}/messages`,
+      {
+        recipient: { id: psid },
+        messaging_type: messagingType,
+        message: { text },
+        ...(tag ? { tag } : {}),
+      },
+      { params: { access_token: pageAccessToken } },
+    );
+    return res.data ?? {};
+  }
+
   async unsubscribePageWebhook(pageId: string, pageAccessToken: string): Promise<void> {
     await this.http.delete(`/${pageId}/subscribed_apps`, {
       params: { access_token: pageAccessToken },

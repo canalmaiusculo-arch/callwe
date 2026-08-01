@@ -22,6 +22,7 @@ import { WhatsappModule } from './modules/whatsapp/whatsapp.module.js';
 import { ZapierWebhookModule } from './modules/zapier-webhook/zapier-webhook.module.js';
 import { ConversationsModule } from './modules/conversations/conversations.module.js';
 import { NotificationsModule } from './modules/notifications/notifications.module.js';
+import { MessengerModule } from './modules/messenger/messenger.module.js';
 
 @Module({
   imports: [
@@ -47,6 +48,7 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
     ZapierWebhookModule,
     ConversationsModule,
     NotificationsModule,
+    MessengerModule,
   ],
   controllers: [HealthController],
 })

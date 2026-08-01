@@ -948,9 +948,20 @@
     "newLeadsTitle": "New leads",
     "newLeadsView": "View",
     "newLeadsMore": "more",
-    "newLeadsLess": "Show less"
+    "newLeadsLess": "Show less",
+    "tabMessenger": "Messenger"
   },
   "leadDrawer": {
     "formAnswers": "Form answers"
+  },
+  "messengerInbox": {
+    "title": "Messenger",
+    "conversations": "conversations",
+    "empty": "No conversations yet",
+    "contact": "Contact",
+    "selectConversation": "Select a conversation",
+    "replyPlaceholder": "Type a reply... (Enter to send)",
+    "windowClosed": "24h window closed — the customer must send a new message before you can reply.",
+    "windowClosedHint": "Outside the 24h window. Wait for the customer to send a new message to reply."
   }
 }

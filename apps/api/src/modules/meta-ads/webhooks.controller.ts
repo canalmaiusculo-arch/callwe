@@ -11,6 +11,7 @@ export class MetaAdsWebhookController {
   constructor(
     private readonly prisma: PrismaService,
     @Inject('META_LEADGEN_QUEUE') private readonly leadgenQueue: Queue,
+    @Inject('META_MESSENGER_QUEUE') private readonly messengerQueue: Queue,
   ) {}
 
   // Verificação inicial (Meta envia GET com hub.challenge ao registrar webhook)
@@ -46,9 +47,10 @@ export class MetaAdsWebhookController {
       },
     });
 
-    if (valid && body.object === 'page') {
-      // Cada leadgen em paralelo — Graph API lookup é independente.
+    if (valid && (body.object === 'page' || body.object === 'instagram')) {
+      const channel = body.object === 'instagram' ? 'instagram' : 'messenger';
       for (const entry of body.entry ?? []) {
+        // Leads (formulários) — usam `changes`.
         for (const change of entry.changes ?? []) {
           if (change.field !== 'leadgen') continue;
           await this.leadgenQueue.add('lead', {
@@ -56,6 +58,22 @@ export class MetaAdsWebhookController {
             pageId: change.value.page_id,
             formId: change.value.form_id,
             adId: change.value.ad_id,
+          });
+        }
+
+        // Mensagens (Messenger/Instagram) — usam `messaging`.
+        for (const ev of entry.messaging ?? []) {
+          // Ignora ecos das nossas próprias mensagens enviadas e eventos sem texto/anexo.
+          if (ev.message?.is_echo) continue;
+          if (!ev.message) continue;
+          await this.messengerQueue.add('message', {
+            pageId: entry.id,
+            psid: ev.sender.id,
+            channel,
+            mid: ev.message.mid,
+            text: ev.message.text ?? null,
+            attachments: ev.message.attachments ?? null,
+            timestamp: ev.timestamp,
           });
         }
       }

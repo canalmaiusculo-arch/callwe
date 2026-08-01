@@ -948,9 +948,20 @@
     "newLeadsTitle": "Novos leads",
     "newLeadsView": "Ver",
     "newLeadsMore": "mais",
-    "newLeadsLess": "Ver menos"
+    "newLeadsLess": "Ver menos",
+    "tabMessenger": "Messenger"
   },
   "leadDrawer": {
     "formAnswers": "Respostas do formulário"
+  },
+  "messengerInbox": {
+    "title": "Messenger",
+    "conversations": "conversas",
+    "empty": "Nenhuma conversa ainda",
+    "contact": "Contato",
+    "selectConversation": "Selecione uma conversa",
+    "replyPlaceholder": "Escreva uma resposta... (Enter envia)",
+    "windowClosed": "Janela de 24h fechada — o cliente precisa enviar uma nova mensagem antes de você responder.",
+    "windowClosedHint": "Fora da janela de 24h. Aguarde o cliente enviar uma nova mensagem para poder responder."
   }
 }

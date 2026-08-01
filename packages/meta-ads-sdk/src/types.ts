@@ -32,10 +32,24 @@ export interface MetaLead {
   field_data: MetaLeadField[];
 }
 
+export interface MetaMessagingEvent {
+  sender: { id: string };
+  recipient: { id: string };
+  timestamp: number;
+  message?: {
+    mid: string;
+    text?: string;
+    attachments?: Array<{ type: string; payload: { url?: string } }>;
+    is_echo?: boolean;
+  };
+  postback?: { title?: string; payload?: string; mid?: string };
+  read?: { watermark: number };
+}
+
 export interface MetaWebhookEntry {
   id: string;
   time: number;
-  changes: Array<{
+  changes?: Array<{
     field: 'leadgen';
     value: {
       leadgen_id: string;
@@ -46,9 +60,11 @@ export interface MetaWebhookEntry {
       created_time: number;
     };
   }>;
+  // Presente nos eventos de mensageria (Messenger/Instagram).
+  messaging?: MetaMessagingEvent[];
 }
 
 export interface MetaWebhookPayload {
-  object: 'page';
+  object: 'page' | 'instagram';
   entry: MetaWebhookEntry[];
 }

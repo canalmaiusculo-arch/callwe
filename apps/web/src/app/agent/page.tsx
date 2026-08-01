@@ -18,6 +18,7 @@ import {
   BookOpen,
   UserPlus,
   Users,
+  MessagesSquare,
 } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -31,6 +32,7 @@ import { BriefingDisplay } from '@/components/agent/briefing-display';
 import { useAuthStore } from '@/stores/auth-store';
 import { ChatWidget } from '@/components/chat-widget';
 import { NotificationCenter } from '@/components/notification-center';
+import { MessengerInbox } from '@/components/agent/messenger-inbox';
 import { useRealtimeCalls, useRealtimeSms } from '@/hooks/use-realtime-calls';
 import {
   LEAD_STATUS_COLOR,
@@ -77,7 +79,7 @@ interface AgentStats {
   smsToday: number;
 }
 
-type Tab = 'dashboard' | 'calls' | 'sms' | 'leads' | 'briefings';
+type Tab = 'dashboard' | 'calls' | 'sms' | 'leads' | 'messenger' | 'briefings';
 
 export default function AgentPage() {
   const { t } = useTranslate();
@@ -157,6 +159,7 @@ export default function AgentPage() {
           <TabButton active={tab === 'calls'} onClick={() => setTab('calls')} icon={Phone} label={t('agentPanel.tabCalls')} />
           <TabButton active={tab === 'sms'} onClick={() => setTab('sms')} icon={MessageSquare} label={t('agentPanel.tabSms')} badge={smsBadge} />
           <TabButton active={tab === 'leads'} onClick={() => setTab('leads')} icon={UserPlus} label={t('agentPanel.tabLeads')} badge={pendingLeads.length} pulse />
+          <TabButton active={tab === 'messenger'} onClick={() => setTab('messenger')} icon={MessagesSquare} label={t('agentPanel.tabMessenger')} />
           <TabButton active={tab === 'briefings'} onClick={() => setTab('briefings')} icon={BookOpen} label={t('agentPanel.tabBriefings')} />
         </nav>
 
@@ -249,6 +252,8 @@ export default function AgentPage() {
             clients={clients}
             onOpenLead={openLead}
           />
+        ) : tab === 'messenger' ? (
+          <MessengerInbox filterSubAccountId={filterSubAccountId} />
         ) : (
           <BriefingsView clients={clients} initialSelectedId={filterSubAccountId} />
         )}

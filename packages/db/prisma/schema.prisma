@@ -55,6 +55,12 @@ enum LeadSource {
   import
   api
   form
+  messenger
+}
+
+enum MessengerChannel {
+  messenger
+  instagram
 }
 
 enum LeadStatus {
@@ -186,6 +192,8 @@ model SubAccount {
   briefingRevisions  BriefingRevision[]
   integrations       Integration[]
   metaLeadForms      MetaLeadForm[]
+  messengerPages     MessengerPage[]
+  messengerConversations MessengerConversation[]
   routingRules       RoutingRule[]
   slaPolicies        SlaPolicy[]
   usageCounters      UsageCounter[]
@@ -217,6 +225,7 @@ model User {
   recordingAccess RecordingAccessLog[]
   auditLogs       AuditLog[]
   briefingUpdates Briefing[]        @relation("BriefingUpdatedBy")
+  messengerMessages MessengerMessage[]
 
   @@map("users")
 }
@@ -285,6 +294,7 @@ model Lead {
   owner          User?        @relation("LeadOwner", fields: [ownerUserId], references: [id])
   interactions   Interaction[]
   notes          LeadNote[]
+  messengerConversations MessengerConversation[]
 
   @@index([subAccountId, phoneE164])
   @@index([subAccountId, status])
@@ -490,6 +500,7 @@ model Integration {
 
   subAccount     SubAccount           @relation(fields: [subAccountId], references: [id], onDelete: Cascade)
   metaLeadForms  MetaLeadForm[]
+  messengerPages MessengerPage[]
 
   @@unique([subAccountId, provider])
   @@map("integrations")
@@ -511,6 +522,80 @@ model MetaLeadForm {
 
   @@unique([pageId, formId])
   @@map("meta_lead_forms")
+}
+
+// ============================================================
+// Messenger / Instagram DM
+// ============================================================
+
+// Página do Facebook habilitada para receber/responder mensagens.
+// Mapeia pageId -> sub-account (pra rotear o webhook) e aponta pra integração
+// (de onde sai o page access token, guardado criptografado nas credenciais).
+model MessengerPage {
+  id            String           @id @default(uuid()) @db.Uuid
+  integrationId String           @map("integration_id") @db.Uuid
+  subAccountId  String           @map("sub_account_id") @db.Uuid
+  pageId        String           @map("page_id")
+  pageName      String           @map("page_name")
+  channel       MessengerChannel @default(messenger)
+  enabled       Boolean          @default(true)
+  createdAt     DateTime         @default(now()) @map("created_at") @db.Timestamptz
+
+  integration   Integration      @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+  subAccount    SubAccount       @relation(fields: [subAccountId], references: [id], onDelete: Cascade)
+  conversations MessengerConversation[]
+
+  @@unique([pageId])
+  @@index([subAccountId])
+  @@map("messenger_pages")
+}
+
+// Uma conversa por (página, usuário). O usuário é identificado pelo PSID
+// (page-scoped id) que a Meta manda no webhook.
+model MessengerConversation {
+  id              String           @id @default(uuid()) @db.Uuid
+  subAccountId    String           @map("sub_account_id") @db.Uuid
+  pageId          String           @map("page_id")
+  psid            String
+  channel         MessengerChannel @default(messenger)
+  leadId          String?          @map("lead_id") @db.Uuid
+  contactName     String?          @map("contact_name")
+  contactAvatar   String?          @map("contact_avatar")
+  status          String           @default("open") // open | closed
+  lastMessageAt   DateTime?        @map("last_message_at") @db.Timestamptz
+  lastMessageText String?          @map("last_message_text")
+  // Última mensagem RECEBIDA — base da janela de 24h da Meta pra responder livre.
+  lastInboundAt   DateTime?        @map("last_inbound_at") @db.Timestamptz
+  createdAt       DateTime         @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt       DateTime         @updatedAt @map("updated_at") @db.Timestamptz
+
+  page            MessengerPage    @relation(fields: [pageId], references: [pageId], onDelete: Cascade)
+  subAccount      SubAccount       @relation(fields: [subAccountId], references: [id], onDelete: Cascade)
+  lead            Lead?            @relation(fields: [leadId], references: [id], onDelete: SetNull)
+  messages        MessengerMessage[]
+
+  @@unique([pageId, psid])
+  @@index([subAccountId, lastMessageAt(sort: Desc)])
+  @@map("messenger_conversations")
+}
+
+model MessengerMessage {
+  id             String   @id @default(uuid()) @db.Uuid
+  conversationId String   @map("conversation_id") @db.Uuid
+  // mid da Meta — usado pra deduplicar (o webhook pode reentregar).
+  mid            String?  @unique
+  direction      InteractionDirection
+  text           String?
+  attachments    Json?
+  // Quem enviou (só em outbound: o atendente que respondeu).
+  senderUserId   String?  @map("sender_user_id") @db.Uuid
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  conversation   MessengerConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  senderUser     User?    @relation(fields: [senderUserId], references: [id])
+
+  @@index([conversationId, createdAt])
+  @@map("messenger_messages")
 }
 
 // ============================================================
