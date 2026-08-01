@@ -517,7 +517,16 @@
     "step4Middle": "and, optionally,",
     "step4After": "Any extra field is saved automatically.",
     "rotateWarning": "⚠️ Rotating the key invalidates the previous one — you'll need to update your integration.",
-    "rotateKey": "Rotate key"
+    "rotateKey": "Rotate key",
+    "messengerTitle": "Messenger / Instagram",
+    "messengerDescription": "Receive and reply to Facebook and Instagram messages in the agent panel.",
+    "messengerEnablePage": "Enable a page",
+    "messengerPickPage": "Pick the Facebook page to connect to Messenger:",
+    "messengerNoPages": "No connected pages. Connect Meta Ads first.",
+    "messengerEnable": "Enable",
+    "messengerEnabled": "Page enabled for Messenger",
+    "messengerDisabled": "Page disabled",
+    "messengerDisable": "Disable"
   },
   "metaForms": {
     "title": "Meta Ads — Forms",

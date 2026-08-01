@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Facebook, Phone, MessageCircle, Webhook } from 'lucide-react';
+import { Facebook, Phone, MessageCircle, Webhook, MessagesSquare, Check } from 'lucide-react';
 import { toast } from 'sonner';
 import { apiClient } from '@/lib/api-client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -113,9 +113,127 @@ export default function IntegrationsPage() {
           );
         })}
 
+        <MessengerCard />
         <FormWebhookCard />
       </div>
     </div>
+  );
+}
+
+interface FbPage {
+  id: string;
+  name: string;
+  access_token: string;
+  category?: string;
+}
+interface EnabledPage {
+  id: string;
+  pageId: string;
+  pageName: string;
+  channel: string;
+  enabled: boolean;
+}
+
+function MessengerCard() {
+  const { t } = useTranslate();
+  const subAccountId = useTenantStore((s) => s.subAccountId);
+  const qc = useQueryClient();
+  const [picking, setPicking] = useState(false);
+
+  const { data: enabled = [] } = useQuery<EnabledPage[]>({
+    queryKey: ['messenger-enabled', subAccountId],
+    queryFn: () => apiClient.get('/messenger/pages/enabled'),
+    enabled: !!subAccountId,
+  });
+
+  const { data: pages = [], isFetching } = useQuery<FbPage[]>({
+    queryKey: ['messenger-connectable', subAccountId],
+    queryFn: () => apiClient.get('/messenger/pages'),
+    enabled: !!subAccountId && picking,
+    retry: false,
+  });
+
+  const enable = useMutation({
+    mutationFn: (p: FbPage) =>
+      apiClient.post('/messenger/pages/enable', {
+        pageId: p.id,
+        pageName: p.name,
+        pageAccessToken: p.access_token,
+      }),
+    onSuccess: () => {
+      toast.success(t('integrations.messengerEnabled'));
+      setPicking(false);
+      qc.invalidateQueries({ queryKey: ['messenger-enabled', subAccountId] });
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+
+  const disable = useMutation({
+    mutationFn: (pageId: string) => apiClient.del(`/messenger/pages/${pageId}`),
+    onSuccess: () => {
+      toast.success(t('integrations.messengerDisabled'));
+      qc.invalidateQueries({ queryKey: ['messenger-enabled', subAccountId] });
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+
+  const enabledIds = new Set(enabled.filter((e) => e.enabled).map((e) => e.pageId));
+
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-center gap-3">
+          <MessagesSquare className="h-5 w-5" />
+          <div>
+            <CardTitle>{t('integrations.messengerTitle')}</CardTitle>
+            <CardDescription>{t('integrations.messengerDescription')}</CardDescription>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {enabled.filter((e) => e.enabled).length > 0 && (
+          <div className="space-y-1.5">
+            {enabled.filter((e) => e.enabled).map((e) => (
+              <div key={e.pageId} className="flex items-center justify-between rounded-md border p-2">
+                <span className="flex items-center gap-2 text-sm">
+                  <Check className="h-4 w-4 text-emerald-600" /> {e.pageName}
+                </span>
+                <Button size="sm" variant="outline" onClick={() => disable.mutate(e.pageId)}>
+                  {t('integrations.messengerDisable')}
+                </Button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {!picking ? (
+          <Button size="sm" onClick={() => setPicking(true)}>{t('integrations.messengerEnablePage')}</Button>
+        ) : (
+          <div className="space-y-2 rounded-md border p-3">
+            <p className="text-xs text-muted-foreground">{t('integrations.messengerPickPage')}</p>
+            {isFetching && <p className="text-sm text-muted-foreground">{t('metaForms.loading')}</p>}
+            {!isFetching && pages.length === 0 && (
+              <p className="text-sm text-muted-foreground">{t('integrations.messengerNoPages')}</p>
+            )}
+            {pages.map((p) => (
+              <div key={p.id} className="flex items-center justify-between gap-2">
+                <span className="flex items-center gap-2 text-sm">
+                  <Facebook className="h-4 w-4 text-blue-600" /> {p.name}
+                </span>
+                {enabledIds.has(p.id) ? (
+                  <Badge variant="success">{t('integrations.statusConnected')}</Badge>
+                ) : (
+                  <Button size="sm" onClick={() => enable.mutate(p)} disabled={enable.isPending}>
+                    {t('integrations.messengerEnable')}
+                  </Button>
+                )}
+              </div>
+            ))}
+            <Button size="sm" variant="ghost" onClick={() => setPicking(false)}>{t('common.cancel')}</Button>
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 

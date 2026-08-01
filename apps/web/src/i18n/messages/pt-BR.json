@@ -517,7 +517,16 @@
     "step4Middle": "e, opcionalmente,",
     "step4After": "Qualquer campo extra é guardado automaticamente.",
     "rotateWarning": "⚠️ Rotacionar a chave invalida a anterior — você precisa atualizar a integração.",
-    "rotateKey": "Rotacionar chave"
+    "rotateKey": "Rotacionar chave",
+    "messengerTitle": "Messenger / Instagram",
+    "messengerDescription": "Receba e responda mensagens do Facebook e Instagram no painel do atendente.",
+    "messengerEnablePage": "Habilitar uma página",
+    "messengerPickPage": "Escolha a página do Facebook para conectar ao Messenger:",
+    "messengerNoPages": "Nenhuma página conectada. Conecte o Meta Ads primeiro.",
+    "messengerEnable": "Habilitar",
+    "messengerEnabled": "Página habilitada no Messenger",
+    "messengerDisabled": "Página desabilitada",
+    "messengerDisable": "Desabilitar"
   },
   "metaForms": {
     "title": "Meta Ads — formulários",
