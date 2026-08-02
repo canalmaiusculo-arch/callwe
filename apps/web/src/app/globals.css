@@ -35,6 +35,9 @@
     /* Gradiente da marca (royal → ciano) */
     --brand-from: 234 80% 50%;
     --brand-to: 202 88% 53%;
+
+    /* Raio de canto base — mais moderno/arredondado. */
+    --radius: 0.85rem;
   }
 
   .dark {
@@ -72,6 +75,15 @@
 @layer base {
   body {
     @apply bg-background text-foreground antialiased;
+  }
+  /* Títulos usam a fonte display (amigável); herda a de corpo se não carregar. */
+  h1, h2, h3, h4 {
+    font-family: var(--font-display), var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+    letter-spacing: -0.02em;
+  }
+  /* Números alinham em colunas em tabelas/listas de dados. */
+  .tabular {
+    font-variant-numeric: tabular-nums;
   }
 }
 
