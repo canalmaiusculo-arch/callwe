@@ -192,7 +192,7 @@ export default function ClientDashboard() {
       <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
         <Card>
           <CardHeader><CardTitle>{t('clientDash.callVolumeTitle')}</CardTitle></CardHeader>
-          <CardContent><MiniLineChart data={s.series} height={140} color="#3b82f6" /></CardContent>
+          <CardContent><MiniLineChart data={s.series} height={140} color="#2f43e0" /></CardContent>
         </Card>
 
         <Card>
@@ -269,17 +269,18 @@ function Kpi({
 }: {
   title: string; value: string | number; icon: React.ComponentType<{ className?: string }>; sub?: string; tone?: 'warning';
 }) {
+  const iconTint = tone === 'warning' ? 'bg-amber-100 text-amber-600' : 'bg-primary/10 text-primary';
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <div>
-          <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
-          {sub && <p className="text-xs text-muted-foreground/70">{sub}</p>}
+      <CardContent className="p-4">
+        <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${iconTint}`}>
+          <Icon className="h-[1.05rem] w-[1.05rem]" />
         </div>
-        <Icon className="h-4 w-4 text-muted-foreground" />
-      </CardHeader>
-      <CardContent>
-        <p className={`text-2xl font-bold ${tone === 'warning' ? 'text-amber-600' : ''}`}>{value}</p>
+        <p className={`tabular mt-2.5 text-2xl font-bold leading-none tracking-tight ${tone === 'warning' ? 'text-amber-600' : ''}`}>
+          {value}
+        </p>
+        <p className="mt-1.5 text-sm font-medium text-muted-foreground">{title}</p>
+        {sub && <p className="text-xs text-muted-foreground/70">{sub}</p>}
       </CardContent>
     </Card>
   );
@@ -294,12 +295,18 @@ function KpiCard({
   return (
     <div className="group relative">
       <Card className="cursor-pointer transition-shadow hover:shadow-md" onClick={() => setPinned((p) => !p)}>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
-          <Icon className="h-4 w-4 text-muted-foreground" />
-        </CardHeader>
-        <CardContent>
-          <p className={`text-2xl font-bold ${tone === 'warning' ? 'text-amber-600' : ''}`}>{value}</p>
+        <CardContent className="p-4">
+          <div
+            className={`flex h-8 w-8 items-center justify-center rounded-lg ${
+              tone === 'warning' ? 'bg-amber-100 text-amber-600' : 'bg-primary/10 text-primary'
+            }`}
+          >
+            <Icon className="h-[1.05rem] w-[1.05rem]" />
+          </div>
+          <p className={`tabular mt-2.5 text-2xl font-bold leading-none tracking-tight ${tone === 'warning' ? 'text-amber-600' : ''}`}>
+            {value}
+          </p>
+          <p className="mt-1.5 text-sm font-medium text-muted-foreground">{title}</p>
         </CardContent>
       </Card>
       <div className={`absolute left-0 right-0 top-full z-20 pt-1.5 ${pinned ? 'block' : 'hidden group-hover:block'}`}>

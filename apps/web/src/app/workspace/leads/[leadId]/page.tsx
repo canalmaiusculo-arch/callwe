@@ -119,7 +119,7 @@ export default function LeadDetailPage({ params }: { params: Promise<{ leadId: s
                 value={lead.name ?? ''}
                 onChange={(e) => update.mutate({ name: e.target.value })}
                 placeholder={t('leadDetail.namePlaceholder')}
-                className="border-0 px-0 text-3xl font-bold shadow-none focus-visible:ring-0"
+                className="border-0 px-0 text-2xl font-bold shadow-none focus-visible:ring-0 md:text-3xl"
               />
               <div className="mt-2 flex gap-2 text-sm text-muted-foreground">
                 <span className="font-mono">{lead.phoneE164}</span>
@@ -151,7 +151,12 @@ export default function LeadDetailPage({ params }: { params: Promise<{ leadId: s
         {leadHasCustomFields(lead.customFields) && (
           <Card>
             <CardHeader>
-              <CardTitle>{t('leadDrawer.formAnswers')}</CardTitle>
+              <CardTitle className="flex items-center gap-2">
+                <span className="flex h-6 w-6 items-center justify-center rounded-md bg-primary/10 text-primary">
+                  <FormInput className="h-4 w-4" />
+                </span>
+                {t('leadDrawer.formAnswers')}
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <LeadCustomFields customFields={lead.customFields} />
