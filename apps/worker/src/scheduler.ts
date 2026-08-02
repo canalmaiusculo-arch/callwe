@@ -1,4 +1,4 @@
-import { slaCheckerQueue, usageAggregatorQueue } from './queues.js';
+import { slaCheckerQueue, usageAggregatorQueue, agentAttributionQueue } from './queues.js';
 import { logger } from './lib/logger.js';
 
 /**
@@ -21,6 +21,16 @@ export async function scheduleRecurringJobs() {
     {
       jobId: 'usage-aggregator-recurring',
       repeat: { pattern: '0 3 * * *' }, // 03:00 UTC diariamente
+    },
+  );
+
+  // Atribuição de atendente (CDRs do CloudTalk) — janela curta, forward.
+  await agentAttributionQueue.add(
+    'attribute',
+    { days: 2 },
+    {
+      jobId: 'agent-attribution-recurring',
+      repeat: { pattern: '*/20 * * * *' }, // a cada 20 minutos
     },
   );
 

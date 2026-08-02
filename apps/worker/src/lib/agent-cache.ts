@@ -19,6 +19,17 @@ export async function resolveUserIdByCloudtalkAgent(agentId: string | number): P
   }
 
   try {
+    // 1) Link confiável: membership.cloudtalkAgentId -> userId.
+    const membership = await prisma.membership.findFirst({
+      where: { cloudtalkAgentId: key },
+      select: { userId: true },
+    });
+    if (membership) {
+      cache.set(key, { email: '', userId: membership.userId, cachedAt: Date.now() });
+      return membership.userId;
+    }
+
+    // 2) Fallback: email do agente no CloudTalk -> user CallWe.
     const res = await cloudtalk.http.get(`/agents/show/${key}.json`);
     const email = String(res.data?.responseData?.Agent?.email ?? '').toLowerCase();
     if (!email) {

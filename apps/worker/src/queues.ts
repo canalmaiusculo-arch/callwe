@@ -10,6 +10,7 @@ export const QUEUES = {
   transcription: 'transcription',
   slaChecker: 'sla-checker',
   usageAggregator: 'usage-aggregator',
+  agentAttribution: 'agent-attribution',
 } as const;
 
 const defaults = {
@@ -42,3 +43,4 @@ export const recordingSyncQueue = new Queue(QUEUES.recordingSync, slowExternalDe
 export const transcriptionQueue = new Queue(QUEUES.transcription, slowExternalDefaults);
 export const slaCheckerQueue = new Queue(QUEUES.slaChecker, defaults);
 export const usageAggregatorQueue = new Queue(QUEUES.usageAggregator, defaults);
+export const agentAttributionQueue = new Queue(QUEUES.agentAttribution, defaults);
