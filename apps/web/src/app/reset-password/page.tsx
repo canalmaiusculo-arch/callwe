@@ -43,7 +43,7 @@ function ResetPasswordInner() {
 
   if (!token) {
     return (
-      <main className="flex min-h-screen items-center justify-center p-4">
+      <main className="flex min-h-screen items-center justify-center bg-sidebar-gradient p-4">
         <Card className="w-full max-w-md">
           <CardContent className="p-6 text-sm">
             {t('resetPassword.invalidLink')}{' '}
@@ -57,7 +57,7 @@ function ResetPasswordInner() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center p-4">
+    <main className="flex min-h-screen items-center justify-center bg-sidebar-gradient p-4">
       <Card className="w-full max-w-md">
         <CardHeader>
           <CardTitle>{t('resetPassword.title')}</CardTitle>

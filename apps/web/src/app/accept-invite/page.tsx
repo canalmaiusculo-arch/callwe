@@ -87,7 +87,7 @@ function AcceptInviteForm() {
 export default function AcceptInvitePage() {
   const { t } = useTranslate();
   return (
-    <main className="flex min-h-screen items-center justify-center p-8">
+    <main className="flex min-h-screen items-center justify-center bg-sidebar-gradient p-8">
       <Suspense fallback={<div>{t('acceptInvite.loading')}</div>}>
         <AcceptInviteForm />
       </Suspense>

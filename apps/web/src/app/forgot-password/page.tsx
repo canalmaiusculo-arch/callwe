@@ -34,7 +34,7 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center p-4">
+    <main className="flex min-h-screen items-center justify-center bg-sidebar-gradient p-4">
       <Card className="w-full max-w-md">
         <CardHeader>
           <CardTitle>{t('forgotPassword.title')}</CardTitle>

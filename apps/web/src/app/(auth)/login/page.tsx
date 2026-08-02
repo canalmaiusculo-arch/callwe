@@ -64,10 +64,10 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-muted/30 p-4">
+    <main className="flex min-h-screen items-center justify-center bg-sidebar-gradient p-4">
       <form
         onSubmit={onSubmit}
-        className="w-full max-w-sm space-y-4 rounded-2xl border bg-card p-8 shadow-sm"
+        className="w-full max-w-sm space-y-4 rounded-2xl border border-white/10 bg-card p-8 shadow-2xl"
       >
         <div className="flex flex-col items-center gap-2 pb-2">
           <Logo variant="full" className="h-9 w-auto" />
