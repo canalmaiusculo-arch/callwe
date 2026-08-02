@@ -222,10 +222,19 @@ function parseTimestamp(raw: unknown): Date {
 
 async function handleSms(subAccountId: string, body: Record<string, unknown>) {
   const eventType = String(body.event_type ?? '').trim();
+
+  // SMS de saída = enviado por um atendente. Se o CloudTalk mandar o agent_id,
+  // atribui ao atendente (SMS recebido não tem atendente por natureza).
+  let agentUserId: string | null = null;
+  if (body.agent_id) {
+    agentUserId = await resolveUserIdByCloudtalkAgent(String(body.agent_id));
+  }
+
   await prisma.interaction.upsert({
     where: { cloudtalkSmsId: String(body.message_id) },
     update: {
       smsBody: String(body.body ?? ''),
+      agentUserId: agentUserId ?? undefined,
       metadata: body as object,
     },
     create: {
@@ -238,6 +247,7 @@ async function handleSms(subAccountId: string, body: Record<string, unknown>) {
       fromNumber: String(body.from_number ?? ''),
       toNumber: String(body.to_number ?? ''),
       smsBody: String(body.body ?? ''),
+      agentUserId,
       metadata: body as object,
     },
   });
