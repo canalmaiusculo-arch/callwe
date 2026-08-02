@@ -7,6 +7,7 @@ import type { Response } from 'express';
 import type { Readable } from 'node:stream';
 import axios from 'axios';
 import { InteractionsService } from './interactions.service.js';
+import { PrismaService } from '../prisma/prisma.service.js';
 import { TenantGuard } from '../../common/guards/tenant.guard.js';
 import { CurrentUser, AuthUser } from '../../common/decorators/current-user.decorator.js';
 import { env } from '../../config/env.js';
@@ -20,7 +21,58 @@ const SendSmsDto = z.object({
 @Controller('interactions')
 @UseGuards(AuthGuard('jwt'))
 export class InteractionsController {
-  constructor(private readonly svc: InteractionsService) {}
+  constructor(
+    private readonly svc: InteractionsService,
+    private readonly prisma: PrismaService,
+  ) {}
+
+  private isAdmin(user: AuthUser): boolean {
+    return user.memberships.some((m) => m.role === 'super_admin' || m.role === 'agency_admin');
+  }
+
+  /**
+   * Resolve o escopo do painel. Se um admin passa `agentId`, escopa nas subcontas
+   * daquele atendente (supervisão). Senão, nas subcontas do próprio usuário.
+   */
+  private async resolveScope(
+    user: AuthUser,
+    agentId?: string,
+  ): Promise<{ subAccountIds: string[]; forcedAgentId: string | null }> {
+    if (agentId && this.isAdmin(user)) {
+      const subs = await this.prisma.membership.findMany({
+        where: { userId: agentId, role: 'agent' },
+        select: { subAccountId: true },
+      });
+      return {
+        subAccountIds: subs.map((s) => s.subAccountId).filter((v): v is string => !!v),
+        forcedAgentId: agentId,
+      };
+    }
+    return {
+      subAccountIds: user.memberships.map((m) => m.subAccountId).filter((v): v is string => !!v),
+      forcedAgentId: null,
+    };
+  }
+
+  /** Atendentes que o usuário pode supervisionar (pro seletor do painel). */
+  @Get('agents')
+  async agents(@CurrentUser() user: AuthUser) {
+    if (!this.isAdmin(user)) return [];
+    const isSuper = user.memberships.some((m) => m.role === 'super_admin');
+    const agencyIds = user.memberships
+      .filter((m) => m.role === 'agency_admin' && m.agencyId)
+      .map((m) => m.agencyId as string);
+    const rows = await this.prisma.membership.findMany({
+      where: {
+        role: 'agent',
+        ...(isSuper ? {} : { subAccount: { agencyId: { in: agencyIds } } }),
+      },
+      select: { user: { select: { id: true, fullName: true } } },
+      distinct: ['userId'],
+      orderBy: { user: { fullName: 'asc' } },
+    });
+    return rows.map((r) => r.user);
+  }
 
   /** Lista interações do atendente logado (todas as subcontas que ele atende). */
   @Get('mine')
@@ -28,24 +80,25 @@ export class InteractionsController {
     @CurrentUser() user: AuthUser,
     @Query('type') type?: string,
     @Query('onlyMine') onlyMine?: string,
+    @Query('agentId') agentId?: string,
   ) {
-    const subAccountIds = user.memberships
-      .map((m) => m.subAccountId)
-      .filter((v): v is string => !!v);
+    const { subAccountIds, forcedAgentId } = await this.resolveScope(user, agentId);
     if (subAccountIds.length === 0) return [];
     return this.svc.list(subAccountIds, {
       type,
-      agentUserId: onlyMine === 'true' ? user.id : undefined,
+      agentUserId: forcedAgentId ?? (onlyMine === 'true' ? user.id : undefined),
     });
   }
 
-  /** KPIs do atendente logado — escopados nas subcontas que ele atende. */
+  /** KPIs do atendente — escopados nas subcontas atendidas (próprias ou de um atendente supervisionado). */
   @Get('mine/stats')
-  agentStats(@CurrentUser() user: AuthUser, @Query('onlyMine') onlyMine?: string) {
-    const subAccountIds = user.memberships
-      .map((m) => m.subAccountId)
-      .filter((v): v is string => !!v);
-    return this.svc.agentStats(subAccountIds, onlyMine === 'true' ? user.id : undefined);
+  async agentStats(
+    @CurrentUser() user: AuthUser,
+    @Query('onlyMine') onlyMine?: string,
+    @Query('agentId') agentId?: string,
+  ) {
+    const { subAccountIds, forcedAgentId } = await this.resolveScope(user, agentId);
+    return this.svc.agentStats(subAccountIds, forcedAgentId ?? (onlyMine === 'true' ? user.id : undefined));
   }
 
   /** Envia SMS via CloudTalk em nome do atendente logado. */

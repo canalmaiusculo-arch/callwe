@@ -20,6 +20,8 @@ import {
   Users,
   MessagesSquare,
   FileText,
+  Target,
+  Trophy,
 } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -86,13 +88,19 @@ interface AgentStats {
   callsToday: number;
   callsWeek: number;
   missedToday: number;
+  missedWeek: number;
+  answerRate: number;
   inboundWeek: number;
   outboundWeek: number;
   totalTalkTimeToday: number;
+  talkTimeWeek: number;
   avgTalkTime: number;
   smsToday: number;
   leadsToday: number;
   leadsWeek: number;
+  wonWeek: number;
+  qualifiedWeek: number;
+  conversionWeek: number;
   recent: AgentRecent[];
 }
 
@@ -106,6 +114,7 @@ export default function AgentPage() {
   const [leadDrawer, setLeadDrawer] = useState<LeadDrawerTarget | null>(null);
   const [smsBadge, setSmsBadge] = useState(0);
   const [filterSubAccountId, setFilterSubAccountId] = useState<string | null>(null);
+  const [selectedAgentId, setSelectedAgentId] = useState<string>('');
   const [search, setSearch] = useState('');
   const clearAuth = useAuthStore((s) => s.clear);
   const queryClient = useQueryClient();
@@ -114,6 +123,13 @@ export default function AgentPage() {
     queryKey: ['my-clients'],
     queryFn: () => apiClient.get('/sub-accounts/mine'),
   });
+
+  // Atendentes supervisionáveis (só volta lista se o usuário for dono/admin).
+  const { data: supervisableAgents = [] } = useQuery<Array<{ id: string; fullName: string }>>({
+    queryKey: ['panel-agents'],
+    queryFn: () => apiClient.get('/interactions/agents'),
+  });
+  const agentId = selectedAgentId || undefined;
 
   const subTags = clients.map((c) => c.cloudtalkTag);
   const { activeCall, dismiss: dismissActiveCall } = useRealtimeCalls(subTags);
@@ -135,8 +151,8 @@ export default function AgentPage() {
   // aqui só aplicamos a janela de 7 dias, o "não visto" e o filtro de cliente.
   const { isSeen: isLeadSeen, markSeen: markLeadSeen } = useSeenIds('leads');
   const { data: newLeads = [] } = useQuery<AgentLead[]>({
-    queryKey: ['my-leads-new'],
-    queryFn: () => apiClient.get('/leads/mine?status=new&limit=200'),
+    queryKey: ['my-leads-new', agentId],
+    queryFn: () => apiClient.get(`/leads/mine?status=new&limit=200${agentId ? `&agentId=${agentId}` : ''}`),
     refetchInterval: 30_000,
   });
   const pendingLeads = useMemo(() => {
@@ -222,6 +238,21 @@ export default function AgentPage() {
 
       <section className="col-span-7 min-h-0 space-y-3 overflow-auto">
         <NotificationBanner />
+        {supervisableAgents.length > 0 && (
+          <div className="flex items-center gap-2 rounded-lg border bg-card px-3 py-2">
+            <span className="text-xs font-medium text-muted-foreground">{t('agentPanel.viewingAgent')}</span>
+            <select
+              value={selectedAgentId}
+              onChange={(e) => setSelectedAgentId(e.target.value)}
+              className="h-8 rounded-md border bg-background px-2 text-sm"
+            >
+              <option value="">{t('agentPanel.allAgents')}</option>
+              {supervisableAgents.map((a) => (
+                <option key={a.id} value={a.id}>{a.fullName}</option>
+              ))}
+            </select>
+          </div>
+        )}
         {activeCall && (
           <div className="sticky top-0 z-20 -mx-3 -mt-3 mb-3 border-b bg-muted/40 px-3 pb-3 pt-3 backdrop-blur">
             <ActiveCallView call={activeCall} onDismiss={dismissActiveCall} />
@@ -244,7 +275,7 @@ export default function AgentPage() {
           />
         )}
         {tab === 'dashboard' ? (
-          <DashboardView />
+          <DashboardView agentId={agentId} />
         ) : tab === 'calls' ? (
           <CallsView
             onlyMine={onlyMine}
@@ -253,6 +284,7 @@ export default function AgentPage() {
             filterSubAccountId={filterSubAccountId}
             search={search}
             isSeen={seenCalls.isSeen}
+            agentId={agentId}
           />
         ) : tab === 'sms' ? (
           <SmsView
@@ -262,6 +294,7 @@ export default function AgentPage() {
             filterSubAccountId={filterSubAccountId}
             search={search}
             isSeen={seenSms.isSeen}
+            agentId={agentId}
           />
         ) : tab === 'leads' ? (
           <LeadsView
@@ -269,6 +302,7 @@ export default function AgentPage() {
             search={search}
             clients={clients}
             onOpenLead={openLead}
+            agentId={agentId}
           />
         ) : tab === 'forms' ? (
           <LeadsView
@@ -277,6 +311,7 @@ export default function AgentPage() {
             clients={clients}
             onOpenLead={openLead}
             lockedSource="form"
+            agentId={agentId}
           />
         ) : tab === 'messenger' ? (
           <MessengerInbox filterSubAccountId={filterSubAccountId} />
@@ -342,15 +377,16 @@ function TabButton({
 }
 
 const EMPTY_AGENT_STATS: AgentStats = {
-  callsToday: 0, callsWeek: 0, missedToday: 0, inboundWeek: 0, outboundWeek: 0,
-  totalTalkTimeToday: 0, avgTalkTime: 0, smsToday: 0, leadsToday: 0, leadsWeek: 0, recent: [],
+  callsToday: 0, callsWeek: 0, missedToday: 0, missedWeek: 0, answerRate: 0,
+  inboundWeek: 0, outboundWeek: 0, totalTalkTimeToday: 0, talkTimeWeek: 0, avgTalkTime: 0,
+  smsToday: 0, leadsToday: 0, leadsWeek: 0, wonWeek: 0, qualifiedWeek: 0, conversionWeek: 0, recent: [],
 };
 
-function DashboardView() {
+function DashboardView({ agentId }: { agentId?: string }) {
   const { t } = useTranslate();
   const { data: stats } = useQuery<AgentStats>({
-    queryKey: ['agent-stats'],
-    queryFn: () => apiClient.get<AgentStats>('/interactions/mine/stats'),
+    queryKey: ['agent-stats', agentId],
+    queryFn: () => apiClient.get<AgentStats>(`/interactions/mine/stats${agentId ? `?agentId=${agentId}` : ''}`),
     refetchInterval: 30_000,
   });
 
@@ -379,18 +415,18 @@ function DashboardView() {
         <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t('agentPanel.sectionWeek')}</p>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <StatCard title={t('agentPanel.calls7d')} value={s.callsWeek} icon={Phone} sub={`${s.inboundWeek} ${t('agentPanel.inbound')} · ${s.outboundWeek} ${t('agentPanel.outbound')}`} />
-          <StatCard title={t('agentPanel.leads7d')} value={s.leadsWeek} icon={UserPlus} />
-          <StatCard title={t('agentPanel.talkTimeToday')} value={formatDuration(s.totalTalkTimeToday)} icon={Clock} />
-          <StatCard title={t('agentPanel.avgTalkTime')} value={formatDuration(s.avgTalkTime)} icon={Clock} />
+          <StatCard title={t('agentPanel.answerRate')} value={`${s.answerRate}%`} icon={Target} sub={`${s.missedWeek} ${t('agentPanel.missedShort')}`} tone={s.answerRate < 70 && s.callsWeek > 0 ? 'warning' : undefined} />
+          <StatCard title={t('agentPanel.talkTime7d')} value={formatDuration(s.talkTimeWeek)} icon={Clock} sub={`${t('agentPanel.avgLabel')} ${formatDuration(s.avgTalkTime)}`} />
+          <StatCard title={t('agentPanel.conversion7d')} value={`${s.conversionWeek}%`} icon={Trophy} sub={`${s.wonWeek} ${t('agentPanel.wonShort')} · ${s.leadsWeek} ${t('agentPanel.leadsShort')}`} />
         </div>
       </div>
 
       {/* Atividade recente */}
       <Card>
-        <CardHeader>
+        <CardHeader className="pb-3">
           <CardTitle className="text-base">{t('agentPanel.recentActivity')}</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-1.5">
+        <CardContent className="max-h-80 space-y-1.5 overflow-auto">
           {s.recent.length === 0 && (
             <p className="py-6 text-center text-sm text-muted-foreground">{t('agentPanel.noRecent')}</p>
           )}
@@ -451,6 +487,7 @@ function CallsView({
   filterSubAccountId,
   search,
   isSeen,
+  agentId,
 }: {
   onlyMine: boolean;
   onToggleMine: () => void;
@@ -458,11 +495,12 @@ function CallsView({
   filterSubAccountId: string | null;
   search: string;
   isSeen: (id: string) => boolean;
+  agentId?: string;
 }) {
   const { t } = useTranslate();
   const { data: calls = [] } = useQuery<Interaction[]>({
-    queryKey: ['my-calls', onlyMine],
-    queryFn: () => apiClient.get(`/interactions/mine?type=call&onlyMine=${onlyMine}`),
+    queryKey: ['my-calls', onlyMine, agentId],
+    queryFn: () => apiClient.get(`/interactions/mine?type=call&onlyMine=${onlyMine}${agentId ? `&agentId=${agentId}` : ''}`),
     refetchInterval: 15_000,
   });
 
@@ -640,6 +678,7 @@ function SmsView({
   filterSubAccountId,
   search,
   isSeen,
+  agentId,
 }: {
   onlyMine: boolean;
   onToggleMine: () => void;
@@ -647,11 +686,12 @@ function SmsView({
   filterSubAccountId: string | null;
   search: string;
   isSeen: (id: string) => boolean;
+  agentId?: string;
 }) {
   const { t } = useTranslate();
   const { data: messages = [] } = useQuery<Interaction[]>({
-    queryKey: ['my-sms', onlyMine],
-    queryFn: () => apiClient.get(`/interactions/mine?type=sms&onlyMine=${onlyMine}`),
+    queryKey: ['my-sms', onlyMine, agentId],
+    queryFn: () => apiClient.get(`/interactions/mine?type=sms&onlyMine=${onlyMine}${agentId ? `&agentId=${agentId}` : ''}`),
     refetchInterval: 15_000,
   });
 
@@ -1001,12 +1041,14 @@ function LeadsView({
   clients,
   onOpenLead,
   lockedSource,
+  agentId,
 }: {
   filterSubAccountId: string | null;
   search: string;
   clients: AssignedClient[];
   onOpenLead: (lead: LeadDrawerTarget) => void;
   lockedSource?: SourceFilter;
+  agentId?: string;
 }) {
   const { t } = useTranslate();
   const [dateRange, setDateRange] = useState<DateRange>('30d');
@@ -1026,7 +1068,7 @@ function LeadsView({
     isLoading,
     isFetching,
   } = useQuery<AgentLead[]>({
-    queryKey: ['my-leads', dateRange, sourceFilter, effectiveClientId, debouncedSearch],
+    queryKey: ['my-leads', dateRange, sourceFilter, effectiveClientId, debouncedSearch, agentId],
     queryFn: () => {
       const p = new URLSearchParams({ limit: '500' });
       const from = rangeStart(dateRange);
@@ -1034,6 +1076,7 @@ function LeadsView({
       if (sourceFilter !== 'all') p.set('source', sourceFilter);
       if (effectiveClientId) p.set('subAccountId', effectiveClientId);
       if (debouncedSearch) p.set('search', debouncedSearch);
+      if (agentId) p.set('agentId', agentId);
       return apiClient.get(`/leads/mine?${p.toString()}`);
     },
     refetchInterval: 30_000,

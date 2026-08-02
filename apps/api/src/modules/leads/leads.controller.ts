@@ -3,6 +3,7 @@ import { AuthGuard } from '@nestjs/passport';
 import type { Response } from 'express';
 import { z } from 'zod';
 import { LeadsService } from './leads.service.js';
+import { PrismaService } from '../prisma/prisma.service.js';
 import { TenantGuard } from '../../common/guards/tenant.guard.js';
 import { ZodBody } from '../../common/pipes/zod.pipe.js';
 import { CurrentUser, AuthUser } from '../../common/decorators/current-user.decorator.js';
@@ -58,14 +59,25 @@ function parseFilters(q: Record<string, string | undefined>) {
 @Controller('leads')
 @UseGuards(AuthGuard('jwt'))
 export class LeadsController {
-  constructor(private readonly svc: LeadsService) {}
+  constructor(
+    private readonly svc: LeadsService,
+    private readonly prisma: PrismaService,
+  ) {}
 
-  /** Lista leads de TODAS as sub-accounts que o atendente atende. */
+  /** Lista leads de TODAS as sub-accounts que o atendente atende (ou de um atendente supervisionado). */
   @Get('mine')
-  mine(@CurrentUser() user: AuthUser, @Query() q: Record<string, string>) {
-    const subAccountIds = user.memberships
-      .map((m) => m.subAccountId)
-      .filter((v): v is string => !!v);
+  async mine(@CurrentUser() user: AuthUser, @Query() q: Record<string, string>) {
+    const isAdmin = user.memberships.some((m) => m.role === 'super_admin' || m.role === 'agency_admin');
+    let subAccountIds: string[];
+    if (q.agentId && isAdmin) {
+      const subs = await this.prisma.membership.findMany({
+        where: { userId: q.agentId, role: 'agent' },
+        select: { subAccountId: true },
+      });
+      subAccountIds = subs.map((s) => s.subAccountId).filter((v): v is string => !!v);
+    } else {
+      subAccountIds = user.memberships.map((m) => m.subAccountId).filter((v): v is string => !!v);
+    }
     if (subAccountIds.length === 0) return [];
     return this.svc.listMany(subAccountIds, parseFilters(q));
   }

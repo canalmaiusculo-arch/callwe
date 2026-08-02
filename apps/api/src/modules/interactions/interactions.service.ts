@@ -83,8 +83,10 @@ export class InteractionsService {
 
   async agentStats(subAccountIds: string[], agentUserId?: string) {
     const empty = {
-      callsToday: 0, callsWeek: 0, missedToday: 0, inboundWeek: 0, outboundWeek: 0,
-      totalTalkTimeToday: 0, avgTalkTime: 0, smsToday: 0, leadsToday: 0, leadsWeek: 0,
+      callsToday: 0, callsWeek: 0, missedToday: 0, missedWeek: 0, answerRate: 0,
+      inboundWeek: 0, outboundWeek: 0,
+      totalTalkTimeToday: 0, talkTimeWeek: 0, avgTalkTime: 0,
+      smsToday: 0, leadsToday: 0, leadsWeek: 0, wonWeek: 0, qualifiedWeek: 0, conversionWeek: 0,
       recent: [] as Array<{
         id: string; type: string; direction: string; status: string; startedAt: string;
         number: string | null; client: string | null; leadName: string | null;
@@ -101,9 +103,11 @@ export class InteractionsService {
     // Escopo pelas subcontas atendidas; `agentUserId` (opcional) restringe ao próprio atendente.
     const scope = { subAccountId: { in: subAccountIds }, ...(agentUserId ? { agentUserId } : {}) };
 
+    const leadScope = { subAccountId: { in: subAccountIds }, deletedAt: null };
+
     const [
-      callsToday, todayDuration, callsWeek, missedToday, dirWeek,
-      smsToday, leadsToday, leadsWeek, recent,
+      callsToday, todayDuration, callsWeek, missedToday, missedWeek, weekDuration, dirWeek,
+      smsToday, leadsToday, leadsWeek, wonWeek, qualifiedWeek, recent,
     ] = await Promise.all([
       this.prisma.interaction.count({ where: { ...scope, type: 'call', startedAt: { gte: startOfDay } } }),
       this.prisma.interaction.aggregate({
@@ -113,14 +117,21 @@ export class InteractionsService {
       }),
       this.prisma.interaction.count({ where: { ...scope, type: 'call', startedAt: { gte: startOfWeek } } }),
       this.prisma.interaction.count({ where: { ...scope, type: 'call', status: 'missed', startedAt: { gte: startOfDay } } }),
+      this.prisma.interaction.count({ where: { ...scope, type: 'call', status: 'missed', startedAt: { gte: startOfWeek } } }),
+      this.prisma.interaction.aggregate({
+        where: { ...scope, type: 'call', startedAt: { gte: startOfWeek } },
+        _sum: { durationSeconds: true },
+      }),
       this.prisma.interaction.groupBy({
         by: ['direction'],
         where: { ...scope, type: 'call', startedAt: { gte: startOfWeek } },
         _count: true,
       }),
       this.prisma.interaction.count({ where: { ...scope, type: 'sms', startedAt: { gte: startOfDay } } }),
-      this.prisma.lead.count({ where: { subAccountId: { in: subAccountIds }, deletedAt: null, createdAt: { gte: startOfDay } } }),
-      this.prisma.lead.count({ where: { subAccountId: { in: subAccountIds }, deletedAt: null, createdAt: { gte: startOfWeek } } }),
+      this.prisma.lead.count({ where: { ...leadScope, createdAt: { gte: startOfDay } } }),
+      this.prisma.lead.count({ where: { ...leadScope, createdAt: { gte: startOfWeek } } }),
+      this.prisma.lead.count({ where: { ...leadScope, status: 'won', updatedAt: { gte: startOfWeek } } }),
+      this.prisma.lead.count({ where: { ...leadScope, status: 'qualified', updatedAt: { gte: startOfWeek } } }),
       this.prisma.interaction.findMany({
         where: { ...scope, type: { in: ['call', 'sms'] } },
         orderBy: { startedAt: 'desc' },
@@ -136,18 +147,26 @@ export class InteractionsService {
 
     const inboundWeek = dirWeek.find((d) => d.direction === 'inbound')?._count ?? 0;
     const outboundWeek = dirWeek.find((d) => d.direction === 'outbound')?._count ?? 0;
+    const answerRate = callsWeek > 0 ? Math.round(((callsWeek - missedWeek) / callsWeek) * 100) : 0;
+    const conversionWeek = leadsWeek > 0 ? Math.round((wonWeek / leadsWeek) * 100) : 0;
 
     return {
       callsToday,
       callsWeek,
       missedToday,
+      missedWeek,
+      answerRate,
       inboundWeek,
       outboundWeek,
       totalTalkTimeToday: todayDuration._sum.durationSeconds ?? 0,
+      talkTimeWeek: weekDuration._sum.durationSeconds ?? 0,
       avgTalkTime: Math.round(todayDuration._avg.durationSeconds ?? 0),
       smsToday,
       leadsToday,
       leadsWeek,
+      wonWeek,
+      qualifiedWeek,
+      conversionWeek,
       recent: recent.map((r) => ({
         id: r.id,
         type: r.type,

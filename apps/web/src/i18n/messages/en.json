@@ -968,7 +968,16 @@
     "inbound": "in",
     "outbound": "out",
     "recentActivity": "Recent activity",
-    "noRecent": "No recent activity"
+    "noRecent": "No recent activity",
+    "viewingAgent": "Viewing:",
+    "allAgents": "All agents",
+    "answerRate": "Answer rate",
+    "missedShort": "missed",
+    "talkTime7d": "Talk time (7d)",
+    "avgLabel": "avg",
+    "conversion7d": "Conversion (7d)",
+    "wonShort": "won",
+    "leadsShort": "leads"
   },
   "leadDrawer": {
     "formAnswers": "Form answers"

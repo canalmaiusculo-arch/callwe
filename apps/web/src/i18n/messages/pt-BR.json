@@ -968,7 +968,16 @@
     "inbound": "receb.",
     "outbound": "feitas",
     "recentActivity": "Atividade recente",
-    "noRecent": "Sem atividade recente"
+    "noRecent": "Sem atividade recente",
+    "viewingAgent": "Vendo:",
+    "allAgents": "Todos os atendentes",
+    "answerRate": "Taxa de atendimento",
+    "missedShort": "perdidas",
+    "talkTime7d": "Tempo em ligação (7d)",
+    "avgLabel": "média",
+    "conversion7d": "Conversão (7d)",
+    "wonShort": "ganhos",
+    "leadsShort": "leads"
   },
   "leadDrawer": {
     "formAnswers": "Respostas do formulário"
