@@ -19,6 +19,7 @@ import {
   UserPlus,
   Users,
   MessagesSquare,
+  FileText,
 } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -71,20 +72,36 @@ interface Interaction {
   subAccount: { id: string; name: string } | null;
 }
 
+interface AgentRecent {
+  id: string;
+  type: string;
+  direction: string;
+  status: string;
+  startedAt: string;
+  number: string | null;
+  client: string | null;
+  leadName: string | null;
+}
 interface AgentStats {
   callsToday: number;
   callsWeek: number;
+  missedToday: number;
+  inboundWeek: number;
+  outboundWeek: number;
   totalTalkTimeToday: number;
   avgTalkTime: number;
   smsToday: number;
+  leadsToday: number;
+  leadsWeek: number;
+  recent: AgentRecent[];
 }
 
-type Tab = 'dashboard' | 'calls' | 'sms' | 'leads' | 'messenger' | 'briefings';
+type Tab = 'dashboard' | 'calls' | 'sms' | 'leads' | 'forms' | 'messenger' | 'briefings';
 
 export default function AgentPage() {
   const { t } = useTranslate();
   const [tab, setTab] = useState<Tab>('calls');
-  const [onlyMine, setOnlyMine] = useState(true);
+  const [onlyMine, setOnlyMine] = useState(false);
   const [drawerId, setDrawerId] = useState<string | null>(null);
   const [leadDrawer, setLeadDrawer] = useState<LeadDrawerTarget | null>(null);
   const [smsBadge, setSmsBadge] = useState(0);
@@ -159,6 +176,7 @@ export default function AgentPage() {
           <TabButton active={tab === 'calls'} onClick={() => setTab('calls')} icon={Phone} label={t('agentPanel.tabCalls')} />
           <TabButton active={tab === 'sms'} onClick={() => setTab('sms')} icon={MessageSquare} label={t('agentPanel.tabSms')} badge={smsBadge} />
           <TabButton active={tab === 'leads'} onClick={() => setTab('leads')} icon={UserPlus} label={t('agentPanel.tabLeads')} badge={pendingLeads.length} pulse />
+          <TabButton active={tab === 'forms'} onClick={() => setTab('forms')} icon={FileText} label={t('agentPanel.tabForms')} />
           <TabButton active={tab === 'messenger'} onClick={() => setTab('messenger')} icon={MessagesSquare} label={t('agentPanel.tabMessenger')} />
           <TabButton active={tab === 'briefings'} onClick={() => setTab('briefings')} icon={BookOpen} label={t('agentPanel.tabBriefings')} />
         </nav>
@@ -212,7 +230,7 @@ export default function AgentPage() {
         {pendingLeads.length > 0 && (
           <NewLeadsHighlight leads={pendingLeads} onOpen={openLead} />
         )}
-        {(tab === 'calls' || tab === 'sms' || tab === 'leads') && (
+        {(tab === 'calls' || tab === 'sms' || tab === 'leads' || tab === 'forms') && (
           <SearchBar
             value={search}
             onChange={setSearch}
@@ -251,6 +269,14 @@ export default function AgentPage() {
             search={search}
             clients={clients}
             onOpenLead={openLead}
+          />
+        ) : tab === 'forms' ? (
+          <LeadsView
+            filterSubAccountId={filterSubAccountId}
+            search={search}
+            clients={clients}
+            onOpenLead={openLead}
+            lockedSource="form"
           />
         ) : tab === 'messenger' ? (
           <MessengerInbox filterSubAccountId={filterSubAccountId} />
@@ -315,6 +341,11 @@ function TabButton({
   );
 }
 
+const EMPTY_AGENT_STATS: AgentStats = {
+  callsToday: 0, callsWeek: 0, missedToday: 0, inboundWeek: 0, outboundWeek: 0,
+  totalTalkTimeToday: 0, avgTalkTime: 0, smsToday: 0, leadsToday: 0, leadsWeek: 0, recent: [],
+};
+
 function DashboardView() {
   const { t } = useTranslate();
   const { data: stats } = useQuery<AgentStats>({
@@ -323,7 +354,7 @@ function DashboardView() {
     refetchInterval: 30_000,
   });
 
-  const s = stats ?? { callsToday: 0, callsWeek: 0, totalTalkTimeToday: 0, avgTalkTime: 0, smsToday: 0 };
+  const s = stats ?? EMPTY_AGENT_STATS;
 
   return (
     <div className="space-y-4">
@@ -332,13 +363,55 @@ function DashboardView() {
         <p className="text-sm text-muted-foreground">{t('agentPanel.updatesEvery30s')}</p>
       </div>
 
-      <div className="grid grid-cols-3 gap-3">
-        <StatCard title={t('agentPanel.callsToday')} value={s.callsToday} icon={Phone} />
-        <StatCard title={t('agentPanel.calls7d')} value={s.callsWeek} icon={LayoutDashboard} />
-        <StatCard title={t('agentPanel.smsToday')} value={s.smsToday} icon={MessageSquare} />
-        <StatCard title={t('agentPanel.talkTimeToday')} value={formatDuration(s.totalTalkTimeToday)} icon={Clock} />
-        <StatCard title={t('agentPanel.avgTalkTime')} value={formatDuration(s.avgTalkTime)} icon={Clock} />
+      {/* Hoje */}
+      <div>
+        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t('agentPanel.sectionToday')}</p>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <StatCard title={t('agentPanel.callsToday')} value={s.callsToday} icon={Phone} />
+          <StatCard title={t('agentPanel.missedToday')} value={s.missedToday} icon={PhoneMissed} tone={s.missedToday > 0 ? 'warning' : undefined} />
+          <StatCard title={t('agentPanel.smsToday')} value={s.smsToday} icon={MessageSquare} />
+          <StatCard title={t('agentPanel.leadsToday')} value={s.leadsToday} icon={UserPlus} />
+        </div>
       </div>
+
+      {/* Últimos 7 dias */}
+      <div>
+        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t('agentPanel.sectionWeek')}</p>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <StatCard title={t('agentPanel.calls7d')} value={s.callsWeek} icon={Phone} sub={`${s.inboundWeek} ${t('agentPanel.inbound')} · ${s.outboundWeek} ${t('agentPanel.outbound')}`} />
+          <StatCard title={t('agentPanel.leads7d')} value={s.leadsWeek} icon={UserPlus} />
+          <StatCard title={t('agentPanel.talkTimeToday')} value={formatDuration(s.totalTalkTimeToday)} icon={Clock} />
+          <StatCard title={t('agentPanel.avgTalkTime')} value={formatDuration(s.avgTalkTime)} icon={Clock} />
+        </div>
+      </div>
+
+      {/* Atividade recente */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">{t('agentPanel.recentActivity')}</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-1.5">
+          {s.recent.length === 0 && (
+            <p className="py-6 text-center text-sm text-muted-foreground">{t('agentPanel.noRecent')}</p>
+          )}
+          {s.recent.map((r) => {
+            const Icon = r.type === 'sms' ? MessageSquare : r.status === 'missed' ? PhoneMissed : r.direction === 'inbound' ? PhoneIncoming : PhoneOutgoing;
+            const color = r.status === 'missed' ? 'text-red-600' : r.type === 'sms' ? 'text-emerald-600' : r.direction === 'inbound' ? 'text-blue-600' : 'text-slate-500';
+            return (
+              <div key={r.id} className="flex items-center gap-3 rounded-md border p-2.5">
+                <Icon className={`h-4 w-4 shrink-0 ${color}`} />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium">{r.leadName ?? r.number ?? '—'}</p>
+                  <p className="truncate text-xs text-muted-foreground">{r.client ?? '—'}</p>
+                </div>
+                <span className="shrink-0 text-xs text-muted-foreground">
+                  {new Date(r.startedAt).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                </span>
+              </div>
+            );
+          })}
+        </CardContent>
+      </Card>
     </div>
   );
 }
@@ -347,19 +420,25 @@ function StatCard({
   title,
   value,
   icon: Icon,
+  sub,
+  tone,
 }: {
   title: string;
   value: string | number;
   icon: React.ComponentType<{ className?: string }>;
+  sub?: string;
+  tone?: 'warning';
 }) {
+  const iconTint = tone === 'warning' ? 'bg-amber-100 text-amber-600' : 'bg-primary/10 text-primary';
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
-        <Icon className="h-4 w-4 text-muted-foreground" />
-      </CardHeader>
-      <CardContent>
-        <p className="text-2xl font-bold">{value}</p>
+      <CardContent className="p-4">
+        <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${iconTint}`}>
+          <Icon className="h-[1.05rem] w-[1.05rem]" />
+        </div>
+        <p className={`tabular mt-2.5 text-2xl font-bold leading-none tracking-tight ${tone === 'warning' ? 'text-amber-600' : ''}`}>{value}</p>
+        <p className="mt-1.5 text-sm font-medium text-muted-foreground">{title}</p>
+        {sub && <p className="mt-0.5 text-xs text-muted-foreground/70">{sub}</p>}
       </CardContent>
     </Card>
   );
@@ -921,15 +1000,18 @@ function LeadsView({
   search,
   clients,
   onOpenLead,
+  lockedSource,
 }: {
   filterSubAccountId: string | null;
   search: string;
   clients: AssignedClient[];
   onOpenLead: (lead: LeadDrawerTarget) => void;
+  lockedSource?: SourceFilter;
 }) {
   const { t } = useTranslate();
   const [dateRange, setDateRange] = useState<DateRange>('30d');
-  const [sourceFilter, setSourceFilter] = useState<SourceFilter>('all');
+  const [sourceFilterState, setSourceFilter] = useState<SourceFilter>('all');
+  const sourceFilter = lockedSource ?? sourceFilterState;
   const [clientFilter, setClientFilter] = useState<string>('');
 
   // Sidebar global (filterSubAccountId) tem prioridade; senão usa o filtro local da tab.
@@ -967,7 +1049,7 @@ function LeadsView({
       <CardHeader className="space-y-3">
         <div className="flex flex-row items-center justify-between">
           <CardTitle>
-            {t('agentPanel.leads')}
+            {lockedSource ? t('agentPanel.tabForms') : t('agentPanel.leads')}
             {hasActiveFilter && (
               <span className="ml-2 text-xs text-muted-foreground">{filtered.length}</span>
             )}
@@ -982,11 +1064,13 @@ function LeadsView({
             onChange={(v) => setDateRange(v as DateRange)}
             options={Object.entries(DATE_LABEL_KEYS).map(([v, k]) => ({ value: v, label: t(k) }))}
           />
-          <FilterSelect
-            value={sourceFilter}
-            onChange={(v) => setSourceFilter(v as SourceFilter)}
-            options={Object.entries(SOURCE_FILTER_LABEL_KEYS).map(([v, k]) => ({ value: v, label: t(k) }))}
-          />
+          {!lockedSource && (
+            <FilterSelect
+              value={sourceFilter}
+              onChange={(v) => setSourceFilter(v as SourceFilter)}
+              options={Object.entries(SOURCE_FILTER_LABEL_KEYS).map(([v, k]) => ({ value: v, label: t(k) }))}
+            />
+          )}
           <FilterSelect
             value={clientFilter}
             onChange={setClientFilter}

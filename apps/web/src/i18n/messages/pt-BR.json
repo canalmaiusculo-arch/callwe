@@ -958,7 +958,17 @@
     "newLeadsView": "Ver",
     "newLeadsMore": "mais",
     "newLeadsLess": "Ver menos",
-    "tabMessenger": "Messenger"
+    "tabMessenger": "Messenger",
+    "tabForms": "Formulários",
+    "sectionToday": "Hoje",
+    "sectionWeek": "Últimos 7 dias",
+    "missedToday": "Perdidas hoje",
+    "leadsToday": "Leads hoje",
+    "leads7d": "Leads (7d)",
+    "inbound": "receb.",
+    "outbound": "feitas",
+    "recentActivity": "Atividade recente",
+    "noRecent": "Sem atividade recente"
   },
   "leadDrawer": {
     "formAnswers": "Respostas do formulário"

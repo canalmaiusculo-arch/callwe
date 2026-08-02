@@ -81,36 +81,83 @@ export class InteractionsService {
     });
   }
 
-  async agentStats(agentUserId: string) {
+  async agentStats(subAccountIds: string[], agentUserId?: string) {
+    const empty = {
+      callsToday: 0, callsWeek: 0, missedToday: 0, inboundWeek: 0, outboundWeek: 0,
+      totalTalkTimeToday: 0, avgTalkTime: 0, smsToday: 0, leadsToday: 0, leadsWeek: 0,
+      recent: [] as Array<{
+        id: string; type: string; direction: string; status: string; startedAt: string;
+        number: string | null; client: string | null; leadName: string | null;
+      }>,
+    };
+    if (subAccountIds.length === 0) return empty;
+
     const now = new Date();
     const startOfDay = new Date(now);
     startOfDay.setHours(0, 0, 0, 0);
     const startOfWeek = new Date(now);
     startOfWeek.setDate(now.getDate() - 7);
 
-    const [todayCalls, todayDuration, weekCalls, smsToday] = await Promise.all([
-      this.prisma.interaction.count({
-        where: { agentUserId, type: 'call', startedAt: { gte: startOfDay } },
-      }),
+    // Escopo pelas subcontas atendidas; `agentUserId` (opcional) restringe ao próprio atendente.
+    const scope = { subAccountId: { in: subAccountIds }, ...(agentUserId ? { agentUserId } : {}) };
+
+    const [
+      callsToday, todayDuration, callsWeek, missedToday, dirWeek,
+      smsToday, leadsToday, leadsWeek, recent,
+    ] = await Promise.all([
+      this.prisma.interaction.count({ where: { ...scope, type: 'call', startedAt: { gte: startOfDay } } }),
       this.prisma.interaction.aggregate({
-        where: { agentUserId, type: 'call', startedAt: { gte: startOfDay } },
+        where: { ...scope, type: 'call', startedAt: { gte: startOfDay } },
         _sum: { durationSeconds: true },
         _avg: { durationSeconds: true },
       }),
-      this.prisma.interaction.count({
-        where: { agentUserId, type: 'call', startedAt: { gte: startOfWeek } },
+      this.prisma.interaction.count({ where: { ...scope, type: 'call', startedAt: { gte: startOfWeek } } }),
+      this.prisma.interaction.count({ where: { ...scope, type: 'call', status: 'missed', startedAt: { gte: startOfDay } } }),
+      this.prisma.interaction.groupBy({
+        by: ['direction'],
+        where: { ...scope, type: 'call', startedAt: { gte: startOfWeek } },
+        _count: true,
       }),
-      this.prisma.interaction.count({
-        where: { agentUserId, type: 'sms', startedAt: { gte: startOfDay } },
+      this.prisma.interaction.count({ where: { ...scope, type: 'sms', startedAt: { gte: startOfDay } } }),
+      this.prisma.lead.count({ where: { subAccountId: { in: subAccountIds }, deletedAt: null, createdAt: { gte: startOfDay } } }),
+      this.prisma.lead.count({ where: { subAccountId: { in: subAccountIds }, deletedAt: null, createdAt: { gte: startOfWeek } } }),
+      this.prisma.interaction.findMany({
+        where: { ...scope, type: { in: ['call', 'sms'] } },
+        orderBy: { startedAt: 'desc' },
+        take: 8,
+        select: {
+          id: true, type: true, direction: true, status: true, startedAt: true,
+          fromNumber: true, toNumber: true,
+          subAccount: { select: { name: true } },
+          lead: { select: { name: true } },
+        },
       }),
     ]);
 
+    const inboundWeek = dirWeek.find((d) => d.direction === 'inbound')?._count ?? 0;
+    const outboundWeek = dirWeek.find((d) => d.direction === 'outbound')?._count ?? 0;
+
     return {
-      callsToday: todayCalls,
-      callsWeek: weekCalls,
+      callsToday,
+      callsWeek,
+      missedToday,
+      inboundWeek,
+      outboundWeek,
       totalTalkTimeToday: todayDuration._sum.durationSeconds ?? 0,
       avgTalkTime: Math.round(todayDuration._avg.durationSeconds ?? 0),
       smsToday,
+      leadsToday,
+      leadsWeek,
+      recent: recent.map((r) => ({
+        id: r.id,
+        type: r.type,
+        direction: r.direction,
+        status: r.status,
+        startedAt: r.startedAt.toISOString(),
+        number: (r.direction === 'inbound' ? r.fromNumber : r.toNumber) ?? null,
+        client: r.subAccount?.name ?? null,
+        leadName: r.lead?.name ?? null,
+      })),
     };
   }
 

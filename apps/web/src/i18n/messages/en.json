@@ -958,7 +958,17 @@
     "newLeadsView": "View",
     "newLeadsMore": "more",
     "newLeadsLess": "Show less",
-    "tabMessenger": "Messenger"
+    "tabMessenger": "Messenger",
+    "tabForms": "Forms",
+    "sectionToday": "Today",
+    "sectionWeek": "Last 7 days",
+    "missedToday": "Missed today",
+    "leadsToday": "Leads today",
+    "leads7d": "Leads (7d)",
+    "inbound": "in",
+    "outbound": "out",
+    "recentActivity": "Recent activity",
+    "noRecent": "No recent activity"
   },
   "leadDrawer": {
     "formAnswers": "Form answers"

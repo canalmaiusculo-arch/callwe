@@ -39,10 +39,13 @@ export class InteractionsController {
     });
   }
 
-  /** KPIs do atendente logado. */
+  /** KPIs do atendente logado — escopados nas subcontas que ele atende. */
   @Get('mine/stats')
-  agentStats(@CurrentUser() user: AuthUser) {
-    return this.svc.agentStats(user.id);
+  agentStats(@CurrentUser() user: AuthUser, @Query('onlyMine') onlyMine?: string) {
+    const subAccountIds = user.memberships
+      .map((m) => m.subAccountId)
+      .filter((v): v is string => !!v);
+    return this.svc.agentStats(subAccountIds, onlyMine === 'true' ? user.id : undefined);
   }
 
   /** Envia SMS via CloudTalk em nome do atendente logado. */
