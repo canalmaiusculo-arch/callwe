@@ -24,8 +24,8 @@ export function startAgentAttributionWorker() {
       const dateFrom = job.data.dateFrom
         ? new Date(job.data.dateFrom)
         : new Date(now.getTime() - (job.data.days ?? 2) * 24 * 3600 * 1000);
-      const { scanned, updated } = await syncAgentAttribution({ dateFrom, dateTo });
-      logger.info({ scanned, updated }, 'Atribuição de atendente processada');
+      const r = await syncAgentAttribution({ dateFrom, dateTo });
+      logger.info(r, 'Atribuição de atendente processada');
     },
     { connection, concurrency: 1 },
   );
