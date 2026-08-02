@@ -66,11 +66,13 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
                 key={item.href}
                 href={item.href as never}
                 className={cn(
-                  'flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors',
-                  isActive(item.href) ? 'bg-primary text-primary-foreground' : 'hover:bg-muted',
+                  'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+                  isActive(item.href)
+                    ? 'bg-primary text-primary-foreground shadow-sm shadow-primary/25'
+                    : 'text-muted-foreground hover:bg-muted hover:text-foreground',
                 )}
               >
-                <Icon className="h-4 w-4" />
+                <Icon className="h-[1.05rem] w-[1.05rem]" />
                 {t(item.key)}
               </Link>
             );

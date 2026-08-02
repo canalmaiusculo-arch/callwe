@@ -972,5 +972,11 @@
     "replyPlaceholder": "Type a reply... (Enter to send)",
     "windowClosed": "24h window closed — the customer must send a new message before you can reply.",
     "windowClosedHint": "Outside the 24h window. Wait for the customer to send a new message to reply."
+  },
+  "nav": {
+    "general": "General",
+    "support": "Support",
+    "leads": "Leads",
+    "operations": "Operations"
   }
 }

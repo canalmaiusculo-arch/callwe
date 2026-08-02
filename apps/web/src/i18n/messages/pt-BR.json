@@ -972,5 +972,11 @@
     "replyPlaceholder": "Escreva uma resposta... (Enter envia)",
     "windowClosed": "Janela de 24h fechada — o cliente precisa enviar uma nova mensagem antes de você responder.",
     "windowClosedHint": "Fora da janela de 24h. Aguarde o cliente enviar uma nova mensagem para poder responder."
+  },
+  "nav": {
+    "general": "Geral",
+    "support": "Atendimento",
+    "leads": "Leads",
+    "operations": "Operação"
   }
 }

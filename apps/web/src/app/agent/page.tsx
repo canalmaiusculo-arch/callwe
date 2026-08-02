@@ -298,7 +298,7 @@ function TabButton({
   return (
     <button
       onClick={onClick}
-      className={`flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm ${active ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'}`}
+      className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${active ? 'bg-primary text-primary-foreground shadow-sm shadow-primary/25' : 'text-muted-foreground hover:bg-muted hover:text-foreground'}`}
     >
       <Icon className="h-4 w-4" />
       <span className="flex-1 text-left">{label}</span>

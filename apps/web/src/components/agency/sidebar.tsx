@@ -42,7 +42,7 @@ export function AgencySidebar() {
         </button>
       </div>
 
-      <nav className="flex-1 space-y-1 p-2 overflow-auto">
+      <nav className="flex-1 space-y-1 overflow-auto p-3">
         {items.map((item) => {
           const active = pathname === item.href || pathname.startsWith(item.href + '/');
           const Icon = item.icon;
@@ -52,11 +52,13 @@ export function AgencySidebar() {
               href={item.href as never}
               onClick={() => setOpen(false)}
               className={cn(
-                'flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors',
-                active ? 'bg-primary text-primary-foreground' : 'hover:bg-muted',
+                'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+                active
+                  ? 'bg-primary text-primary-foreground shadow-sm shadow-primary/25'
+                  : 'text-muted-foreground hover:bg-muted hover:text-foreground',
               )}
             >
-              <Icon className="h-4 w-4" />
+              <Icon className={cn('h-[1.05rem] w-[1.05rem]', active ? 'text-primary-foreground' : 'text-muted-foreground')} />
               {t(item.key)}
             </Link>
           );

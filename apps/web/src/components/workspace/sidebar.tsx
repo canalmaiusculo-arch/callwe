@@ -23,14 +23,30 @@ import { useTenantStore } from '@/stores/tenant-store';
 import { LanguageSwitcher } from '@/components/language-switcher';
 import { useTranslate } from '@/i18n/provider';
 
-const navDefs = [
-  { href: '/workspace' as const, icon: LayoutDashboard, key: 'workspace.dashboard' },
-  { href: '/workspace/leads' as const, icon: Users, key: 'workspace.leads' },
-  { href: '/workspace/calls' as const, icon: Phone, key: 'workspace.calls' },
-  { href: '/workspace/sms' as const, icon: MessageSquare, key: 'workspace.sms' },
-  { href: '/workspace/voicemails' as const, icon: Voicemail, key: 'workspace.voicemails' },
-  { href: '/workspace/briefing' as const, icon: FileText, key: 'workspace.briefing' },
-  { href: '/workspace/integrations' as const, icon: Link2, key: 'workspace.integrations' },
+const navGroups = [
+  {
+    label: 'nav.general',
+    items: [{ href: '/workspace' as const, icon: LayoutDashboard, key: 'workspace.dashboard' }],
+  },
+  {
+    label: 'nav.support',
+    items: [
+      { href: '/workspace/calls' as const, icon: Phone, key: 'workspace.calls' },
+      { href: '/workspace/sms' as const, icon: MessageSquare, key: 'workspace.sms' },
+      { href: '/workspace/voicemails' as const, icon: Voicemail, key: 'workspace.voicemails' },
+    ],
+  },
+  {
+    label: 'nav.leads',
+    items: [{ href: '/workspace/leads' as const, icon: Users, key: 'workspace.leads' }],
+  },
+  {
+    label: 'nav.operations',
+    items: [
+      { href: '/workspace/briefing' as const, icon: FileText, key: 'workspace.briefing' },
+      { href: '/workspace/integrations' as const, icon: Link2, key: 'workspace.integrations' },
+    ],
+  },
 ];
 
 export function WorkspaceSidebar() {
@@ -56,25 +72,34 @@ export function WorkspaceSidebar() {
         </button>
       </div>
 
-      <nav className="flex-1 space-y-1 p-2 overflow-auto">
-        {navDefs.map((item) => {
-          const active = pathname === item.href || pathname.startsWith(item.href + '/');
-          const Icon = item.icon;
-          return (
-            <Link
-              key={item.href}
-              href={item.href as never}
-              onClick={() => setOpen(false)}
-              className={cn(
-                'flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors',
-                active ? 'bg-primary text-primary-foreground' : 'hover:bg-muted',
-              )}
-            >
-              <Icon className="h-4 w-4" />
-              {t(item.key)}
-            </Link>
-          );
-        })}
+      <nav className="flex-1 space-y-4 overflow-auto p-3">
+        {navGroups.map((group) => (
+          <div key={group.label} className="space-y-1">
+            <p className="px-3 pb-1 text-[0.65rem] font-semibold uppercase tracking-wider text-muted-foreground/80">
+              {t(group.label)}
+            </p>
+            {group.items.map((item) => {
+              const active = pathname === item.href || pathname.startsWith(item.href + '/');
+              const Icon = item.icon;
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href as never}
+                  onClick={() => setOpen(false)}
+                  className={cn(
+                    'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+                    active
+                      ? 'bg-primary text-primary-foreground shadow-sm shadow-primary/25'
+                      : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+                  )}
+                >
+                  <Icon className={cn('h-[1.05rem] w-[1.05rem]', active ? 'text-primary-foreground' : 'text-muted-foreground')} />
+                  {t(item.key)}
+                </Link>
+              );
+            })}
+          </div>
+        ))}
       </nav>
 
       <Link
