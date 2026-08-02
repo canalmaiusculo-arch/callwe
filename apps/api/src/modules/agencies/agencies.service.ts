@@ -8,13 +8,27 @@ import { env } from '../../config/env.js';
 export class AgenciesService {
   constructor(private readonly prisma: PrismaService) {}
 
-  list() {
-    return this.prisma.agency.findMany({
+  async list() {
+    const agencies = await this.prisma.agency.findMany({
       include: {
         _count: { select: { subAccounts: true } },
       },
       orderBy: { createdAt: 'desc' },
     });
+    return Promise.all(
+      agencies.map(async (a) => {
+        const [activeClients, totalLeads, agentRows] = await Promise.all([
+          this.prisma.subAccount.count({ where: { agencyId: a.id, status: { not: 'archived' } } }),
+          this.prisma.lead.count({ where: { subAccount: { agencyId: a.id }, deletedAt: null } }),
+          this.prisma.membership.findMany({
+            where: { role: 'agent', subAccount: { agencyId: a.id } },
+            select: { userId: true },
+          }),
+        ]);
+        const agents = new Set(agentRows.map((r) => r.userId)).size;
+        return { ...a, activeClients, totalLeads, agents };
+      }),
+    );
   }
 
   async create(input: { name: string; slug: string; billingEmail: string }) {

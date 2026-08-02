@@ -215,12 +215,22 @@ export class TeamService {
       id: u.id,
       email: u.email,
       fullName: u.fullName,
+      avatarUrl: u.avatarUrl,
       status: u.status,
       lastLoginAt: u.lastLoginAt,
       assignedSubAccounts: u.memberships
         .filter((m) => m.subAccount)
         .map((m) => ({ id: m.subAccount!.id, name: m.subAccount!.name })),
     }));
+  }
+
+  /** Atualiza o perfil (nome) de um atendente. */
+  updateProfile(userId: string, fullName: string) {
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: { fullName },
+      select: { id: true, fullName: true },
+    });
   }
 
   async assignSubAccount(user: { id: string; memberships: Array<{ role: string; agencyId?: string }> }, userId: string, subAccountId: string) {

@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { UserPlus, Copy, UserX, Pencil, X as XIcon } from 'lucide-react';
+import { UserPlus, Copy, UserX, Pencil, X as XIcon, Users } from 'lucide-react';
 import { toast } from 'sonner';
 import { apiClient } from '@/lib/api-client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,6 +15,7 @@ interface Agent {
   id: string;
   email: string;
   fullName: string;
+  avatarUrl: string | null;
   status: 'active' | 'invited' | 'disabled';
   lastLoginAt: string | null;
   assignedSubAccounts: Array<{ id: string; name: string }>;
@@ -194,37 +195,128 @@ function AgentRow({
   onRemove: () => void;
 }) {
   const { t } = useTranslate();
-  const [editing, setEditing] = useState(false);
+  const qc = useQueryClient();
+  const [editingClients, setEditingClients] = useState(false);
+  const [editingName, setEditingName] = useState(false);
+  const [nameInput, setNameInput] = useState(agent.fullName);
+  const [showClients, setShowClients] = useState(false);
+
+  const initials = agent.fullName
+    .split(' ')
+    .map((p) => p[0])
+    .filter(Boolean)
+    .slice(0, 2)
+    .join('')
+    .toUpperCase();
+
+  const saveName = useMutation({
+    mutationFn: () => apiClient.patch(`/team/${agent.id}/profile`, { fullName: nameInput.trim() }),
+    onSuccess: () => {
+      toast.success(t('adminTeam.nameSaved'));
+      setEditingName(false);
+      qc.invalidateQueries({ queryKey: ['all-agents'] });
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+
+  const clientCount = agent.assignedSubAccounts.length;
 
   return (
     <>
       <Card>
-        <CardContent className="flex items-center justify-between p-4">
-          <div className="flex-1">
-            <p className="font-medium">{agent.fullName}</p>
-            <p className="text-xs text-muted-foreground">{agent.email}</p>
-            {agent.assignedSubAccounts.length > 0 && (
-              <p className="mt-1 text-xs text-muted-foreground">
-                {t('adminTeam.serves')} {agent.assignedSubAccounts.map((s) => s.name).join(', ')}
-              </p>
+        <CardContent className="p-4">
+          <div className="flex items-start gap-3">
+            {/* Avatar */}
+            {agent.avatarUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={agent.avatarUrl} alt={agent.fullName} className="h-12 w-12 shrink-0 rounded-full object-cover" />
+            ) : (
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-brand-gradient text-sm font-bold text-white">
+                {initials || '?'}
+              </div>
             )}
-          </div>
-          <div className="flex items-center gap-2">
-            <Badge
-              variant={agent.status === 'active' ? 'success' : agent.status === 'invited' ? 'warning' : 'secondary'}
-            >
-              {t(`adminTeam.status.${agent.status}`)}
-            </Badge>
-            <Button size="sm" variant="outline" onClick={() => setEditing(true)} title={t('adminTeam.editServedClients')}>
-              <Pencil className="h-4 w-4" />
-            </Button>
-            <Button size="sm" variant="ghost" onClick={onRemove} title={t('adminTeam.removeAgent')}>
-              <UserX className="h-4 w-4" />
-            </Button>
+
+            <div className="min-w-0 flex-1">
+              {editingName ? (
+                <div className="flex items-center gap-2">
+                  <Input
+                    autoFocus
+                    value={nameInput}
+                    onChange={(e) => setNameInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && nameInput.trim()) saveName.mutate();
+                      if (e.key === 'Escape') setEditingName(false);
+                    }}
+                    className="h-8 max-w-xs"
+                  />
+                  <Button size="sm" onClick={() => nameInput.trim() && saveName.mutate()} disabled={saveName.isPending}>
+                    {t('adminTeam.save')}
+                  </Button>
+                  <Button size="sm" variant="ghost" onClick={() => setEditingName(false)}>
+                    {t('adminTeam.cancel')}
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <p className="truncate font-semibold">{agent.fullName}</p>
+                  <button
+                    onClick={() => {
+                      setNameInput(agent.fullName);
+                      setEditingName(true);
+                    }}
+                    className="text-muted-foreground hover:text-foreground"
+                    title={t('adminTeam.editName')}
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              )}
+              <p className="truncate text-xs text-muted-foreground">{agent.email}</p>
+
+              <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                <button
+                  onClick={() => setShowClients((v) => !v)}
+                  className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 font-medium text-primary hover:bg-primary/15"
+                >
+                  <Users className="h-3 w-3" /> {clientCount} {t('adminTeam.clients')}
+                </button>
+                <span>
+                  {agent.lastLoginAt
+                    ? `${t('adminTeam.lastLogin')} ${new Date(agent.lastLoginAt).toLocaleDateString('pt-BR')}`
+                    : t('adminTeam.neverLoggedIn')}
+                </span>
+              </div>
+
+              {showClients && clientCount > 0 && (
+                <div className="mt-2 flex flex-wrap gap-1">
+                  {agent.assignedSubAccounts.map((s) => (
+                    <span key={s.id} className="rounded-md border bg-muted/40 px-1.5 py-0.5 text-[11px]">
+                      {s.name}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="flex shrink-0 flex-col items-end gap-2">
+              <Badge
+                variant={agent.status === 'active' ? 'success' : agent.status === 'invited' ? 'warning' : 'secondary'}
+              >
+                {t(`adminTeam.status.${agent.status}`)}
+              </Badge>
+              <div className="flex items-center gap-1">
+                <Button size="sm" variant="outline" onClick={() => setEditingClients(true)} title={t('adminTeam.editServedClients')}>
+                  <Users className="h-4 w-4" />
+                </Button>
+                <Button size="sm" variant="ghost" onClick={onRemove} title={t('adminTeam.removeAgent')}>
+                  <UserX className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
           </div>
         </CardContent>
       </Card>
-      {editing && <EditAgentSubAccounts agent={agent} subs={subs} onClose={() => setEditing(false)} />}
+      {editingClients && <EditAgentSubAccounts agent={agent} subs={subs} onClose={() => setEditingClients(false)} />}
     </>
   );
 }

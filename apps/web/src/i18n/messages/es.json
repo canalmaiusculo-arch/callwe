@@ -681,7 +681,15 @@
     "createButton": "Crear agencia",
     "cancel": "Cancelar",
     "empty": "No hay agencias registradas.",
-    "clientsSuffix": "clientes"
+    "clientsSuffix": "clientes",
+    "status": {
+      "active": "activa",
+      "suspended": "suspendida"
+    },
+    "statClients": "Clientes",
+    "statAgents": "Agentes",
+    "statLeads": "Leads",
+    "since": "Desde"
   },
   "adminTeam": {
     "title": "Agentes",
@@ -716,7 +724,16 @@
     "saving": "Guardando...",
     "save": "Guardar",
     "updated": "Actualizado",
-    "clients": "clientes"
+    "clients": "clientes",
+    "status": {
+      "active": "Activo",
+      "invited": "Invitado",
+      "disabled": "Desactivado"
+    },
+    "nameSaved": "Nombre actualizado",
+    "editName": "Editar nombre",
+    "lastLogin": "Último acceso:",
+    "neverLoggedIn": "Nunca accedió"
   },
   "adminAgencyDetail": {
     "loading": "Cargando...",

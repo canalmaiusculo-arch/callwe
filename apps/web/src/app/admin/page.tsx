@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Plus, ChevronRight, Copy } from 'lucide-react';
+import { Plus, ChevronRight, Copy, Building2, Users, UserPlus } from 'lucide-react';
 import { toast } from 'sonner';
 import { apiClient } from '@/lib/api-client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -18,7 +18,11 @@ interface Agency {
   slug: string;
   billingEmail: string;
   status: 'active' | 'suspended';
+  createdAt: string;
   _count: { subAccounts: number };
+  activeClients: number;
+  totalLeads: number;
+  agents: number;
 }
 
 export default function AdminAgenciesPage() {
@@ -170,25 +174,62 @@ export default function AdminAgenciesPage() {
         )}
         {agencies.map((a) => (
           <Link key={a.id} href={`/admin/agencies/${a.id}` as never}>
-            <Card className="transition-colors hover:bg-muted/30">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 py-4">
-                <div>
-                  <CardTitle className="text-base">{a.name}</CardTitle>
-                  <p className="mt-0.5 text-xs text-muted-foreground">
-                    {a.slug} · {a.billingEmail}
-                  </p>
+            <Card className="transition-shadow hover:shadow-md">
+              <CardContent className="p-5">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-gradient text-sm font-bold text-white">
+                      {a.name.slice(0, 2).toUpperCase()}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="truncate text-base font-semibold">{a.name}</p>
+                      <p className="truncate text-xs text-muted-foreground">
+                        {a.slug} · {a.billingEmail}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-2">
+                    <Badge variant={a.status === 'active' ? 'success' : 'secondary'}>
+                      {t(`adminAgencies.status.${a.status}`)}
+                    </Badge>
+                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                  </div>
                 </div>
-                <div className="flex items-center gap-3">
-                  <span className="text-xs text-muted-foreground">
-                    {a._count.subAccounts} {t('adminAgencies.clientsSuffix')}
-                  </span>
-                  <Badge variant={a.status === 'active' ? 'success' : 'secondary'}>{a.status}</Badge>
-                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
+
+                <div className="mt-4 grid grid-cols-3 gap-2 border-t pt-3">
+                  <AgencyStat icon={Building2} value={a.activeClients} label={t('adminAgencies.statClients')} />
+                  <AgencyStat icon={Users} value={a.agents} label={t('adminAgencies.statAgents')} />
+                  <AgencyStat icon={UserPlus} value={a.totalLeads} label={t('adminAgencies.statLeads')} />
                 </div>
-              </CardHeader>
+                <p className="mt-3 text-[11px] text-muted-foreground">
+                  {t('adminAgencies.since')} {new Date(a.createdAt).toLocaleDateString('pt-BR')}
+                </p>
+              </CardContent>
             </Card>
           </Link>
         ))}
+      </div>
+    </div>
+  );
+}
+
+function AgencyStat({
+  icon: Icon,
+  value,
+  label,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  value: number;
+  label: string;
+}) {
+  return (
+    <div className="flex items-center gap-2">
+      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
+        <Icon className="h-4 w-4" />
+      </div>
+      <div className="min-w-0">
+        <p className="tabular text-lg font-bold leading-none">{value}</p>
+        <p className="truncate text-[11px] text-muted-foreground">{label}</p>
       </div>
     </div>
   );

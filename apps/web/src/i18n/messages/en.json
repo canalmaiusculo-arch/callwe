@@ -681,7 +681,15 @@
     "createButton": "Create agency",
     "cancel": "Cancel",
     "empty": "No agencies registered.",
-    "clientsSuffix": "clients"
+    "clientsSuffix": "clients",
+    "status": {
+      "active": "active",
+      "suspended": "suspended"
+    },
+    "statClients": "Clients",
+    "statAgents": "Agents",
+    "statLeads": "Leads",
+    "since": "Since"
   },
   "adminTeam": {
     "title": "Agents",
@@ -716,7 +724,16 @@
     "saving": "Saving...",
     "save": "Save",
     "updated": "Updated",
-    "clients": "clients"
+    "clients": "clients",
+    "status": {
+      "active": "Active",
+      "invited": "Invited",
+      "disabled": "Disabled"
+    },
+    "nameSaved": "Name updated",
+    "editName": "Edit name",
+    "lastLogin": "Last login:",
+    "neverLoggedIn": "Never logged in"
   },
   "adminAgencyDetail": {
     "loading": "Loading...",

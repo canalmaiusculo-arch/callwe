@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { z } from 'zod';
 import { TeamService } from './team.service.js';
@@ -27,6 +27,10 @@ const AssignDto = z.object({
 
 const SyncSubsDto = z.object({
   subAccountIds: z.array(z.string().uuid()),
+});
+
+const ProfileDto = z.object({
+  fullName: z.string().min(2),
 });
 
 @Controller('team')
@@ -105,6 +109,16 @@ export class TeamController {
     @ZodBody(SyncSubsDto) dto: z.infer<typeof SyncSubsDto>,
   ) {
     return this.svc.syncSubAccounts(user, userId, dto.subAccountIds);
+  }
+
+  @Patch(':userId/profile')
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(ROLES.SUPER_ADMIN, ROLES.AGENCY_ADMIN)
+  updateProfile(
+    @Param('userId') userId: string,
+    @ZodBody(ProfileDto) dto: z.infer<typeof ProfileDto>,
+  ) {
+    return this.svc.updateProfile(userId, dto.fullName);
   }
 
   @Delete(':userId')
