@@ -132,10 +132,10 @@ export default function AgencyDashboard() {
   const maxSource = Math.max(1, ...s.leadsBySource.map((r) => r.count));
 
   return (
-    <div className="p-8">
+    <div className="p-5 md:p-8">
       <header className="mb-6">
         <div className="flex items-center gap-2">
-          <h1 className="text-3xl font-bold">{t('agencyDash.title')}</h1>
+          <h1 className="text-2xl font-bold md:text-3xl">{t('agencyDash.title')}</h1>
           <HelpHint topic="dashboard" />
         </div>
         <p className="mt-1 text-muted-foreground">
@@ -236,7 +236,7 @@ export default function AgencyDashboard() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <MiniLineChart data={s.series} height={140} color="#10b981" />
+            <MiniLineChart data={s.series} height={140} color="#2f43e0" />
           </CardContent>
         </Card>
 
@@ -298,17 +298,24 @@ function DeltaBadge({ cur, prev, invert }: { cur: number; prev: number; invert?:
   const { t } = useTranslate();
   if (prev === 0) {
     if (cur === 0) return null;
-    return <span className="text-xs font-medium text-emerald-600">{t('agencyDash.deltaNew')}</span>;
+    return (
+      <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700">
+        {t('agencyDash.deltaNew')}
+      </span>
+    );
   }
   const pct = Math.round(((cur - prev) / prev) * 100);
-  if (pct === 0) return <span className="text-xs text-muted-foreground">0%</span>;
+  if (pct === 0)
+    return (
+      <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">0%</span>
+    );
   const up = pct > 0;
   const good = invert ? !up : up;
   const Icon = up ? ArrowUpRight : ArrowDownRight;
   return (
     <span
-      className={`flex items-center gap-0.5 text-xs font-medium ${
-        good ? 'text-emerald-600' : 'text-red-600'
+      className={`inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-xs font-semibold ${
+        good ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'
       }`}
       title={t('agencyDash.vsPrevPeriod')}
     >
@@ -346,20 +353,26 @@ function KpiCard({
         className="cursor-pointer transition-shadow hover:shadow-md"
         onClick={() => setPinned((p) => !p)}
       >
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <div>
-            <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
-            {sub && <p className="text-xs text-muted-foreground/70">{sub}</p>}
-          </div>
-          <Icon className="h-4 w-4 text-muted-foreground" />
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-baseline justify-between">
-            <p className={`text-2xl font-bold ${tone === 'warning' ? 'text-amber-600' : ''}`}>
-              {value}
-            </p>
+        <CardContent className="p-5">
+          <div className="flex items-center justify-between">
+            <div
+              className={`flex h-9 w-9 items-center justify-center rounded-lg ${
+                tone === 'warning' ? 'bg-amber-100 text-amber-600' : 'bg-primary/10 text-primary'
+              }`}
+            >
+              <Icon className="h-[1.15rem] w-[1.15rem]" />
+            </div>
             <DeltaBadge cur={cur} prev={prev} invert={invert} />
           </div>
+          <p
+            className={`tabular mt-3 text-[1.7rem] font-bold leading-none tracking-tight ${
+              tone === 'warning' ? 'text-amber-600' : ''
+            }`}
+          >
+            {value}
+          </p>
+          <p className="mt-1.5 text-sm font-medium text-muted-foreground">{title}</p>
+          {sub && <p className="text-xs text-muted-foreground/70">{sub}</p>}
         </CardContent>
       </Card>
 
