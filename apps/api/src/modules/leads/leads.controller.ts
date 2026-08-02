@@ -25,6 +25,7 @@ const UpdateLeadDto = z.object({
   lostReason: z.string().optional(),
   tags: z.array(z.string()).optional(),
   ownerUserId: z.string().uuid().nullable().optional(),
+  scheduledEstimateAt: z.string().datetime().nullable().optional(),
 });
 
 const NoteDto = z.object({ body: z.string().min(1), shared: z.boolean().optional() });

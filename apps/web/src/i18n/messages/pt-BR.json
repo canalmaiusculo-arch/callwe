@@ -977,10 +977,14 @@
     "avgLabel": "média",
     "conversion7d": "Conversão (7d)",
     "wonShort": "ganhos",
-    "leadsShort": "leads"
+    "leadsShort": "leads",
+    "estimatesUpcoming": "Estimativas agendadas"
   },
   "leadDrawer": {
-    "formAnswers": "Respostas do formulário"
+    "formAnswers": "Respostas do formulário",
+    "scheduledEstimate": "Estimativa agendada:",
+    "estimateSaved": "Estimativa agendada salva",
+    "estimateClear": "Remover"
   },
   "messengerInbox": {
     "title": "Messenger",

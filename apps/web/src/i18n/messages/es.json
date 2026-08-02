@@ -977,10 +977,14 @@
     "avgLabel": "prom",
     "conversion7d": "Conversión (7d)",
     "wonShort": "ganados",
-    "leadsShort": "leads"
+    "leadsShort": "leads",
+    "estimatesUpcoming": "Estimaciones agendadas"
   },
   "leadDrawer": {
-    "formAnswers": "Respuestas del formulario"
+    "formAnswers": "Respuestas del formulario",
+    "scheduledEstimate": "Estimación agendada:",
+    "estimateSaved": "Estimación agendada",
+    "estimateClear": "Quitar"
   },
   "messengerInbox": {
     "title": "Messenger",

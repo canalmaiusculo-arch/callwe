@@ -286,6 +286,8 @@ model Lead {
   tags           String[]     @default([])
   firstContactAt DateTime?    @map("first_contact_at") @db.Timestamptz
   lastContactAt  DateTime?    @map("last_contact_at") @db.Timestamptz
+  // Estimativa/orçamento agendado com o lead (data/hora marcada pelo atendente).
+  scheduledEstimateAt DateTime? @map("scheduled_estimate_at") @db.Timestamptz
   createdAt      DateTime     @default(now()) @map("created_at") @db.Timestamptz
   updatedAt      DateTime     @updatedAt @map("updated_at") @db.Timestamptz
   deletedAt      DateTime?    @map("deleted_at") @db.Timestamptz

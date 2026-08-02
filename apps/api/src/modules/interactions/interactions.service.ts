@@ -87,6 +87,7 @@ export class InteractionsService {
       inboundWeek: 0, outboundWeek: 0,
       totalTalkTimeToday: 0, talkTimeWeek: 0, avgTalkTime: 0,
       smsToday: 0, leadsToday: 0, leadsWeek: 0, wonWeek: 0, qualifiedWeek: 0, conversionWeek: 0,
+      estimatesUpcoming: 0,
       recent: [] as Array<{
         id: string; type: string; direction: string; status: string; startedAt: string;
         number: string | null; client: string | null; leadName: string | null;
@@ -107,7 +108,7 @@ export class InteractionsService {
 
     const [
       callsToday, todayDuration, callsWeek, missedToday, missedWeek, weekDuration, dirWeek,
-      smsToday, leadsToday, leadsWeek, wonWeek, qualifiedWeek, recent,
+      smsToday, leadsToday, leadsWeek, wonWeek, qualifiedWeek, estimatesUpcoming, recent,
     ] = await Promise.all([
       this.prisma.interaction.count({ where: { ...scope, type: 'call', startedAt: { gte: startOfDay } } }),
       this.prisma.interaction.aggregate({
@@ -132,6 +133,7 @@ export class InteractionsService {
       this.prisma.lead.count({ where: { ...leadScope, createdAt: { gte: startOfWeek } } }),
       this.prisma.lead.count({ where: { ...leadScope, status: 'won', updatedAt: { gte: startOfWeek } } }),
       this.prisma.lead.count({ where: { ...leadScope, status: 'qualified', updatedAt: { gte: startOfWeek } } }),
+      this.prisma.lead.count({ where: { ...leadScope, scheduledEstimateAt: { gte: startOfDay } } }),
       this.prisma.interaction.findMany({
         where: { ...scope, type: { in: ['call', 'sms'] } },
         orderBy: { startedAt: 'desc' },
@@ -167,6 +169,7 @@ export class InteractionsService {
       wonWeek,
       qualifiedWeek,
       conversionWeek,
+      estimatesUpcoming,
       recent: recent.map((r) => ({
         id: r.id,
         type: r.type,

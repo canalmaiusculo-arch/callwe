@@ -231,12 +231,17 @@ export class LeadsService {
       lostReason?: string;
       tags?: string[];
       ownerUserId?: string | null;
+      scheduledEstimateAt?: string | null;
     },
   ) {
+    const { scheduledEstimateAt, ...rest } = input;
     return this.prisma.lead.update({
       where: { id },
       data: {
-        ...input,
+        ...rest,
+        ...(scheduledEstimateAt !== undefined
+          ? { scheduledEstimateAt: scheduledEstimateAt ? new Date(scheduledEstimateAt) : null }
+          : {}),
         ...(input.status === 'contacted' || input.status === 'qualified'
           ? { lastContactAt: new Date() }
           : {}),

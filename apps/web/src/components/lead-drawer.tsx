@@ -13,6 +13,7 @@ import {
   MessageSquare,
   Voicemail,
   FormInput,
+  CalendarClock,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
@@ -32,6 +33,14 @@ import {
 const ACQUISITION_CHANNELS = Object.keys(LEAD_ACQUISITION_LABELS) as Array<
   keyof typeof LEAD_ACQUISITION_LABELS
 >;
+
+/** ISO -> valor do <input type="datetime-local"> (hora local, sem timezone). */
+function toLocalInput(iso: string | null): string {
+  if (!iso) return '';
+  const d = new Date(iso);
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
 
 interface LeadInteraction {
   id: string;
@@ -60,6 +69,7 @@ interface LeadDetail {
   status: LeadStatus;
   source: string;
   customFields: Record<string, unknown> | null;
+  scheduledEstimateAt: string | null;
   createdAt: string;
   interactions: LeadInteraction[];
   notes: LeadNote[];
@@ -155,6 +165,16 @@ export function LeadDrawer({
     },
     onSuccess: () => {
       toast.success(t('interactionDrawer.sourceUpdated'));
+      invalidate();
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+
+  const updateEstimate = useMutation({
+    mutationFn: (iso: string | null) =>
+      apiClient.patch(`/leads/${leadId}`, { scheduledEstimateAt: iso }, { subAccountId }),
+    onSuccess: () => {
+      toast.success(t('leadDrawer.estimateSaved'));
       invalidate();
     },
     onError: (err: Error) => toast.error(err.message),
@@ -285,6 +305,28 @@ export function LeadDrawer({
                   <option key={ch} value={ch}>{LEAD_ACQUISITION_LABELS[ch]}</option>
                 ))}
               </select>
+            </div>
+            <div className="mt-3 flex items-center gap-2">
+              <CalendarClock className="h-4 w-4 shrink-0 text-primary" />
+              <label className="text-xs text-muted-foreground">{t('leadDrawer.scheduledEstimate')}</label>
+              <input
+                type="datetime-local"
+                value={toLocalInput(detail?.scheduledEstimateAt ?? null)}
+                onChange={(e) =>
+                  updateEstimate.mutate(e.target.value ? new Date(e.target.value).toISOString() : null)
+                }
+                disabled={updateEstimate.isPending}
+                className="h-8 rounded-md border bg-background px-2 text-xs"
+              />
+              {detail?.scheduledEstimateAt && (
+                <button
+                  onClick={() => updateEstimate.mutate(null)}
+                  className="text-xs text-muted-foreground hover:text-foreground"
+                  title={t('leadDrawer.estimateClear')}
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              )}
             </div>
             {subAccountId && (
               <button

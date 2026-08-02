@@ -22,6 +22,7 @@ import {
   FileText,
   Target,
   Trophy,
+  CalendarClock,
 } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -101,6 +102,7 @@ interface AgentStats {
   wonWeek: number;
   qualifiedWeek: number;
   conversionWeek: number;
+  estimatesUpcoming: number;
   recent: AgentRecent[];
 }
 
@@ -379,7 +381,8 @@ function TabButton({
 const EMPTY_AGENT_STATS: AgentStats = {
   callsToday: 0, callsWeek: 0, missedToday: 0, missedWeek: 0, answerRate: 0,
   inboundWeek: 0, outboundWeek: 0, totalTalkTimeToday: 0, talkTimeWeek: 0, avgTalkTime: 0,
-  smsToday: 0, leadsToday: 0, leadsWeek: 0, wonWeek: 0, qualifiedWeek: 0, conversionWeek: 0, recent: [],
+  smsToday: 0, leadsToday: 0, leadsWeek: 0, wonWeek: 0, qualifiedWeek: 0, conversionWeek: 0,
+  estimatesUpcoming: 0, recent: [],
 };
 
 function DashboardView({ agentId }: { agentId?: string }) {
@@ -407,6 +410,7 @@ function DashboardView({ agentId }: { agentId?: string }) {
           <StatCard title={t('agentPanel.missedToday')} value={s.missedToday} icon={PhoneMissed} tone={s.missedToday > 0 ? 'warning' : undefined} />
           <StatCard title={t('agentPanel.smsToday')} value={s.smsToday} icon={MessageSquare} />
           <StatCard title={t('agentPanel.leadsToday')} value={s.leadsToday} icon={UserPlus} />
+          <StatCard title={t('agentPanel.estimatesUpcoming')} value={s.estimatesUpcoming} icon={CalendarClock} />
         </div>
       </div>
 
