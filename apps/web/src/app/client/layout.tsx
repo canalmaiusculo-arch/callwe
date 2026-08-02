@@ -52,10 +52,10 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
   return (
     <div className="flex h-screen flex-col md:flex-row">
       {/* Sidebar (desktop) */}
-      <aside className="hidden h-screen w-60 flex-col border-r bg-muted/20 md:flex">
-        <div className="border-b p-4">
-          <p className="text-xs uppercase text-muted-foreground">{t('client.title')}</p>
-          <p className="truncate text-sm font-semibold">{subAccountName ?? '—'}</p>
+      <aside className="hidden h-screen w-60 flex-col border-r border-white/10 bg-brand-gradient text-white md:flex">
+        <div className="border-b border-white/15 p-4">
+          <p className="text-xs uppercase text-white/70">{t('client.title')}</p>
+          <p className="truncate text-sm font-semibold text-white">{subAccountName ?? '—'}</p>
         </div>
 
         <nav className="flex-1 space-y-1 p-2">
@@ -68,8 +68,8 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
                 className={cn(
                   'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
                   isActive(item.href)
-                    ? 'bg-primary text-primary-foreground shadow-sm shadow-primary/25'
-                    : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+                    ? 'bg-white/20 text-white shadow-sm'
+                    : 'text-white/80 hover:bg-white/10 hover:text-white',
                 )}
               >
                 <Icon className="h-[1.05rem] w-[1.05rem]" />
@@ -86,7 +86,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
         <Link
           href={'/help' as never}
           target="_blank"
-          className="m-2 flex items-center gap-3 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-muted"
+          className="m-2 flex items-center gap-3 rounded-md px-3 py-2 text-sm text-white/80 hover:bg-white/10 hover:text-white"
         >
           <HelpCircle className="h-4 w-4" />
           {t('common.help')}
@@ -94,7 +94,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
 
         <button
           onClick={logout}
-          className="m-2 flex items-center gap-3 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-muted"
+          className="m-2 flex items-center gap-3 rounded-md px-3 py-2 text-sm text-white/80 hover:bg-white/10 hover:text-white"
         >
           <LogOut className="h-4 w-4" />
           {t('common.logout')}

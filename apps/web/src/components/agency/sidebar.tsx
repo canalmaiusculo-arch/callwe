@@ -29,15 +29,15 @@ export function AgencySidebar() {
 
   const content = (
     <>
-      <div className="flex items-center justify-between border-b p-4">
+      <div className="flex items-center justify-between border-b border-white/15 p-4">
         <div className="flex min-w-0 flex-1 items-center gap-2">
           <Logo variant="icon" className="h-7 w-7 shrink-0" />
           <div className="min-w-0">
-            <p className="text-xs uppercase text-muted-foreground">{t('agency.title')}</p>
-            <p className="truncate text-sm font-semibold">{viewAsAgencyName ?? 'CallWe'}</p>
+            <p className="text-xs uppercase text-white/70">{t('agency.title')}</p>
+            <p className="truncate text-sm font-semibold text-white">{viewAsAgencyName ?? 'CallWe'}</p>
           </div>
         </div>
-        <button className="md:hidden rounded-md p-2 hover:bg-muted" onClick={() => setOpen(false)}>
+        <button className="md:hidden rounded-md p-2 hover:bg-white/10" onClick={() => setOpen(false)}>
           <X className="h-4 w-4" />
         </button>
       </div>
@@ -54,11 +54,11 @@ export function AgencySidebar() {
               className={cn(
                 'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
                 active
-                  ? 'bg-primary text-primary-foreground shadow-sm shadow-primary/25'
-                  : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+                  ? 'bg-white/20 text-white shadow-sm'
+                  : 'text-white/80 hover:bg-white/10 hover:text-white',
               )}
             >
-              <Icon className={cn('h-[1.05rem] w-[1.05rem]', active ? 'text-primary-foreground' : 'text-muted-foreground')} />
+              <Icon className="h-[1.05rem] w-[1.05rem]" />
               {t(item.key)}
             </Link>
           );
@@ -72,7 +72,7 @@ export function AgencySidebar() {
       <Link
         href={'/help' as never}
         target="_blank"
-        className="m-2 flex items-center gap-3 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-muted"
+        className="m-2 flex items-center gap-3 rounded-md px-3 py-2 text-sm text-white/80 hover:bg-white/10 hover:text-white"
       >
         <HelpCircle className="h-4 w-4" />
         {t('common.help')}
@@ -84,7 +84,7 @@ export function AgencySidebar() {
           clearTenant();
           window.location.href = '/login';
         }}
-        className="m-2 flex items-center gap-3 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-muted"
+        className="m-2 flex items-center gap-3 rounded-md px-3 py-2 text-sm text-white/80 hover:bg-white/10 hover:text-white"
       >
         <LogOut className="h-4 w-4" />
         {t('common.logout')}
@@ -110,9 +110,9 @@ export function AgencySidebar() {
 
       <aside
         className={cn(
-          'flex h-screen w-60 flex-col border-r bg-muted/20 transition-transform',
+          'flex h-screen w-60 flex-col border-r border-white/10 bg-brand-gradient text-white transition-transform',
           'md:static md:translate-x-0',
-          'fixed inset-y-0 left-0 z-50 bg-background',
+          'fixed inset-y-0 left-0 z-50',
           open ? 'translate-x-0' : '-translate-x-full md:translate-x-0',
         )}
       >

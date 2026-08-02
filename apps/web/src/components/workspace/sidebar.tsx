@@ -59,13 +59,13 @@ export function WorkspaceSidebar() {
 
   const content = (
     <>
-      <div className="flex items-center justify-between border-b p-4">
+      <div className="flex items-center justify-between border-b border-white/15 p-4">
         <div className="flex-1 min-w-0">
-          <p className="text-xs uppercase text-muted-foreground">Subconta</p>
-          <p className="truncate text-sm font-semibold">{subAccountName ?? '—'}</p>
+          <p className="text-xs uppercase text-white/70">Subconta</p>
+          <p className="truncate text-sm font-semibold text-white">{subAccountName ?? '—'}</p>
         </div>
         <button
-          className="md:hidden rounded-md p-2 hover:bg-muted"
+          className="md:hidden rounded-md p-2 hover:bg-white/10"
           onClick={() => setOpen(false)}
         >
           <X className="h-4 w-4" />
@@ -75,7 +75,7 @@ export function WorkspaceSidebar() {
       <nav className="flex-1 space-y-4 overflow-auto p-3">
         {navGroups.map((group) => (
           <div key={group.label} className="space-y-1">
-            <p className="px-3 pb-1 text-[0.65rem] font-semibold uppercase tracking-wider text-muted-foreground/80">
+            <p className="px-3 pb-1 text-[0.65rem] font-semibold uppercase tracking-wider text-white/55">
               {t(group.label)}
             </p>
             {group.items.map((item) => {
@@ -89,11 +89,11 @@ export function WorkspaceSidebar() {
                   className={cn(
                     'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
                     active
-                      ? 'bg-primary text-primary-foreground shadow-sm shadow-primary/25'
-                      : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+                      ? 'bg-white/20 text-white shadow-sm'
+                      : 'text-white/80 hover:bg-white/10 hover:text-white',
                   )}
                 >
-                  <Icon className={cn('h-[1.05rem] w-[1.05rem]', active ? 'text-primary-foreground' : 'text-muted-foreground')} />
+                  <Icon className="h-[1.05rem] w-[1.05rem]" />
                   {t(item.key)}
                 </Link>
               );
@@ -104,7 +104,7 @@ export function WorkspaceSidebar() {
 
       <Link
         href={'/agency' as never}
-        className="m-2 flex items-center gap-3 rounded-md border border-dashed px-3 py-2 text-sm text-muted-foreground hover:bg-muted"
+        className="m-2 flex items-center gap-3 rounded-md border border-dashed border-white/30 px-3 py-2 text-sm text-white/80 hover:bg-white/10 hover:text-white"
       >
         <Building2 className="h-4 w-4" />
         {t('agent.title').includes('Live') ? 'Agency panel' : 'Painel da agência'}
@@ -113,7 +113,7 @@ export function WorkspaceSidebar() {
       <Link
         href={'/help' as never}
         target="_blank"
-        className="m-2 flex items-center gap-3 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-muted"
+        className="m-2 flex items-center gap-3 rounded-md px-3 py-2 text-sm text-white/80 hover:bg-white/10 hover:text-white"
       >
         <HelpCircle className="h-4 w-4" />
         {t('common.help')}
@@ -129,7 +129,7 @@ export function WorkspaceSidebar() {
           clearTenant();
           window.location.href = '/login';
         }}
-        className="m-2 flex items-center gap-3 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-muted"
+        className="m-2 flex items-center gap-3 rounded-md px-3 py-2 text-sm text-white/80 hover:bg-white/10 hover:text-white"
       >
         <LogOut className="h-4 w-4" />
         {t('common.logout')}
@@ -155,9 +155,9 @@ export function WorkspaceSidebar() {
 
       <aside
         className={cn(
-          'flex h-screen w-60 flex-col border-r bg-muted/20 transition-transform',
+          'flex h-screen w-60 flex-col border-r border-white/10 bg-brand-gradient text-white transition-transform',
           'md:static md:translate-x-0',
-          'fixed inset-y-0 left-0 z-50 bg-background',
+          'fixed inset-y-0 left-0 z-50',
           open ? 'translate-x-0' : '-translate-x-full md:translate-x-0',
         )}
       >
