@@ -31,7 +31,7 @@ export function AgencySidebar() {
     <>
       <div className="flex items-center justify-between border-b border-white/15 p-4">
         <div className="flex min-w-0 flex-1 items-center gap-2">
-          <Logo variant="icon" className="h-7 w-7 shrink-0" />
+          <Logo variant="icon" white className="h-7 w-7 shrink-0" />
           <div className="min-w-0">
             <p className="text-xs uppercase text-white/70">{t('agency.title')}</p>
             <p className="truncate text-sm font-semibold text-white">{viewAsAgencyName ?? 'CallWe'}</p>
@@ -110,7 +110,7 @@ export function AgencySidebar() {
 
       <aside
         className={cn(
-          'flex h-screen w-60 flex-col border-r border-white/10 bg-brand-gradient text-white transition-transform',
+          'flex h-screen w-60 flex-col border-r border-white/10 bg-sidebar-gradient text-white transition-transform',
           'md:static md:translate-x-0',
           'fixed inset-y-0 left-0 z-50',
           open ? 'translate-x-0' : '-translate-x-full md:translate-x-0',

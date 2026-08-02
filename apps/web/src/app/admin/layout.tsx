@@ -24,10 +24,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   return (
     <div className="flex h-screen">
-      <aside className="flex h-screen w-60 flex-col border-r border-white/10 bg-brand-gradient text-white">
+      <aside className="flex h-screen w-60 flex-col border-r border-white/10 bg-sidebar-gradient text-white">
         <div className="border-b border-white/15 p-4">
           <div className="flex items-center gap-2">
-            <Logo variant="icon" className="h-7 w-7 shrink-0" />
+            <Logo variant="icon" white className="h-7 w-7 shrink-0" />
             <div className="min-w-0">
               <div className="flex items-center gap-1">
                 <Crown className="h-3 w-3 text-amber-300" />

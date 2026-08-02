@@ -52,7 +52,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
   return (
     <div className="flex h-screen flex-col md:flex-row">
       {/* Sidebar (desktop) */}
-      <aside className="hidden h-screen w-60 flex-col border-r border-white/10 bg-brand-gradient text-white md:flex">
+      <aside className="hidden h-screen w-60 flex-col border-r border-white/10 bg-sidebar-gradient text-white md:flex">
         <div className="border-b border-white/15 p-4">
           <p className="text-xs uppercase text-white/70">{t('client.title')}</p>
           <p className="truncate text-sm font-semibold text-white">{subAccountName ?? '—'}</p>

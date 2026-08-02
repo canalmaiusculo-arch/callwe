@@ -155,7 +155,7 @@ export function WorkspaceSidebar() {
 
       <aside
         className={cn(
-          'flex h-screen w-60 flex-col border-r border-white/10 bg-brand-gradient text-white transition-transform',
+          'flex h-screen w-60 flex-col border-r border-white/10 bg-sidebar-gradient text-white transition-transform',
           'md:static md:translate-x-0',
           'fixed inset-y-0 left-0 z-50',
           open ? 'translate-x-0' : '-translate-x-full md:translate-x-0',
