@@ -30,8 +30,12 @@ export class SubAccountsController {
   constructor(private readonly svc: SubAccountsService) {}
 
   @Get('mine')
-  mine(@CurrentUser() user: AuthUser) {
-    return this.svc.listForUser(user.id);
+  mine(@CurrentUser() user: AuthUser, @Query('agentId') agentId?: string) {
+    // Admin pode ver os clientes de um atendente supervisionado; senão, os próprios.
+    const isAdmin = user.memberships.some(
+      (m) => m.role === 'super_admin' || m.role === 'agency_admin',
+    );
+    return this.svc.listForUser(agentId && isAdmin ? agentId : user.id);
   }
 
   @Get()

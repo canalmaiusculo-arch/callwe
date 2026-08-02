@@ -67,11 +67,19 @@ export class InteractionsController {
         role: 'agent',
         ...(isSuper ? {} : { subAccount: { agencyId: { in: agencyIds } } }),
       },
-      select: { user: { select: { id: true, fullName: true } } },
-      distinct: ['userId'],
-      orderBy: { user: { fullName: 'asc' } },
+      select: { userId: true, user: { select: { id: true, fullName: true } } },
     });
-    return rows.map((r) => r.user);
+    // Deduplica por usuário no código (evita distinct+orderBy do Prisma).
+    const seen = new Set<string>();
+    const agents: Array<{ id: string; fullName: string }> = [];
+    for (const r of rows) {
+      if (r.user && !seen.has(r.userId)) {
+        seen.add(r.userId);
+        agents.push(r.user);
+      }
+    }
+    agents.sort((a, b) => a.fullName.localeCompare(b.fullName));
+    return agents;
   }
 
   /** Lista interações do atendente logado (todas as subcontas que ele atende). */

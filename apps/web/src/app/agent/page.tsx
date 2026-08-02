@@ -122,8 +122,9 @@ export default function AgentPage() {
   const queryClient = useQueryClient();
 
   const { data: clients = [] } = useQuery<AssignedClient[]>({
-    queryKey: ['my-clients'],
-    queryFn: () => apiClient.get('/sub-accounts/mine'),
+    queryKey: ['my-clients', selectedAgentId],
+    queryFn: () =>
+      apiClient.get(`/sub-accounts/mine${selectedAgentId ? `?agentId=${selectedAgentId}` : ''}`),
   });
 
   // Atendentes supervisionáveis (só volta lista se o usuário for dono/admin).
