@@ -148,10 +148,10 @@ export default function AgentPage() {
     <div className="grid h-screen grid-cols-12 gap-3 bg-muted/20 p-3">
       <ChatWidget />
       <NotificationCenter />
-      <aside className="col-span-2 flex flex-col rounded-lg border bg-background p-3">
+      <aside className="col-span-2 flex flex-col rounded-lg bg-sidebar-gradient p-3 text-white">
         <div className="mb-3">
-          <p className="text-xs uppercase text-muted-foreground">{t('agentPanel.agentLabel')}</p>
-          <p className="text-sm font-semibold">{t('agentPanel.livePanel')}</p>
+          <p className="text-xs uppercase text-white/70">{t('agentPanel.agentLabel')}</p>
+          <p className="text-sm font-semibold text-white">{t('agentPanel.livePanel')}</p>
         </div>
 
         <nav className="mb-3 space-y-1">
@@ -163,15 +163,15 @@ export default function AgentPage() {
           <TabButton active={tab === 'briefings'} onClick={() => setTab('briefings')} icon={BookOpen} label={t('agentPanel.tabBriefings')} />
         </nav>
 
-        <div className="mt-2 flex min-h-0 flex-1 flex-col border-t pt-3">
-          <p className="mb-2 text-xs font-medium uppercase text-muted-foreground">
+        <div className="mt-2 flex min-h-0 flex-1 flex-col border-t border-white/15 pt-3">
+          <p className="mb-2 text-xs font-medium uppercase text-white/60">
             {t('agentPanel.myClients')} ({clients.length})
           </p>
           <div className="flex-1 space-y-0.5 overflow-auto">
             <button
               onClick={() => setFilterSubAccountId(null)}
-              className={`w-full rounded px-2 py-1 text-left text-xs ${
-                filterSubAccountId === null ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted'
+              className={`w-full rounded-md px-2 py-1 text-left text-xs ${
+                filterSubAccountId === null ? 'bg-white/20 font-medium text-white' : 'text-white/70 hover:bg-white/10 hover:text-white'
               }`}
             >
               {t('agentPanel.allClients')}
@@ -180,8 +180,8 @@ export default function AgentPage() {
               <button
                 key={c.id}
                 onClick={() => setFilterSubAccountId(c.id)}
-                className={`w-full rounded px-2 py-1 text-left text-xs ${
-                  filterSubAccountId === c.id ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted'
+                className={`w-full rounded-md px-2 py-1 text-left text-xs ${
+                  filterSubAccountId === c.id ? 'bg-white/20 font-medium text-white' : 'text-white/70 hover:bg-white/10 hover:text-white'
                 }`}
               >
                 {c.name}
@@ -195,7 +195,7 @@ export default function AgentPage() {
             clearAuth();
             window.location.href = '/login';
           }}
-          className="mt-3 flex items-center gap-2 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-muted"
+          className="mt-3 flex items-center gap-2 rounded-md px-3 py-2 text-sm text-white/80 hover:bg-white/10 hover:text-white"
         >
           <LogOut className="h-4 w-4" />
           {t('agentPanel.logout')}
@@ -298,14 +298,14 @@ function TabButton({
   return (
     <button
       onClick={onClick}
-      className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${active ? 'bg-primary text-primary-foreground shadow-sm shadow-primary/25' : 'text-muted-foreground hover:bg-muted hover:text-foreground'}`}
+      className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${active ? 'bg-white/20 text-white shadow-sm' : 'text-white/80 hover:bg-white/10 hover:text-white'}`}
     >
       <Icon className="h-4 w-4" />
       <span className="flex-1 text-left">{label}</span>
       {badge && badge > 0 ? (
         <span
-          className={`rounded-full px-1.5 py-0.5 text-xs font-semibold text-white ${
-            pulse ? 'animate-pulse bg-blue-600' : 'bg-emerald-500'
+          className={`rounded-full px-1.5 py-0.5 text-xs font-bold ${
+            pulse ? 'animate-pulse bg-white text-primary' : 'bg-emerald-400 text-emerald-950'
           }`}
         >
           {badge > 99 ? '99+' : badge}

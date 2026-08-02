@@ -110,7 +110,7 @@ export default function WorkspaceDashboard() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-3xl font-bold">{t('wsDash.title')}</h1>
+            <h1 className="text-2xl font-bold md:text-3xl">{t('wsDash.title')}</h1>
             <HelpHint topic="dashboard" />
           </div>
           <p className="mt-1 text-muted-foreground">{t('wsDash.subtitle')}</p>
@@ -150,7 +150,7 @@ export default function WorkspaceDashboard() {
             <CardTitle>{t('wsDash.volumePerDay')}</CardTitle>
           </CardHeader>
           <CardContent>
-            <MiniLineChart data={s.series} height={140} color="#3b82f6" />
+            <MiniLineChart data={s.series} height={140} color="#2f43e0" />
           </CardContent>
         </Card>
 
@@ -255,16 +255,22 @@ function KPI({
   tone?: 'warning' | 'success';
   hint?: string;
 }) {
-  const color = tone === 'warning' ? 'text-amber-600' : tone === 'success' ? 'text-emerald-600' : '';
+  const valColor = tone === 'warning' ? 'text-amber-600' : tone === 'success' ? 'text-emerald-600' : '';
+  const iconTint =
+    tone === 'warning'
+      ? 'bg-amber-100 text-amber-600'
+      : tone === 'success'
+        ? 'bg-emerald-100 text-emerald-600'
+        : 'bg-primary/10 text-primary';
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
-        <Icon className="h-4 w-4 text-muted-foreground" />
-      </CardHeader>
-      <CardContent>
-        <p className={`text-2xl font-bold ${color}`}>{value}</p>
-        {hint && <p className="mt-1 text-xs text-muted-foreground">{hint}</p>}
+      <CardContent className="p-4">
+        <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${iconTint}`}>
+          <Icon className="h-[1.05rem] w-[1.05rem]" />
+        </div>
+        <p className={`tabular mt-2.5 text-2xl font-bold leading-none tracking-tight ${valColor}`}>{value}</p>
+        <p className="mt-1.5 text-sm font-medium text-muted-foreground">{title}</p>
+        {hint && <p className="mt-0.5 text-xs text-muted-foreground/70">{hint}</p>}
       </CardContent>
     </Card>
   );
