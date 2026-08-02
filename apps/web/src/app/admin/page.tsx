@@ -77,7 +77,7 @@ export default function AdminAgenciesPage() {
     <div className="p-8">
       <header className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">{t('adminAgencies.title')}</h1>
+          <h1 className="text-2xl font-bold md:text-3xl">{t('adminAgencies.title')}</h1>
           <p className="mt-1 text-muted-foreground">
             {agencies.length} {t('adminAgencies.countSuffix')}
           </p>

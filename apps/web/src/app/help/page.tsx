@@ -170,7 +170,7 @@ export default function HelpPage() {
 
         <main className="min-w-0 space-y-10 scroll-smooth">
           <div>
-            <h1 className="text-3xl font-bold">{doc.centerTitle}</h1>
+            <h1 className="text-2xl font-bold md:text-3xl">{doc.centerTitle}</h1>
             <p className="mt-1 text-muted-foreground">{doc.intro}</p>
           </div>
 

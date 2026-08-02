@@ -58,7 +58,7 @@ export default function AgencySettingsPage() {
   return (
     <div className="p-8">
       <header className="mb-6">
-        <h1 className="text-3xl font-bold">{t('agencySettings.title')}</h1>
+        <h1 className="text-2xl font-bold md:text-3xl">{t('agencySettings.title')}</h1>
         <p className="mt-1 text-muted-foreground">{t('agencySettings.subtitle')}</p>
       </header>
 

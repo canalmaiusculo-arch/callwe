@@ -122,7 +122,7 @@ export default function LeadsPage() {
       <header className="mb-6 flex items-center justify-between">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-3xl font-bold">{t('wsLeads.title')}</h1>
+            <h1 className="text-2xl font-bold md:text-3xl">{t('wsLeads.title')}</h1>
             <HelpHint topic="leads" />
           </div>
           <p className="mt-1 text-muted-foreground">{leads.length} {t('wsLeads.countLabel')} {hasFilters && t('wsLeads.filteredSuffix')}</p>

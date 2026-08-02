@@ -75,7 +75,7 @@ export default function LeadsKanbanPage() {
     <div className="p-4 md:p-8">
       <header className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">{t('leadsKanban.title')}</h1>
+          <h1 className="text-2xl font-bold md:text-3xl">{t('leadsKanban.title')}</h1>
           <p className="mt-1 text-muted-foreground">{leads.length} {t('leadsKanban.subtitle')}</p>
         </div>
         <Link href={'/workspace/leads' as never}>

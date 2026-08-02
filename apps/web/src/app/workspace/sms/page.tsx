@@ -27,7 +27,7 @@ export default function SmsPage() {
   return (
     <div className="p-8">
       <header className="mb-6">
-        <h1 className="text-3xl font-bold">{t('wsSms.title')}</h1>
+        <h1 className="text-2xl font-bold md:text-3xl">{t('wsSms.title')}</h1>
         <p className="mt-1 text-muted-foreground">
           {messages.length} {t('wsSms.messagesCount')}
         </p>

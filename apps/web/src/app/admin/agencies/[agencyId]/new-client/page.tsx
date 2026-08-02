@@ -88,7 +88,7 @@ export default function NewClientWizardPage({ params }: { params: Promise<{ agen
         ← {t('adminNewClient.backToAgency')}
       </Link>
 
-      <h1 className="mt-2 text-3xl font-bold">{t('adminNewClient.title')}</h1>
+      <h1 className="mt-2 text-2xl font-bold md:text-3xl">{t('adminNewClient.title')}</h1>
       <p className="mt-1 text-muted-foreground">{t('adminNewClient.subtitle')}</p>
 
       <Stepper current={step} />

@@ -4,7 +4,7 @@ import { use, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Phone, Plus, Trash2, ExternalLink, KeyRound, UserPlus, Copy, RotateCcw } from 'lucide-react';
+import { Phone, Plus, Trash2, ExternalLink, KeyRound, UserPlus, Copy, RotateCcw, Users, Activity } from 'lucide-react';
 import { toast } from 'sonner';
 import { apiClient } from '@/lib/api-client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -96,7 +96,7 @@ export default function ClientDetailPage({ params }: { params: Promise<{ clientI
       </Link>
       <div className="mt-2 flex items-start justify-between">
         <div>
-          <h1 className="text-3xl font-bold">{client.name}</h1>
+          <h1 className="text-2xl font-bold md:text-3xl">{client.name}</h1>
           <div className="mt-2 flex gap-2 text-sm">
             <Badge variant={client.status === 'active' ? 'success' : 'secondary'}>{client.status}</Badge>
             <Badge variant="outline">{client.plan}</Badge>
@@ -113,30 +113,9 @@ export default function ClientDetailPage({ params }: { params: Promise<{ clientI
       </div>
 
       <div className="mt-6 grid grid-cols-3 gap-4">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm font-medium text-muted-foreground">{t('clientDetail.leads')}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold">{client._count.leads}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm font-medium text-muted-foreground">{t('clientDetail.interactions')}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold">{client._count.interactions}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm font-medium text-muted-foreground">{t('clientDetail.numbers')}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold">{client.phoneNumbers.length}</p>
-          </CardContent>
-        </Card>
+        <StatMini icon={Users} label={t('clientDetail.leads')} value={client._count.leads} />
+        <StatMini icon={Activity} label={t('clientDetail.interactions')} value={client._count.interactions} />
+        <StatMini icon={Phone} label={t('clientDetail.numbers')} value={client.phoneNumbers.length} />
       </div>
 
       <ClientSettingsCard client={client} />
@@ -223,6 +202,28 @@ export default function ClientDetailPage({ params }: { params: Promise<{ clientI
 
       <ZapierWebhookCard clientId={clientId} />
     </div>
+  );
+}
+
+function StatMini({
+  icon: Icon,
+  label,
+  value,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  value: number;
+}) {
+  return (
+    <Card>
+      <CardContent className="p-4">
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
+          <Icon className="h-[1.05rem] w-[1.05rem]" />
+        </div>
+        <p className="tabular mt-2.5 text-2xl font-bold leading-none tracking-tight">{value}</p>
+        <p className="mt-1.5 text-sm font-medium text-muted-foreground">{label}</p>
+      </CardContent>
+    </Card>
   );
 }
 

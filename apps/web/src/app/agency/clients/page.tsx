@@ -60,7 +60,7 @@ export default function ClientsPage() {
       <header className="mb-6 flex items-start justify-between">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-3xl font-bold">{t('agencyClients.title')}</h1>
+            <h1 className="text-2xl font-bold md:text-3xl">{t('agencyClients.title')}</h1>
             <HelpHint topic="clientes" />
           </div>
           <p className="mt-1 text-muted-foreground">{t('agencyClients.subtitle').replace('{count}', String(clients.length))}</p>

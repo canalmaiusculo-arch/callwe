@@ -138,7 +138,7 @@ export default function AgencyDetailPage({ params }: { params: Promise<{ agencyI
             </div>
           ) : (
             <div className="flex items-center gap-2">
-              <h1 className="text-3xl font-bold">{agency.name}</h1>
+              <h1 className="text-2xl font-bold md:text-3xl">{agency.name}</h1>
               <Button
                 size="sm"
                 variant="ghost"
