@@ -181,7 +181,7 @@ export default function AgentPage() {
   useEffect(() => setSearch(''), [tab]);
 
   return (
-    <div className="grid h-screen grid-cols-12 gap-3 bg-muted/20 p-3">
+    <div className="grid h-screen grid-rows-1 grid-cols-12 gap-3 bg-muted/20 p-3">
       <ChatWidget />
       <NotificationCenter />
       <aside className="col-span-2 flex flex-col rounded-lg bg-sidebar-gradient p-3 text-white">
