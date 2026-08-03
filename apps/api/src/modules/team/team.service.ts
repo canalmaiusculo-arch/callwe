@@ -224,12 +224,15 @@ export class TeamService {
     }));
   }
 
-  /** Atualiza o perfil (nome) de um atendente. */
-  updateProfile(userId: string, fullName: string) {
+  /** Atualiza o perfil (nome e/ou foto) de um atendente. */
+  updateProfile(userId: string, input: { fullName?: string; avatarUrl?: string | null }) {
     return this.prisma.user.update({
       where: { id: userId },
-      data: { fullName },
-      select: { id: true, fullName: true },
+      data: {
+        ...(input.fullName !== undefined ? { fullName: input.fullName } : {}),
+        ...(input.avatarUrl !== undefined ? { avatarUrl: input.avatarUrl } : {}),
+      },
+      select: { id: true, fullName: true, avatarUrl: true },
     });
   }
 

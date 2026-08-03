@@ -689,7 +689,9 @@
     "statClients": "Clientes",
     "statAgents": "Atendentes",
     "statLeads": "Leads",
-    "since": "Desde"
+    "since": "Desde",
+    "changeLogo": "Trocar logo",
+    "logoSaved": "Logo atualizado"
   },
   "adminTeam": {
     "title": "Atendentes",
@@ -733,7 +735,9 @@
     "nameSaved": "Nome atualizado",
     "editName": "Editar nome",
     "lastLogin": "Último acesso:",
-    "neverLoggedIn": "Nunca acessou"
+    "neverLoggedIn": "Nunca acessou",
+    "changePhoto": "Trocar foto",
+    "photoSaved": "Foto atualizada"
   },
   "adminAgencyDetail": {
     "loading": "Carregando...",

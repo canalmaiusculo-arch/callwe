@@ -16,6 +16,7 @@ const CreateDto = z.object({
 const UpdateDto = z.object({
   name: z.string().min(2).optional(),
   status: z.enum(['active', 'suspended']).optional(),
+  logoUrl: z.string().max(400_000).nullable().optional(),
 });
 
 const InviteAdminDto = z.object({

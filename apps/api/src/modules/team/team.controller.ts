@@ -30,7 +30,9 @@ const SyncSubsDto = z.object({
 });
 
 const ProfileDto = z.object({
-  fullName: z.string().min(2),
+  fullName: z.string().min(2).optional(),
+  // Foto de perfil como data URL (imagem redimensionada no cliente). Cap ~300KB.
+  avatarUrl: z.string().max(400_000).nullable().optional(),
 });
 
 @Controller('team')
@@ -118,7 +120,7 @@ export class TeamController {
     @Param('userId') userId: string,
     @ZodBody(ProfileDto) dto: z.infer<typeof ProfileDto>,
   ) {
-    return this.svc.updateProfile(userId, dto.fullName);
+    return this.svc.updateProfile(userId, dto);
   }
 
   @Delete(':userId')

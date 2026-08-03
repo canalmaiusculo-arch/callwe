@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { UserPlus, Copy, UserX, Pencil, X as XIcon, Users } from 'lucide-react';
+import { UserPlus, Copy, UserX, Pencil, X as XIcon, Users, Camera } from 'lucide-react';
+import { pickAndResizeImage } from '@/lib/image-upload';
 import { toast } from 'sonner';
 import { apiClient } from '@/lib/api-client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -219,6 +220,20 @@ function AgentRow({
     onError: (err: Error) => toast.error(err.message),
   });
 
+  const saveAvatar = useMutation({
+    mutationFn: (avatarUrl: string) => apiClient.patch(`/team/${agent.id}/profile`, { avatarUrl }),
+    onSuccess: () => {
+      toast.success(t('adminTeam.photoSaved'));
+      qc.invalidateQueries({ queryKey: ['all-agents'] });
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+
+  const pickAvatar = async () => {
+    const dataUrl = await pickAndResizeImage(256);
+    if (dataUrl) saveAvatar.mutate(dataUrl);
+  };
+
   const clientCount = agent.assignedSubAccounts.length;
 
   return (
@@ -226,15 +241,25 @@ function AgentRow({
       <Card>
         <CardContent className="p-4">
           <div className="flex items-start gap-3">
-            {/* Avatar */}
-            {agent.avatarUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={agent.avatarUrl} alt={agent.fullName} className="h-12 w-12 shrink-0 rounded-full object-cover" />
-            ) : (
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-brand-gradient text-sm font-bold text-white">
-                {initials || '?'}
-              </div>
-            )}
+            {/* Avatar (clique pra trocar a foto) */}
+            <button
+              onClick={pickAvatar}
+              disabled={saveAvatar.isPending}
+              title={t('adminTeam.changePhoto')}
+              className="group relative h-12 w-12 shrink-0 overflow-hidden rounded-full"
+            >
+              {agent.avatarUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={agent.avatarUrl} alt={agent.fullName} className="h-12 w-12 object-cover" />
+              ) : (
+                <div className="flex h-12 w-12 items-center justify-center bg-brand-gradient text-sm font-bold text-white">
+                  {initials || '?'}
+                </div>
+              )}
+              <span className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity group-hover:opacity-100">
+                <Camera className="h-4 w-4 text-white" />
+              </span>
+            </button>
 
             <div className="min-w-0 flex-1">
               {editingName ? (

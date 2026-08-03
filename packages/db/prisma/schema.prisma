@@ -157,6 +157,7 @@ model Agency {
   slug                  String        @unique
   billingEmail          String        @map("billing_email")
   status                AgencyStatus  @default(active)
+  logoUrl               String?       @map("logo_url")
   cloudtalkWorkspaceId  String?       @map("cloudtalk_workspace_id")
   settings              Json          @default("{}")
   createdAt             DateTime      @default(now()) @map("created_at") @db.Timestamptz

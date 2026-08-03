@@ -3,7 +3,8 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Plus, ChevronRight, Copy, Building2, Users, UserPlus } from 'lucide-react';
+import { Plus, ChevronRight, Copy, Building2, Users, UserPlus, Camera } from 'lucide-react';
+import { pickAndResizeImage } from '@/lib/image-upload';
 import { toast } from 'sonner';
 import { apiClient } from '@/lib/api-client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -18,6 +19,7 @@ interface Agency {
   slug: string;
   billingEmail: string;
   status: 'active' | 'suspended';
+  logoUrl: string | null;
   createdAt: string;
   _count: { subAccounts: number };
   activeClients: number;
@@ -173,43 +175,83 @@ export default function AdminAgenciesPage() {
           </Card>
         )}
         {agencies.map((a) => (
-          <Link key={a.id} href={`/admin/agencies/${a.id}` as never}>
-            <Card className="transition-shadow hover:shadow-md">
-              <CardContent className="p-5">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex min-w-0 items-center gap-3">
-                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-gradient text-sm font-bold text-white">
-                      {a.name.slice(0, 2).toUpperCase()}
-                    </div>
-                    <div className="min-w-0">
-                      <p className="truncate text-base font-semibold">{a.name}</p>
-                      <p className="truncate text-xs text-muted-foreground">
-                        {a.slug} · {a.billingEmail}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex shrink-0 items-center gap-2">
-                    <Badge variant={a.status === 'active' ? 'success' : 'secondary'}>
-                      {t(`adminAgencies.status.${a.status}`)}
-                    </Badge>
-                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                  </div>
-                </div>
-
-                <div className="mt-4 grid grid-cols-3 gap-2 border-t pt-3">
-                  <AgencyStat icon={Building2} value={a.activeClients} label={t('adminAgencies.statClients')} />
-                  <AgencyStat icon={Users} value={a.agents} label={t('adminAgencies.statAgents')} />
-                  <AgencyStat icon={UserPlus} value={a.totalLeads} label={t('adminAgencies.statLeads')} />
-                </div>
-                <p className="mt-3 text-[11px] text-muted-foreground">
-                  {t('adminAgencies.since')} {new Date(a.createdAt).toLocaleDateString('pt-BR')}
-                </p>
-              </CardContent>
-            </Card>
-          </Link>
+          <AgencyCard key={a.id} agency={a} />
         ))}
       </div>
     </div>
+  );
+}
+
+function AgencyCard({ agency: a }: { agency: Agency }) {
+  const { t } = useTranslate();
+  const qc = useQueryClient();
+
+  const saveLogo = useMutation({
+    mutationFn: (logoUrl: string) => apiClient.patch(`/agencies/${a.id}`, { logoUrl }),
+    onSuccess: () => {
+      toast.success(t('adminAgencies.logoSaved'));
+      qc.invalidateQueries({ queryKey: ['agencies'] });
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+
+  const pickLogo = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const dataUrl = await pickAndResizeImage(256);
+    if (dataUrl) saveLogo.mutate(dataUrl);
+  };
+
+  return (
+    <Link href={`/admin/agencies/${a.id}` as never}>
+      <Card className="transition-shadow hover:shadow-md">
+        <CardContent className="p-5">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex min-w-0 items-center gap-3">
+              <button
+                onClick={pickLogo}
+                disabled={saveLogo.isPending}
+                title={t('adminAgencies.changeLogo')}
+                className="group relative h-11 w-11 shrink-0 overflow-hidden rounded-xl"
+              >
+                {a.logoUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={a.logoUrl} alt={a.name} className="h-11 w-11 object-cover" />
+                ) : (
+                  <div className="flex h-11 w-11 items-center justify-center bg-brand-gradient text-sm font-bold text-white">
+                    {a.name.slice(0, 2).toUpperCase()}
+                  </div>
+                )}
+                <span className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity group-hover:opacity-100">
+                  <Camera className="h-4 w-4 text-white" />
+                </span>
+              </button>
+              <div className="min-w-0">
+                <p className="truncate text-base font-semibold">{a.name}</p>
+                <p className="truncate text-xs text-muted-foreground">
+                  {a.slug} · {a.billingEmail}
+                </p>
+              </div>
+            </div>
+            <div className="flex shrink-0 items-center gap-2">
+              <Badge variant={a.status === 'active' ? 'success' : 'secondary'}>
+                {t(`adminAgencies.status.${a.status}`)}
+              </Badge>
+              <ChevronRight className="h-4 w-4 text-muted-foreground" />
+            </div>
+          </div>
+
+          <div className="mt-4 grid grid-cols-3 gap-2 border-t pt-3">
+            <AgencyStat icon={Building2} value={a.activeClients} label={t('adminAgencies.statClients')} />
+            <AgencyStat icon={Users} value={a.agents} label={t('adminAgencies.statAgents')} />
+            <AgencyStat icon={UserPlus} value={a.totalLeads} label={t('adminAgencies.statLeads')} />
+          </div>
+          <p className="mt-3 text-[11px] text-muted-foreground">
+            {t('adminAgencies.since')} {new Date(a.createdAt).toLocaleDateString('pt-BR')}
+          </p>
+        </CardContent>
+      </Card>
+    </Link>
   );
 }
 

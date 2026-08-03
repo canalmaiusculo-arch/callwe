@@ -37,7 +37,10 @@ export class AgenciesService {
     return this.prisma.agency.create({ data: input });
   }
 
-  async update(id: string, input: { name?: string; status?: 'active' | 'suspended' }) {
+  async update(
+    id: string,
+    input: { name?: string; status?: 'active' | 'suspended'; logoUrl?: string | null },
+  ) {
     return this.prisma.agency.update({ where: { id }, data: input });
   }
 
