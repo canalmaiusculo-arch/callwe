@@ -25,6 +25,14 @@ export class AuthService {
     });
   }
 
+  /** Perfil do usuário logado (para exibir quem está logado no painel). */
+  async me(userId: string) {
+    return this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, email: true, fullName: true, avatarUrl: true },
+    });
+  }
+
   async validateUser(email: string, password: string) {
     const user = await this.prisma.user.findUnique({
       where: { email },

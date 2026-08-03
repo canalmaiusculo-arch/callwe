@@ -121,6 +121,13 @@ export default function AgentPage() {
   const clearAuth = useAuthStore((s) => s.clear);
   const queryClient = useQueryClient();
 
+  // Usuário logado (para exibir quem está no painel).
+  const { data: me } = useQuery<{ id: string; fullName: string; email: string; avatarUrl: string | null }>({
+    queryKey: ['me'],
+    queryFn: () => apiClient.get('/auth/me'),
+    staleTime: 5 * 60_000,
+  });
+
   const { data: clients = [] } = useQuery<AssignedClient[]>({
     queryKey: ['my-clients', selectedAgentId],
     queryFn: () =>
@@ -189,6 +196,23 @@ export default function AgentPage() {
           <p className="text-xs uppercase text-white/70">{t('agentPanel.agentLabel')}</p>
           <p className="text-sm font-semibold text-white">{t('agentPanel.livePanel')}</p>
         </div>
+
+        {me && (
+          <div className="mb-3 flex items-center gap-2 rounded-lg bg-white/10 px-2.5 py-2">
+            {me.avatarUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={me.avatarUrl} alt={me.fullName} className="h-9 w-9 shrink-0 rounded-full object-cover" />
+            ) : (
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/20 text-xs font-bold text-white">
+                {me.fullName.split(' ').map((p) => p[0]).filter(Boolean).slice(0, 2).join('').toUpperCase() || '?'}
+              </div>
+            )}
+            <div className="min-w-0">
+              <p className="truncate text-sm font-semibold text-white">{me.fullName}</p>
+              <p className="truncate text-[11px] text-white/60">{me.email}</p>
+            </div>
+          </div>
+        )}
 
         <nav className="mb-3 space-y-1">
           <TabButton active={tab === 'dashboard'} onClick={() => setTab('dashboard')} icon={Gauge} label={t('agentPanel.tabDashboard')} />

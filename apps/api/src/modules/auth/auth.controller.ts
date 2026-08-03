@@ -1,9 +1,10 @@
-import { Body, Controller, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Post, Req, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import type { Request } from 'express';
 import { z } from 'zod';
 import { AuthService } from './auth.service.js';
 import { ZodBody } from '../../common/pipes/zod.pipe.js';
+import { CurrentUser, AuthUser } from '../../common/decorators/current-user.decorator.js';
 
 const LoginDto = z.object({ email: z.string().email(), password: z.string().min(8) });
 const RegisterDto = LoginDto.extend({ fullName: z.string().min(2) });
@@ -24,6 +25,13 @@ export class AuthController {
   async login(@ZodBody(LoginDto) dto: z.infer<typeof LoginDto>, @Req() req: Request) {
     const user = await this.auth.validateUser(dto.email, dto.password);
     return this.auth.issueTokens(user, { ip: req.ip, ua: req.headers['user-agent'] });
+  }
+
+  /** Perfil do usuário logado. */
+  @Get('me')
+  @UseGuards(AuthGuard('jwt'))
+  me(@CurrentUser() user: AuthUser) {
+    return this.auth.me(user.id);
   }
 
   @Post('refresh')
