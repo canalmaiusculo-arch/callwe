@@ -39,6 +39,7 @@ export class TeamService {
       id: u.id,
       email: u.email,
       fullName: u.fullName,
+      avatarUrl: u.avatarUrl,
       status: u.status,
       lastLoginAt: u.lastLoginAt,
       memberships: u.memberships.map((m) => ({
