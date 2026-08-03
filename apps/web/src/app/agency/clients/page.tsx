@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Plus, ChevronRight } from 'lucide-react';
+import { Plus, ChevronRight, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { apiClient } from '@/lib/api-client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -44,6 +44,15 @@ export default function ClientsPage() {
       setShowForm(false);
       setName('');
       setSlug('');
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+
+  const archive = useMutation({
+    mutationFn: (id: string) => apiClient.del(`/sub-accounts/${id}`),
+    onSuccess: () => {
+      toast.success(t('agencyClients.toastArchived'));
+      qc.invalidateQueries({ queryKey: ['agency-clients'] });
     },
     onError: (err: Error) => toast.error(err.message),
   });
@@ -122,6 +131,20 @@ export default function ClientsPage() {
                 <div className="flex items-center gap-2">
                   <Badge variant={c.status === 'active' ? 'success' : 'secondary'}>{c.status}</Badge>
                   <Badge variant="outline">{c.plan}</Badge>
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      if (window.confirm(t('agencyClients.confirmArchive').replace('{name}', c.name))) {
+                        archive.mutate(c.id);
+                      }
+                    }}
+                    disabled={archive.isPending}
+                    title={t('agencyClients.archive')}
+                    className="rounded-md p-1.5 text-muted-foreground hover:bg-red-50 hover:text-red-600"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
                   <ChevronRight className="h-4 w-4 text-muted-foreground" />
                 </div>
               </CardHeader>

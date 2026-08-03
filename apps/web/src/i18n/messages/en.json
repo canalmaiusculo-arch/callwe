@@ -223,7 +223,10 @@
     "create": "Create",
     "formHint": "After creating, open the client to invite their access and assign numbers.",
     "empty": "No clients assigned to your agency yet.",
-    "toastCreated": "Client created"
+    "toastCreated": "Client created",
+    "archive": "Delete client",
+    "toastArchived": "Client deleted (archived)",
+    "confirmArchive": "Delete client {name}? It will be archived and removed from the list."
   },
   "clientDetail": {
     "numberAttached": "Number assigned",

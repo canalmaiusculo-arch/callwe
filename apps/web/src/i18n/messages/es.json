@@ -223,7 +223,10 @@
     "create": "Crear",
     "formHint": "Después de crear, abre el cliente para invitar su acceso y asignar números.",
     "empty": "Aún no hay clientes asignados a tu agencia.",
-    "toastCreated": "Cliente creado"
+    "toastCreated": "Cliente creado",
+    "archive": "Eliminar cliente",
+    "toastArchived": "Cliente eliminado (archivado)",
+    "confirmArchive": "¿Eliminar el cliente {name}? Se archivará y saldrá de la lista."
   },
   "clientDetail": {
     "numberAttached": "Número asignado",

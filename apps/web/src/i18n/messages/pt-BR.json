@@ -223,7 +223,10 @@
     "create": "Criar",
     "formHint": "Depois de criar, abra o cliente para convidar o acesso dele e atribuir números.",
     "empty": "Nenhum cliente atribuído à sua agência ainda.",
-    "toastCreated": "Cliente criado"
+    "toastCreated": "Cliente criado",
+    "archive": "Excluir cliente",
+    "toastArchived": "Cliente excluído (arquivado)",
+    "confirmArchive": "Excluir o cliente {name}? Ele será arquivado e sairá da lista."
   },
   "clientDetail": {
     "numberAttached": "Número associado",

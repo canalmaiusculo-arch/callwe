@@ -2,6 +2,7 @@ import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards } f
 import { AuthGuard } from '@nestjs/passport';
 import { z } from 'zod';
 import { TeamService } from './team.service.js';
+import { PrismaService } from '../prisma/prisma.service.js';
 import { Roles } from '../../common/decorators/roles.decorator.js';
 import { RolesGuard } from '../../common/guards/roles.guard.js';
 import { ROLES } from '@callwe/shared';
@@ -37,7 +38,10 @@ const ProfileDto = z.object({
 
 @Controller('team')
 export class TeamController {
-  constructor(private readonly svc: TeamService) {}
+  constructor(
+    private readonly svc: TeamService,
+    private readonly prisma: PrismaService,
+  ) {}
 
   /** Aceitar convite — público. */
   @Post('accept-invite')
@@ -50,11 +54,16 @@ export class TeamController {
   @Get()
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles(ROLES.AGENCY_ADMIN, ROLES.SUPER_ADMIN)
-  list(@CurrentUser() user: AuthUser, @Query('agencyId') queryAgencyId?: string) {
+  async list(@CurrentUser() user: AuthUser, @Query('agencyId') queryAgencyId?: string) {
     const isSuperAdmin = user.memberships.some((m) => m.role === 'super_admin');
-    const agencyId = isSuperAdmin && queryAgencyId
-      ? queryAgencyId
-      : user.memberships.find((m) => m.agencyId)?.agencyId;
+    let agencyId = user.memberships.find((m) => m.agencyId)?.agencyId;
+    if (isSuperAdmin) {
+      // super_admin: agência escolhida (impersonation) → própria → primeira do banco.
+      agencyId =
+        queryAgencyId ??
+        agencyId ??
+        (await this.prisma.agency.findFirst({ orderBy: { createdAt: 'asc' }, select: { id: true } }))?.id;
+    }
     if (!agencyId) return [];
     return this.svc.list(agencyId);
   }
