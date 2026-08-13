@@ -542,6 +542,7 @@
     "noPagesMatch": "Nenhuma página corresponde à busca.",
     "loading": "Carregando...",
     "noPages": "Nenhuma página encontrada. Verifique permissões no Facebook.",
+    "pagesError": "Não foi possível carregar suas páginas. Sua conexão com a Meta pode ter expirado — reconecte em Integrations.",
     "formsFor": "Formulários",
     "selectPage": "Selecione uma página",
     "choosePage": "Escolha uma página à esquerda para ver seus formulários de Lead Ads.",

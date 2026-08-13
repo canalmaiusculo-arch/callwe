@@ -5,14 +5,21 @@ import type { MetaLead, MetaLeadForm, MetaPage } from './types.js';
 export interface GraphClientOptions {
   accessToken: string;
   graphVersion?: string;
+  appId?: string;
+  appSecret?: string;
 }
 
 export class MetaGraphClient {
   readonly http: AxiosInstance;
   private readonly version: string;
+  private readonly accessToken: string;
+  private readonly appAccessToken?: string;
 
   constructor(opts: GraphClientOptions) {
     this.version = opts.graphVersion ?? 'v20.0';
+    this.accessToken = opts.accessToken;
+    this.appAccessToken =
+      opts.appId && opts.appSecret ? `${opts.appId}|${opts.appSecret}` : undefined;
     this.http = axios.create({
       baseURL: `https://graph.facebook.com/${this.version}`,
       timeout: 15_000,
@@ -28,11 +35,61 @@ export class MetaGraphClient {
     });
   }
 
+  /**
+   * IDs de páginas concedidas pelo seletor granular do Facebook Login. Páginas de
+   * Portfólio de Negócios não aparecem em /me/accounts, mas ficam registradas nos
+   * `granular_scopes` do token (obtidos via debug_token).
+   */
+  private async grantedPageIds(): Promise<string[]> {
+    try {
+      const res = await this.http.get('/debug_token', {
+        params: {
+          input_token: this.accessToken,
+          access_token: this.appAccessToken ?? this.accessToken,
+        },
+      });
+      const granular = res.data?.data?.granular_scopes as
+        | Array<{ scope: string; target_ids?: string[] }>
+        | undefined;
+      const ids = new Set<string>();
+      for (const g of granular ?? []) for (const id of g.target_ids ?? []) ids.add(id);
+      return [...ids];
+    } catch {
+      return [];
+    }
+  }
+
+  /**
+   * Lista páginas acessíveis: as de gestão clássica (/me/accounts) somadas às
+   * concedidas via seletor granular (portfólio), buscadas pelo nó da página.
+   */
   async listPages(userId = 'me'): Promise<MetaPage[]> {
-    const res = await this.http.get(`/${userId}/accounts`, {
-      params: { fields: 'id,name,access_token,category,tasks', limit: 100 },
-    });
-    return (res.data?.data as MetaPage[]) ?? [];
+    const byId = new Map<string, MetaPage>();
+
+    try {
+      const res = await this.http.get(`/${userId}/accounts`, {
+        params: { fields: 'id,name,access_token,category', limit: 100 },
+      });
+      for (const p of (res.data?.data as MetaPage[]) ?? []) byId.set(p.id, p);
+    } catch {
+      // conta pode não ter páginas de gestão clássica — segue para as granulares
+    }
+
+    const granted = await this.grantedPageIds();
+    for (const id of granted) {
+      if (byId.has(id)) continue;
+      try {
+        const pr = await this.http.get(`/${id}`, {
+          params: { fields: 'id,name,access_token,category' },
+        });
+        const page = pr.data as MetaPage;
+        if (page?.id) byId.set(page.id, page);
+      } catch {
+        // sem acesso a esta página específica — ignora
+      }
+    }
+
+    return [...byId.values()];
   }
 
   async listForms(pageId: string, pageAccessToken: string): Promise<MetaLeadForm[]> {

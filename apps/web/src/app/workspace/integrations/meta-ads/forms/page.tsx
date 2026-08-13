@@ -38,9 +38,14 @@ export default function MetaAdsFormsPage() {
   const [selectedPage, setSelectedPage] = useState<MetaPage | null>(null);
   const [pageSearch, setPageSearch] = useState('');
 
-  const { data: pages = [], isLoading: loadingPages } = useQuery<MetaPage[]>({
+  const {
+    data: pages = [],
+    isLoading: loadingPages,
+    isError: pagesError,
+  } = useQuery<MetaPage[]>({
     queryKey: ['meta-pages'],
     queryFn: () => apiClient.get<MetaPage[]>('/integrations/meta-ads/pages'),
+    retry: false,
   });
 
   const {
@@ -117,7 +122,12 @@ export default function MetaAdsFormsPage() {
           </CardHeader>
           <CardContent className="max-h-[65vh] space-y-1 overflow-auto">
             {loadingPages && <p className="text-sm text-muted-foreground">{t('metaForms.loading')}</p>}
-            {!loadingPages && pages.length === 0 && (
+            {!loadingPages && pagesError && (
+              <p className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+                {t('metaForms.pagesError')}
+              </p>
+            )}
+            {!loadingPages && !pagesError && pages.length === 0 && (
               <p className="text-sm text-muted-foreground">
                 {t('metaForms.noPages')}
               </p>

@@ -542,6 +542,7 @@
     "noPagesMatch": "No pages match your search.",
     "loading": "Loading...",
     "noPages": "No pages found. Check your Facebook permissions.",
+    "pagesError": "Couldn't load your pages. Your Meta connection may have expired — reconnect it in Integrations.",
     "formsFor": "Forms",
     "selectPage": "Select a page",
     "choosePage": "Choose a page on the left to view its Lead Ads forms.",

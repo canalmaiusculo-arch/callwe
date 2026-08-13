@@ -80,6 +80,8 @@ export class MetaAdsService {
     const client = new MetaGraphClient({
       accessToken: creds.userAccessToken,
       graphVersion: env.META_GRAPH_VERSION,
+      appId: env.META_APP_ID,
+      appSecret: env.META_APP_SECRET,
     });
     return client.listPages();
   }
