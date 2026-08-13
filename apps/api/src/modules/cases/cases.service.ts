@@ -29,6 +29,17 @@ interface CaseFilters {
 export class CasesService {
   constructor(private readonly prisma: PrismaService) {}
 
+  /**
+   * Marca o lead como "tratado" (deixa de ser pendência): avança status new→contacted.
+   * Só afeta leads ainda 'new', então nunca rebaixa um lead já trabalhado.
+   */
+  async markContacted(leadId: string) {
+    await this.prisma.lead.updateMany({
+      where: { id: leadId, status: 'new' },
+      data: { status: 'contacted', firstContactAt: new Date() },
+    });
+  }
+
   /** Sub-accounts que o atendente atende (ou, para admin, as de um atendente supervisionado). */
   private async scopeSubIds(user: Caller, agentId?: string): Promise<string[]> {
     const isAdmin = user.memberships.some((m) => m.role === 'super_admin' || m.role === 'agency_admin');
@@ -214,6 +225,8 @@ export class CasesService {
       },
     });
     if (!lead) throw new NotFoundException('Caso não encontrado');
+    // Abrir a ficha conta como "tratado": some da fila de pendências.
+    await this.markContacted(caseId);
     const cf = (lead.customFields ?? {}) as Record<string, unknown>;
     return {
       ...this.shapeListItem(lead as unknown as LeadRow),
@@ -235,6 +248,7 @@ export class CasesService {
       include: { author: { select: { id: true, fullName: true } } },
     });
     await this.prisma.lead.update({ where: { id: caseId }, data: { lastContactAt: new Date() } });
+    await this.markContacted(caseId);
     return { id: note.id, body: note.body, createdAt: note.createdAt, author: note.author };
   }
 
@@ -245,6 +259,7 @@ export class CasesService {
     input: { followUpAt: Date; reason?: string; assignedToId?: string },
   ) {
     await this.assertAccess(user, caseId);
+    await this.markContacted(caseId);
     return this.prisma.lead.update({
       where: { id: caseId },
       data: {

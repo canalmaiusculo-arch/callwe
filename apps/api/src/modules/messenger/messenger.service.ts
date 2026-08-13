@@ -143,7 +143,16 @@ export class MessengerService {
       include: { senderUser: { select: { id: true, fullName: true } } },
     });
     const windowOpen = !!conv.lastInboundAt && Date.now() - conv.lastInboundAt.getTime() < MESSAGING_WINDOW_MS;
+    // Abrir a conversa marca o lead vinculado como tratado (sai das pendências).
+    if (conv.leadId) await this.markLeadContacted(conv.leadId);
     return { conversation: conv, messages, windowOpen };
+  }
+
+  private async markLeadContacted(leadId: string) {
+    await this.prisma.lead.updateMany({
+      where: { id: leadId, status: 'new' },
+      data: { status: 'contacted', firstContactAt: new Date() },
+    });
   }
 
   /** Responde uma conversa via Send API (respeitando a janela de 24h). */
@@ -182,6 +191,7 @@ export class MessengerService {
       where: { id: conv.id },
       data: { lastMessageAt: now, lastMessageText: text.slice(0, 200) },
     });
+    if (conv.leadId) await this.markLeadContacted(conv.leadId);
 
     return message;
   }

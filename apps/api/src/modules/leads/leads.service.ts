@@ -30,6 +30,13 @@ export class LeadsService {
     });
     if (!lead) throw new NotFoundException('Lead não encontrado');
     if (!lead.phoneE164) throw new BadRequestException('Lead sem telefone');
+    // Retornar a ligação para o lead marca-o como tratado.
+    if (lead.status === 'new') {
+      await this.prisma.lead.updateMany({
+        where: { id: leadId, status: 'new' },
+        data: { status: 'contacted', firstContactAt: new Date() },
+      });
+    }
 
     const agentsRes = await this.cloudtalk.client.http.get('/agents/index.json', {
       params: { limit: 200 },
@@ -125,8 +132,8 @@ export class LeadsService {
     };
   }
 
-  get(subAccountId: string, id: string, clientView = false) {
-    return this.prisma.lead.findFirst({
+  async get(subAccountId: string, id: string, clientView = false) {
+    const lead = await this.prisma.lead.findFirst({
       where: { id, subAccountId },
       include: {
         interactions: { orderBy: { startedAt: 'desc' } },
@@ -138,6 +145,15 @@ export class LeadsService {
         },
       },
     });
+    // Atendente abrir a ficha marca o lead como tratado (sai da fila de pendências).
+    if (lead && !clientView && lead.status === 'new') {
+      await this.prisma.lead.updateMany({
+        where: { id, status: 'new' },
+        data: { status: 'contacted', firstContactAt: new Date() },
+      });
+      lead.status = 'contacted';
+    }
+    return lead;
   }
 
   create(

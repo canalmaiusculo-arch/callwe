@@ -127,6 +127,8 @@ export class InteractionsController {
     const interaction = await this.svc.getAny(id);
     if (!interaction) throw new NotFoundException();
     if (!subAccountIds.includes(interaction.subAccountId)) throw new NotFoundException();
+    // Abrir a chamada/SMS marca o lead vinculado como tratado.
+    if (interaction.leadId) await this.svc.markLeadContacted(interaction.leadId);
     return interaction;
   }
 

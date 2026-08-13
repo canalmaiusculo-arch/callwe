@@ -51,6 +51,12 @@ export class InteractionsService {
       throw err;
     }
 
+    // Responder o lead marca-o como tratado (casa por telefone + sub-conta).
+    await this.prisma.lead.updateMany({
+      where: { subAccountId: input.subAccountId, phoneE164: input.toNumber, status: 'new', deletedAt: null },
+      data: { status: 'contacted', firstContactAt: new Date() },
+    });
+
     // O webhook sms.sent vai chegar em 1-3s e o worker persiste a Interaction.
     // Aqui só retornamos sucesso — frontend invalida o cache e o refetch
     // pega o registro quando ele aparecer.
@@ -203,6 +209,14 @@ export class InteractionsService {
         agent: { select: { id: true, fullName: true } },
         subAccount: { select: { id: true, name: true } },
       },
+    });
+  }
+
+  /** Marca o lead como tratado (new→contacted) — usado ao abrir a interação. */
+  async markLeadContacted(leadId: string) {
+    await this.prisma.lead.updateMany({
+      where: { id: leadId, status: 'new' },
+      data: { status: 'contacted', firstContactAt: new Date() },
     });
   }
 
