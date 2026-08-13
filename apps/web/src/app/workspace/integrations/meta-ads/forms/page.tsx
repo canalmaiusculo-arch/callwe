@@ -9,6 +9,7 @@ import { useTranslate } from '@/i18n/provider';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
 
 interface MetaPage {
   id: string;
@@ -35,6 +36,7 @@ export default function MetaAdsFormsPage() {
   const { t } = useTranslate();
   const qc = useQueryClient();
   const [selectedPage, setSelectedPage] = useState<MetaPage | null>(null);
+  const [pageSearch, setPageSearch] = useState('');
 
   const { data: pages = [], isLoading: loadingPages } = useQuery<MetaPage[]>({
     queryKey: ['meta-pages'],
@@ -84,6 +86,9 @@ export default function MetaAdsFormsPage() {
   });
 
   const enabledIds = new Set(enabled.map((e) => e.formId));
+  const visiblePages = pageSearch
+    ? pages.filter((p) => p.name.toLowerCase().includes(pageSearch.toLowerCase()))
+    : pages;
 
   return (
     <div className="p-8">
@@ -98,16 +103,29 @@ export default function MetaAdsFormsPage() {
         {/* Páginas */}
         <Card className="col-span-4">
           <CardHeader>
-            <CardTitle className="text-base">{t('metaForms.yourPages')}</CardTitle>
+            <CardTitle className="text-base">
+              {t('metaForms.yourPages')} {pages.length > 0 && <span className="text-muted-foreground">({pages.length})</span>}
+            </CardTitle>
+            {pages.length > 8 && (
+              <Input
+                value={pageSearch}
+                onChange={(e) => setPageSearch(e.target.value)}
+                placeholder={t('metaForms.searchPages')}
+                className="mt-2 h-8"
+              />
+            )}
           </CardHeader>
-          <CardContent className="space-y-1">
+          <CardContent className="max-h-[65vh] space-y-1 overflow-auto">
             {loadingPages && <p className="text-sm text-muted-foreground">{t('metaForms.loading')}</p>}
             {!loadingPages && pages.length === 0 && (
               <p className="text-sm text-muted-foreground">
                 {t('metaForms.noPages')}
               </p>
             )}
-            {pages.map((p) => (
+            {!loadingPages && pages.length > 0 && visiblePages.length === 0 && (
+              <p className="text-sm text-muted-foreground">{t('metaForms.noPagesMatch')}</p>
+            )}
+            {visiblePages.map((p) => (
               <button
                 key={p.id}
                 onClick={() => setSelectedPage(p)}
@@ -115,7 +133,7 @@ export default function MetaAdsFormsPage() {
                   selectedPage?.id === p.id ? 'bg-muted font-medium' : ''
                 }`}
               >
-                <Facebook className="h-4 w-4 text-blue-600" />
+                <Facebook className="h-4 w-4 shrink-0 text-blue-600" />
                 <div className="flex-1">
                   <p>{p.name}</p>
                   {p.category && <p className="text-xs text-muted-foreground">{p.category}</p>}

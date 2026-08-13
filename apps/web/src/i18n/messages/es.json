@@ -538,6 +538,8 @@
     "title": "Meta Ads — formularios",
     "subtitle": "Seleccione una página y active los formularios cuyos leads deben ingresar al CRM.",
     "yourPages": "Sus páginas",
+    "searchPages": "Buscar páginas...",
+    "noPagesMatch": "Ninguna página coincide con la búsqueda.",
     "loading": "Cargando...",
     "noPages": "No se encontraron páginas. Verifique los permisos en Facebook.",
     "formsFor": "Formularios",

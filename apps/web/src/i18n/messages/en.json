@@ -538,6 +538,8 @@
     "title": "Meta Ads — Forms",
     "subtitle": "Select a page and enable the forms whose leads should flow into the CRM.",
     "yourPages": "Your pages",
+    "searchPages": "Search pages...",
+    "noPagesMatch": "No pages match your search.",
     "loading": "Loading...",
     "noPages": "No pages found. Check your Facebook permissions.",
     "formsFor": "Forms",
