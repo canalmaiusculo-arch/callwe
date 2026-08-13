@@ -15,6 +15,7 @@ const SCOPES = [
   'pages_read_engagement',
   'pages_manage_metadata',
   'pages_manage_ads', // necessário para ler /{page}/leadgen_forms (listar formulários)
+  'pages_messaging', // necessário para enviar respostas via Send API (Messenger/Instagram DM)
   'leads_retrieval',
   'ads_management',
 ];
