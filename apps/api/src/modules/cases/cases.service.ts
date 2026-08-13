@@ -4,6 +4,14 @@ import { PrismaService } from '../prisma/prisma.service.js';
 
 // SLA operacional: um caso não resolvido em 7 dias vira "alerta máximo".
 const SLA_MS = 7 * 24 * 60 * 60 * 1000;
+// Data de lançamento da Gestão Operacional. Leads criados antes disso já existiam
+// e não devem nascer "vencidos": o relógio de SLA deles conta a partir daqui.
+const SLA_GRANDFATHER_MS = new Date('2026-08-13T00:00:00Z').getTime();
+
+// Início efetivo do SLA de um caso (o mais recente entre criação e lançamento).
+function slaStart(createdAt: Date): number {
+  return Math.max(createdAt.getTime(), SLA_GRANDFATHER_MS);
+}
 
 type Tab = 'open' | 'follow_up' | 'resolved';
 type Member = { role: string; agencyId?: string | null; subAccountId?: string | null };
@@ -35,7 +43,7 @@ export class CasesService {
   }
 
   private isOverdue(row: { caseStatus: string; createdAt: Date }): boolean {
-    return row.caseStatus !== 'resolved' && Date.now() - row.createdAt.getTime() > SLA_MS;
+    return row.caseStatus !== 'resolved' && Date.now() - slaStart(row.createdAt) > SLA_MS;
   }
 
   private shapeListItem(l: LeadRow) {
@@ -117,13 +125,19 @@ export class CasesService {
     const subIds = await this.scopeSubIds(user, agentId);
     if (subIds.length === 0) return { open: 0, follow_up: 0, resolved: 0, overdue: 0 };
     const base: Prisma.LeadWhereInput = { deletedAt: null, subAccountId: { in: subIds } };
+    // Um caso está vencido quando max(createdAt, grandfather) < cutoff. Como o
+    // grandfather é fixo, se ele ainda não passou do cutoff, ninguém está vencido.
+    const cutoff = Date.now() - SLA_MS;
+    const grandfatherPassed = SLA_GRANDFATHER_MS < cutoff;
     const [open, follow_up, resolved, overdue] = await Promise.all([
       this.prisma.lead.count({ where: { ...base, caseStatus: 'open' } }),
       this.prisma.lead.count({ where: { ...base, caseStatus: 'follow_up' } }),
       this.prisma.lead.count({ where: { ...base, caseStatus: 'resolved' } }),
-      this.prisma.lead.count({
-        where: { ...base, caseStatus: { not: 'resolved' }, createdAt: { lt: new Date(Date.now() - SLA_MS) } },
-      }),
+      grandfatherPassed
+        ? this.prisma.lead.count({
+            where: { ...base, caseStatus: { not: 'resolved' }, createdAt: { lt: new Date(cutoff) } },
+          })
+        : Promise.resolve(0),
     ]);
     return { open, follow_up, resolved, overdue };
   }
