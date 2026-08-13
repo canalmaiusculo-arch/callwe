@@ -23,6 +23,7 @@ import {
   Target,
   Trophy,
   CalendarClock,
+  Briefcase,
 } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -37,6 +38,7 @@ import { useAuthStore } from '@/stores/auth-store';
 import { ChatWidget } from '@/components/chat-widget';
 import { NotificationCenter } from '@/components/notification-center';
 import { MessengerInbox } from '@/components/agent/messenger-inbox';
+import { CasesPanel } from '@/components/agent/cases-panel';
 import { useRealtimeCalls, useRealtimeSms } from '@/hooks/use-realtime-calls';
 import {
   LEAD_STATUS_COLOR,
@@ -106,7 +108,7 @@ interface AgentStats {
   recent: AgentRecent[];
 }
 
-type Tab = 'dashboard' | 'calls' | 'sms' | 'leads' | 'forms' | 'messenger' | 'briefings';
+type Tab = 'dashboard' | 'calls' | 'sms' | 'leads' | 'forms' | 'messenger' | 'briefings' | 'cases';
 
 export default function AgentPage() {
   const { t } = useTranslate();
@@ -223,6 +225,13 @@ export default function AgentPage() {
           <TabButton active={tab === 'messenger'} onClick={() => setTab('messenger')} icon={MessagesSquare} label={t('agentPanel.tabMessenger')} />
           <TabButton active={tab === 'briefings'} onClick={() => setTab('briefings')} icon={BookOpen} label={t('agentPanel.tabBriefings')} />
         </nav>
+
+        <div className="mb-3">
+          <p className="mb-1 px-1 text-[10px] font-semibold uppercase tracking-wide text-white/50">
+            {t('agentPanel.operationalSection')}
+          </p>
+          <TabButton active={tab === 'cases'} onClick={() => setTab('cases')} icon={Briefcase} label={t('agentPanel.tabCases')} />
+        </div>
 
         <div className="mt-2 flex min-h-0 flex-1 flex-col border-t border-white/15 pt-3">
           <p className="mb-2 text-xs font-medium uppercase text-white/60">
@@ -342,6 +351,8 @@ export default function AgentPage() {
           />
         ) : tab === 'messenger' ? (
           <MessengerInbox filterSubAccountId={filterSubAccountId} />
+        ) : tab === 'cases' ? (
+          <CasesPanel agentId={agentId} filterSubAccountId={filterSubAccountId} clients={clients} />
         ) : (
           <BriefingsView clients={clients} initialSelectedId={filterSubAccountId} />
         )}
