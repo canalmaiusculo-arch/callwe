@@ -49,6 +49,33 @@ export class IntegrationsService {
     });
   }
 
+  /**
+   * Desconecta uma integração: zera as credenciais, marca como desconectada e
+   * desabilita páginas de Messenger vinculadas (que dependiam do token). Mantém a
+   * linha (não deleta) por causa das FKs de MessengerPage/leads.
+   */
+  async disconnect(subAccountId: string, provider: IntegrationProvider) {
+    const row = await this.prisma.integration.findUnique({
+      where: { subAccountId_provider: { subAccountId, provider } },
+    });
+    if (!row) return { ok: true };
+
+    await this.prisma.messengerPage.updateMany({
+      where: { integrationId: row.id },
+      data: { enabled: false },
+    });
+
+    await this.prisma.integration.update({
+      where: { id: row.id },
+      data: {
+        status: 'disconnected',
+        credentials: encryptJson({}) as unknown as Prisma.InputJsonValue,
+        lastError: null,
+      },
+    });
+    return { ok: true };
+  }
+
   async getDecrypted<T = Record<string, unknown>>(
     subAccountId: string,
     provider: IntegrationProvider,

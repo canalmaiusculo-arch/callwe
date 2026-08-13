@@ -75,48 +75,83 @@ export default function IntegrationsPage() {
           </CardHeader>
         </Card>
 
-        {PROVIDERS.map((p) => {
-          const Icon = p.icon;
-          const inst = integrations.find((i) => i.provider === p.key);
-          const connected = inst?.status === 'connected';
-          return (
-            <Card key={p.key}>
-              <CardHeader>
-                <div className="flex items-center gap-3">
-                  <Icon className="h-5 w-5" />
-                  <div>
-                    <CardTitle>{p.name}</CardTitle>
-                    <CardDescription>{t(p.descriptionKey)}</CardDescription>
-                  </div>
-                  {connected ? (
-                    <Badge variant="success" className="ml-auto">{t('integrations.statusConnected')}</Badge>
-                  ) : (
-                    <Badge variant="secondary" className="ml-auto">{t('integrations.statusDisconnected')}</Badge>
-                  )}
-                </div>
-              </CardHeader>
-              <CardContent className="flex items-center justify-between">
-                <div className="text-xs text-muted-foreground">
-                  {inst?.lastSyncAt && (
-                    <p>{t('integrations.lastSync')}: {new Date(inst.lastSyncAt).toLocaleString('pt-BR')}</p>
-                  )}
-                  {inst?.lastError && <p className="text-red-600">{t('integrations.errorLabel')}: {inst.lastError}</p>}
-                </div>
-                <Button
-                  variant={connected ? 'outline' : 'default'}
-                  onClick={() => startConnect(p.connectPath)}
-                >
-                  {connected ? t('integrations.reconnect') : t('integrations.connect')}
-                </Button>
-              </CardContent>
-            </Card>
-          );
-        })}
+        {PROVIDERS.map((p) => (
+          <ProviderCard key={p.key} provider={p} inst={integrations.find((i) => i.provider === p.key)} />
+        ))}
 
         <MessengerCard />
         <FormWebhookCard />
       </div>
     </div>
+  );
+}
+
+type Provider = (typeof PROVIDERS)[number];
+
+function ProviderCard({ provider: p, inst }: { provider: Provider; inst?: Integration }) {
+  const { t } = useTranslate();
+  const qc = useQueryClient();
+  const Icon = p.icon;
+  const connected = inst?.status === 'connected';
+
+  const disconnect = useMutation({
+    mutationFn: () => apiClient.del(`/integrations/${p.key}`),
+    onSuccess: () => {
+      toast.success(t('integrations.toastDisconnected'));
+      qc.invalidateQueries({ queryKey: ['integrations'] });
+      qc.invalidateQueries({ queryKey: ['messenger-enabled'] });
+      qc.invalidateQueries({ queryKey: ['messenger-connectable'] });
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-center gap-3">
+          <Icon className="h-5 w-5" />
+          <div>
+            <CardTitle>{p.name}</CardTitle>
+            <CardDescription>{t(p.descriptionKey)}</CardDescription>
+          </div>
+          {connected ? (
+            <Badge variant="success" className="ml-auto">{t('integrations.statusConnected')}</Badge>
+          ) : (
+            <Badge variant="secondary" className="ml-auto">{t('integrations.statusDisconnected')}</Badge>
+          )}
+        </div>
+      </CardHeader>
+      <CardContent className="flex items-center justify-between">
+        <div className="text-xs text-muted-foreground">
+          {inst?.lastSyncAt && (
+            <p>{t('integrations.lastSync')}: {new Date(inst.lastSyncAt).toLocaleString('pt-BR')}</p>
+          )}
+          {inst?.lastError && <p className="text-red-600">{t('integrations.errorLabel')}: {inst.lastError}</p>}
+        </div>
+        <div className="flex items-center gap-2">
+          {connected && (
+            <Button
+              variant="ghost"
+              className="text-red-600 hover:bg-red-50 hover:text-red-700"
+              disabled={disconnect.isPending}
+              onClick={() => {
+                if (window.confirm(t('integrations.disconnectConfirm').replace('{name}', p.name))) {
+                  disconnect.mutate();
+                }
+              }}
+            >
+              {t('integrations.disconnect')}
+            </Button>
+          )}
+          <Button
+            variant={connected ? 'outline' : 'default'}
+            onClick={() => startConnect(p.connectPath)}
+          >
+            {connected ? t('integrations.reconnect') : t('integrations.connect')}
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
