@@ -1016,7 +1016,9 @@
     "tabCases": "Cases",
     "onlyActive": "Active only",
     "statusActive": "Active",
-    "statusPaused": "Paused"
+    "statusPaused": "Paused",
+    "minimize": "Minimize",
+    "expand": "Expand"
   },
   "leadDrawer": {
     "formAnswers": "Form answers",

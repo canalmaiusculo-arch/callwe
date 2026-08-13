@@ -24,6 +24,8 @@ import {
   Trophy,
   CalendarClock,
   Briefcase,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -1036,11 +1038,21 @@ function NewLeadsHighlight({
 }) {
   const { t } = useTranslate();
   const [expanded, setExpanded] = useState(false);
+  const [minimized, setMinimized] = useState(
+    () => typeof window !== 'undefined' && localStorage.getItem('newLeadsMinimized') === '1',
+  );
+  const toggleMinimized = () => {
+    setMinimized((v) => {
+      const next = !v;
+      if (typeof window !== 'undefined') localStorage.setItem('newLeadsMinimized', next ? '1' : '0');
+      return next;
+    });
+  };
   const shown = expanded ? leads : leads.slice(0, 5);
 
   return (
     <div className="rounded-lg border-2 border-blue-400 bg-blue-50 p-3 shadow-sm">
-      <div className="mb-2 flex items-center gap-2">
+      <button onClick={toggleMinimized} className="flex w-full items-center gap-2" title={t(minimized ? 'agentPanel.expand' : 'agentPanel.minimize')}>
         <span className="relative flex h-2.5 w-2.5">
           <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-blue-500 opacity-75" />
           <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-blue-600" />
@@ -1048,8 +1060,15 @@ function NewLeadsHighlight({
         <p className="text-sm font-semibold text-blue-800">
           {t('agentPanel.newLeadsTitle')} ({leads.length})
         </p>
-      </div>
-      <div className="space-y-1.5">
+        {minimized ? (
+          <ChevronDown className="ml-auto h-4 w-4 text-blue-700" />
+        ) : (
+          <ChevronUp className="ml-auto h-4 w-4 text-blue-700" />
+        )}
+      </button>
+      {!minimized && (
+      <>
+      <div className="mt-2 space-y-1.5">
         {shown.map((l) => {
           const ch = l.customFields?.acquisitionChannel as string | undefined;
           const sourceKey = SOURCE_LABEL_KEYS[l.source];
@@ -1110,6 +1129,8 @@ function NewLeadsHighlight({
         >
           {expanded ? t('agentPanel.newLeadsLess') : `+${leads.length - 5} ${t('agentPanel.newLeadsMore')}`}
         </button>
+      )}
+      </>
       )}
     </div>
   );
