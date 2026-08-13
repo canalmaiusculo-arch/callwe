@@ -1013,7 +1013,10 @@
     "estimatesUpcoming": "Estimativas agendadas",
     "sourceMessenger": "Messenger",
     "operationalSection": "Gestão Operacional",
-    "tabCases": "Casos"
+    "tabCases": "Casos",
+    "onlyActive": "Só ativos",
+    "statusActive": "Ativo",
+    "statusPaused": "Pausado"
   },
   "leadDrawer": {
     "formAnswers": "Respostas do formulário",

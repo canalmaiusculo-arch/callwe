@@ -69,10 +69,12 @@ const ORIGINS = ['all', 'calls', 'sms', 'meta', 'organic'] as const;
 export function CasesPanel({
   agentId,
   filterSubAccountId,
+  activeSubAccountIds,
   clients,
 }: {
   agentId?: string;
   filterSubAccountId: string | null;
+  activeSubAccountIds?: string[] | null;
   clients: AssignedClient[];
 }) {
   const { t } = useTranslate();
@@ -110,6 +112,12 @@ export function CasesPanel({
     },
     refetchInterval: 45_000,
   });
+
+  // "Só ativos" (sem cliente específico selecionado) restringe aos clientes ativos.
+  const visibleCases =
+    activeSubAccountIds && !filterSubAccountId
+      ? cases.filter((c) => activeSubAccountIds.includes(c.subAccount?.id ?? ''))
+      : cases;
 
   return (
     <div className="space-y-3">
@@ -178,13 +186,13 @@ export function CasesPanel({
       {/* Lista */}
       {isLoading ? (
         <p className="p-6 text-center text-sm text-muted-foreground">{t('cases.loading')}</p>
-      ) : cases.length === 0 ? (
+      ) : visibleCases.length === 0 ? (
         <Card>
           <CardContent className="p-8 text-center text-sm text-muted-foreground">{t('cases.empty')}</CardContent>
         </Card>
       ) : (
         <div className="space-y-2">
-          {cases.map((c) => (
+          {visibleCases.map((c) => (
             <CaseCard
               key={c.id}
               item={c}

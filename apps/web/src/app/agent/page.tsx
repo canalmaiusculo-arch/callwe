@@ -53,6 +53,7 @@ interface AssignedClient {
   id: string;
   name: string;
   cloudtalkTag: string;
+  status?: 'active' | 'paused' | 'archived';
 }
 
 interface Interaction {
@@ -118,6 +119,7 @@ export default function AgentPage() {
   const [leadDrawer, setLeadDrawer] = useState<LeadDrawerTarget | null>(null);
   const [smsBadge, setSmsBadge] = useState(0);
   const [filterSubAccountId, setFilterSubAccountId] = useState<string | null>(null);
+  const [activeOnly, setActiveOnly] = useState(false);
   const [selectedAgentId, setSelectedAgentId] = useState<string>('');
   const [search, setSearch] = useState('');
   const clearAuth = useAuthStore((s) => s.clear);
@@ -141,6 +143,15 @@ export default function AgentPage() {
     queryKey: ['panel-agents'],
     queryFn: () => apiClient.get('/interactions/agents'),
   });
+
+  // Clientes ativos × pausados (bolinhas + filtro "só ativos").
+  const activeIds = useMemo(
+    () => new Set(clients.filter((c) => c.status !== 'paused').map((c) => c.id)),
+    [clients],
+  );
+  const visibleClients = activeOnly ? clients.filter((c) => c.status !== 'paused') : clients;
+  // Aplica o filtro de ativos aos dados só quando nenhum cliente específico está selecionado.
+  const activeFilterIds = activeOnly && !filterSubAccountId ? Array.from(activeIds) : null;
   const agentId = selectedAgentId || undefined;
 
   const subTags = clients.map((c) => c.cloudtalkTag);
@@ -173,9 +184,10 @@ export default function AgentPage() {
       (l) =>
         new Date(l.createdAt).getTime() >= cutoff &&
         !isLeadSeen(l.id) &&
-        (filterSubAccountId ? l.subAccount?.id === filterSubAccountId : true),
+        (filterSubAccountId ? l.subAccount?.id === filterSubAccountId : true) &&
+        (activeFilterIds ? activeFilterIds.includes(l.subAccount?.id ?? '') : true),
     );
-  }, [newLeads, isLeadSeen, filterSubAccountId]);
+  }, [newLeads, isLeadSeen, filterSubAccountId, activeFilterIds]);
 
   const openLead = (target: LeadDrawerTarget) => {
     setLeadDrawer(target);
@@ -234,9 +246,20 @@ export default function AgentPage() {
         </div>
 
         <div className="mt-2 flex min-h-0 flex-1 flex-col border-t border-white/15 pt-3">
-          <p className="mb-2 text-xs font-medium uppercase text-white/60">
-            {t('agentPanel.myClients')} ({clients.length})
-          </p>
+          <div className="mb-2 flex items-center justify-between">
+            <p className="text-xs font-medium uppercase text-white/60">
+              {t('agentPanel.myClients')} ({visibleClients.length})
+            </p>
+            <button
+              onClick={() => setActiveOnly((v) => !v)}
+              title={t('agentPanel.onlyActive')}
+              className={`rounded-full px-2 py-0.5 text-[10px] font-medium transition-colors ${
+                activeOnly ? 'bg-emerald-500/30 text-emerald-100' : 'text-white/50 hover:bg-white/10 hover:text-white/80'
+              }`}
+            >
+              {t('agentPanel.onlyActive')}
+            </button>
+          </div>
           <div className="flex-1 space-y-0.5 overflow-auto">
             <button
               onClick={() => setFilterSubAccountId(null)}
@@ -246,15 +269,19 @@ export default function AgentPage() {
             >
               {t('agentPanel.allClients')}
             </button>
-            {clients.map((c) => (
+            {visibleClients.map((c) => (
               <button
                 key={c.id}
                 onClick={() => setFilterSubAccountId(c.id)}
-                className={`w-full rounded-md px-2 py-1 text-left text-xs ${
+                className={`flex w-full items-center gap-2 rounded-md px-2 py-1 text-left text-xs ${
                   filterSubAccountId === c.id ? 'bg-white/20 font-medium text-white' : 'text-white/70 hover:bg-white/10 hover:text-white'
                 }`}
               >
-                {c.name}
+                <span
+                  className={`h-2 w-2 shrink-0 rounded-full ${c.status === 'paused' ? 'bg-white/30' : 'bg-emerald-400'}`}
+                  title={c.status === 'paused' ? t('agentPanel.statusPaused') : t('agentPanel.statusActive')}
+                />
+                <span className="truncate">{c.name}</span>
               </button>
             ))}
           </div>
@@ -318,6 +345,7 @@ export default function AgentPage() {
             onToggleMine={() => setOnlyMine(!onlyMine)}
             onOpen={openInteraction}
             filterSubAccountId={filterSubAccountId}
+            activeSubAccountIds={activeFilterIds}
             search={search}
             isSeen={seenCalls.isSeen}
             agentId={agentId}
@@ -328,6 +356,7 @@ export default function AgentPage() {
             onToggleMine={() => setOnlyMine(!onlyMine)}
             onOpen={openInteraction}
             filterSubAccountId={filterSubAccountId}
+            activeSubAccountIds={activeFilterIds}
             search={search}
             isSeen={seenSms.isSeen}
             agentId={agentId}
@@ -335,16 +364,18 @@ export default function AgentPage() {
         ) : tab === 'leads' ? (
           <LeadsView
             filterSubAccountId={filterSubAccountId}
+            activeSubAccountIds={activeFilterIds}
             search={search}
-            clients={clients}
+            clients={visibleClients}
             onOpenLead={openLead}
             agentId={agentId}
           />
         ) : tab === 'forms' ? (
           <LeadsView
             filterSubAccountId={filterSubAccountId}
+            activeSubAccountIds={activeFilterIds}
             search={search}
-            clients={clients}
+            clients={visibleClients}
             onOpenLead={openLead}
             lockedSource="form"
             agentId={agentId}
@@ -352,7 +383,7 @@ export default function AgentPage() {
         ) : tab === 'messenger' ? (
           <MessengerInbox filterSubAccountId={filterSubAccountId} />
         ) : tab === 'cases' ? (
-          <CasesPanel agentId={agentId} filterSubAccountId={filterSubAccountId} clients={clients} />
+          <CasesPanel agentId={agentId} filterSubAccountId={filterSubAccountId} activeSubAccountIds={activeFilterIds} clients={visibleClients} />
         ) : (
           <BriefingsView clients={clients} initialSelectedId={filterSubAccountId} />
         )}
@@ -525,6 +556,7 @@ function CallsView({
   onToggleMine,
   onOpen,
   filterSubAccountId,
+  activeSubAccountIds,
   search,
   isSeen,
   agentId,
@@ -533,6 +565,7 @@ function CallsView({
   onToggleMine: () => void;
   onOpen: (id: string) => void;
   filterSubAccountId: string | null;
+  activeSubAccountIds: string[] | null;
   search: string;
   isSeen: (id: string) => boolean;
   agentId?: string;
@@ -545,8 +578,8 @@ function CallsView({
   });
 
   const filtered = useMemo(
-    () => filterInteractions(calls, { filterSubAccountId, search }),
-    [calls, filterSubAccountId, search],
+    () => filterInteractions(calls, { filterSubAccountId, activeSubAccountIds, search }),
+    [calls, filterSubAccountId, activeSubAccountIds, search],
   );
 
   return (
@@ -585,10 +618,15 @@ function needsAttention(call: Interaction): boolean {
 
 function filterInteractions(
   list: Interaction[],
-  { filterSubAccountId, search }: { filterSubAccountId: string | null; search: string },
+  {
+    filterSubAccountId,
+    activeSubAccountIds,
+    search,
+  }: { filterSubAccountId: string | null; activeSubAccountIds?: string[] | null; search: string },
 ): Interaction[] {
   let out = list;
   if (filterSubAccountId) out = out.filter((i) => i.subAccount?.id === filterSubAccountId);
+  else if (activeSubAccountIds) out = out.filter((i) => activeSubAccountIds.includes(i.subAccount?.id ?? ''));
   const q = search.trim().toLowerCase();
   if (q) {
     out = out.filter((i) => {
@@ -716,6 +754,7 @@ function SmsView({
   onToggleMine,
   onOpen,
   filterSubAccountId,
+  activeSubAccountIds,
   search,
   isSeen,
   agentId,
@@ -724,6 +763,7 @@ function SmsView({
   onToggleMine: () => void;
   onOpen: (id: string) => void;
   filterSubAccountId: string | null;
+  activeSubAccountIds: string[] | null;
   search: string;
   isSeen: (id: string) => boolean;
   agentId?: string;
@@ -736,8 +776,8 @@ function SmsView({
   });
 
   const filtered = useMemo(
-    () => filterInteractions(messages, { filterSubAccountId, search }),
-    [messages, filterSubAccountId, search],
+    () => filterInteractions(messages, { filterSubAccountId, activeSubAccountIds, search }),
+    [messages, filterSubAccountId, activeSubAccountIds, search],
   );
 
   return (
@@ -1077,6 +1117,7 @@ function NewLeadsHighlight({
 
 function LeadsView({
   filterSubAccountId,
+  activeSubAccountIds,
   search,
   clients,
   onOpenLead,
@@ -1084,6 +1125,7 @@ function LeadsView({
   agentId,
 }: {
   filterSubAccountId: string | null;
+  activeSubAccountIds: string[] | null;
   search: string;
   clients: AssignedClient[];
   onOpenLead: (lead: LeadDrawerTarget) => void;
@@ -1123,7 +1165,12 @@ function LeadsView({
     placeholderData: (prev) => prev,
   });
 
-  const filtered = leads;
+  // Quando "só ativos" está ligado e nenhum cliente específico foi escolhido,
+  // restringe os leads/forms aos clientes ativos.
+  const filtered =
+    activeSubAccountIds && !effectiveClientId
+      ? leads.filter((l) => activeSubAccountIds.includes(l.subAccount?.id ?? ''))
+      : leads;
   const hasActiveFilter =
     filterSubAccountId || clientFilter || dateRange !== '30d' || sourceFilter !== 'all' || search;
 
