@@ -43,6 +43,7 @@ export class CasesController {
       {
         tab: q.tab as never,
         origin: q.origin,
+        outcome: q.outcome,
         subAccountId: q.subAccountId,
         date: q.date,
         search: q.search,

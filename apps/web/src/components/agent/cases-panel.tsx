@@ -85,6 +85,7 @@ export function CasesPanel({
   const [tab, setTab] = useState<CaseTab>('open');
   const [date, setDate] = useState('');
   const [origin, setOrigin] = useState<(typeof ORIGINS)[number]>('all');
+  const [outcome, setOutcome] = useState<'all' | 'booked' | 'won' | 'lost'>('all');
   const [search, setSearch] = useState('');
   const [showNew, setShowNew] = useState(false);
   const [followUpFor, setFollowUpFor] = useState<CaseItem | null>(null);
@@ -104,10 +105,11 @@ export function CasesPanel({
   });
 
   const { data: cases = [], isLoading } = useQuery<CaseItem[]>({
-    queryKey: ['cases', tab, origin, date, search, filterSubAccountId, scopeParam],
+    queryKey: ['cases', tab, origin, outcome, date, search, filterSubAccountId, scopeParam],
     queryFn: () => {
       const p = new URLSearchParams({ tab });
       if (origin !== 'all') p.set('origin', origin);
+      if (tab === 'resolved' && outcome !== 'all') p.set('outcome', outcome);
       if (date) p.set('date', date);
       if (search) p.set('search', search);
       if (filterSubAccountId) p.set('subAccountId', filterSubAccountId);
@@ -181,8 +183,20 @@ export function CasesPanel({
             </option>
           ))}
         </select>
-        {(date || origin !== 'all' || search) && (
-          <Button size="sm" variant="ghost" onClick={() => { setDate(''); setOrigin('all'); setSearch(''); }}>
+        {tab === 'resolved' && (
+          <select
+            value={outcome}
+            onChange={(e) => setOutcome(e.target.value as never)}
+            className="h-8 rounded-md border bg-background px-2 text-sm"
+          >
+            <option value="all">{t('cases.outcomeAll')}</option>
+            <option value="booked">{t('cases.outcome_booked')}</option>
+            <option value="won">{t('cases.outcome_won')}</option>
+            <option value="lost">{t('cases.outcome_lost')}</option>
+          </select>
+        )}
+        {(date || origin !== 'all' || search || outcome !== 'all') && (
+          <Button size="sm" variant="ghost" onClick={() => { setDate(''); setOrigin('all'); setOutcome('all'); setSearch(''); }}>
             {t('cases.clearFilters')}
           </Button>
         )}

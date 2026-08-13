@@ -1020,7 +1020,11 @@
     "statusPaused": "Pausado",
     "minimize": "Minimizar",
     "expand": "Expandir",
-    "loadMore": "Ver mais"
+    "loadMore": "Ver mais",
+    "statusAll": "Todos os status",
+    "smsDirAll": "Todas",
+    "smsDirInbound": "Recebidas",
+    "smsDirOutbound": "Enviadas"
   },
   "leadDrawer": {
     "formAnswers": "Respostas do formulário",
@@ -1121,6 +1125,7 @@
     "saveNote": "Salvar Nota",
     "noteSaved": "Nota salva",
     "agencySubtitle": "Casos de todos os clientes da sua agência.",
-    "allClients": "Todos os clientes"
+    "allClients": "Todos os clientes",
+    "outcomeAll": "Todos os desfechos"
   }
 }

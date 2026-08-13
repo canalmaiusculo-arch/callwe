@@ -98,14 +98,23 @@ export class InteractionsController {
     @Query('onlyMine') onlyMine?: string,
     @Query('agentId') agentId?: string,
     @Query('limit') limit?: string,
+    @Query('date') date?: string,
   ) {
     const { subAccountIds, forcedAgentId } = await this.resolveScope(user, agentId);
     if (subAccountIds.length === 0) return [];
     const parsedLimit = limit ? Number(limit) : undefined;
+    let from: Date | undefined;
+    let to: Date | undefined;
+    if (date && /^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      from = new Date(`${date}T00:00:00`);
+      to = new Date(from.getTime() + 24 * 60 * 60 * 1000);
+    }
     return this.svc.list(subAccountIds, {
       type,
       agentUserId: forcedAgentId ?? (onlyMine === 'true' ? user.id : undefined),
       limit: Number.isFinite(parsedLimit) ? parsedLimit : undefined,
+      from,
+      to,
     });
   }
 

@@ -20,6 +20,7 @@ type Caller = { id: string; memberships: Member[] };
 interface CaseFilters {
   tab?: Tab;
   origin?: string;
+  outcome?: string; // booked | won | lost — só faz sentido na aba resolvidos
   subAccountId?: string;
   date?: string; // YYYY-MM-DD
   search?: string;
@@ -134,6 +135,9 @@ export class CasesService {
       subAccountId: filters.subAccountId && subIds.includes(filters.subAccountId) ? filters.subAccountId : { in: subIds },
     };
     if (filters.tab) where.caseStatus = filters.tab;
+    if (filters.outcome && ['booked', 'won', 'lost'].includes(filters.outcome)) {
+      where.caseOutcome = filters.outcome as never;
+    }
     if (filters.origin && filters.origin !== 'all') {
       where.source = originToSources(filters.origin);
     }

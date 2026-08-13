@@ -797,31 +797,58 @@ function SmsView({
 }) {
   const { t } = useTranslate();
   const [limit, setLimit] = useState(100);
+  const [date, setDate] = useState('');
+  const [direction, setDirection] = useState<'all' | 'inbound' | 'outbound'>('all');
   const { data: messages = [] } = useQuery<Interaction[]>({
-    queryKey: ['my-sms', onlyMine, agentId, limit],
-    queryFn: () => apiClient.get(`/interactions/mine?type=sms&limit=${limit}&onlyMine=${onlyMine}${agentId ? `&agentId=${agentId}` : ''}`),
+    queryKey: ['my-sms', onlyMine, agentId, limit, date],
+    queryFn: () => apiClient.get(`/interactions/mine?type=sms&limit=${limit}&onlyMine=${onlyMine}${date ? `&date=${date}` : ''}${agentId ? `&agentId=${agentId}` : ''}`),
     refetchInterval: 15_000,
     placeholderData: (prev) => prev,
   });
 
-  const filtered = useMemo(
-    () => filterInteractions(messages, { filterSubAccountId, activeSubAccountIds, search }),
-    [messages, filterSubAccountId, activeSubAccountIds, search],
-  );
+  const filtered = useMemo(() => {
+    let out = filterInteractions(messages, { filterSubAccountId, activeSubAccountIds, search });
+    if (direction !== 'all') out = out.filter((m) => m.direction === direction);
+    return out;
+  }, [messages, filterSubAccountId, activeSubAccountIds, search, direction]);
   const canLoadMore = messages.length >= limit && limit < 2000;
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle>
-          {t('agentPanel.sms')} {onlyMine ? t('agentPanel.scopeMineSms') : t('agentPanel.scopeAllClients')}
-          {(filterSubAccountId || search) && (
-            <span className="ml-2 text-xs text-muted-foreground">{filtered.length}/{messages.length}</span>
+      <CardHeader className="space-y-2">
+        <div className="flex flex-row items-center justify-between">
+          <CardTitle>
+            {t('agentPanel.sms')} {onlyMine ? t('agentPanel.scopeMineSms') : t('agentPanel.scopeAllClients')}
+            {(filterSubAccountId || search || date || direction !== 'all') && (
+              <span className="ml-2 text-xs text-muted-foreground">{filtered.length}/{messages.length}</span>
+            )}
+          </CardTitle>
+          <Button size="sm" variant="outline" onClick={onToggleMine}>
+            {onlyMine ? t('agentPanel.seeAll') : t('agentPanel.onlyMine')}
+          </Button>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <input
+            type="date"
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
+            className="h-8 rounded-md border bg-background px-2 text-sm"
+          />
+          <select
+            value={direction}
+            onChange={(e) => setDirection(e.target.value as never)}
+            className="h-8 rounded-md border bg-background px-2 text-sm"
+          >
+            <option value="all">{t('agentPanel.smsDirAll')}</option>
+            <option value="inbound">{t('agentPanel.smsDirInbound')}</option>
+            <option value="outbound">{t('agentPanel.smsDirOutbound')}</option>
+          </select>
+          {(date || direction !== 'all') && (
+            <Button size="sm" variant="ghost" onClick={() => { setDate(''); setDirection('all'); }}>
+              {t('agentPanel.clear')}
+            </Button>
           )}
-        </CardTitle>
-        <Button size="sm" variant="outline" onClick={onToggleMine}>
-          {onlyMine ? t('agentPanel.seeAll') : t('agentPanel.onlyMine')}
-        </Button>
+        </div>
       </CardHeader>
       <CardContent className="space-y-2">
         {filtered.length === 0 && (
@@ -1191,6 +1218,7 @@ function LeadsView({
   const [sourceFilterState, setSourceFilter] = useState<SourceFilter>('all');
   const sourceFilter = lockedSource ?? sourceFilterState;
   const [clientFilter, setClientFilter] = useState<string>('');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
 
   // Sidebar global (filterSubAccountId) tem prioridade; senão usa o filtro local da tab.
   const effectiveClientId = filterSubAccountId ?? (clientFilter || '');
@@ -1204,12 +1232,13 @@ function LeadsView({
     isLoading,
     isFetching,
   } = useQuery<AgentLead[]>({
-    queryKey: ['my-leads', dateRange, sourceFilter, effectiveClientId, debouncedSearch, agentId],
+    queryKey: ['my-leads', dateRange, sourceFilter, statusFilter, effectiveClientId, debouncedSearch, agentId],
     queryFn: () => {
       const p = new URLSearchParams({ limit: '500' });
       const from = rangeStart(dateRange);
       if (from) p.set('from', from.toISOString());
       if (sourceFilter !== 'all') p.set('source', sourceFilter);
+      if (statusFilter !== 'all') p.set('status', statusFilter);
       if (effectiveClientId) p.set('subAccountId', effectiveClientId);
       if (debouncedSearch) p.set('search', debouncedSearch);
       if (agentId) p.set('agentId', agentId);
@@ -1226,7 +1255,7 @@ function LeadsView({
       ? leads.filter((l) => activeSubAccountIds.includes(l.subAccount?.id ?? ''))
       : leads;
   const hasActiveFilter =
-    filterSubAccountId || clientFilter || dateRange !== '30d' || sourceFilter !== 'all' || search;
+    filterSubAccountId || clientFilter || dateRange !== '30d' || sourceFilter !== 'all' || statusFilter !== 'all' || search;
 
   return (
     <Card>
@@ -1256,6 +1285,18 @@ function LeadsView({
             />
           )}
           <FilterSelect
+            value={statusFilter}
+            onChange={setStatusFilter}
+            options={[
+              { value: 'all', label: t('agentPanel.statusAll') },
+              { value: 'new', label: t('leadStatus.new') },
+              { value: 'contacted', label: t('leadStatus.contacted') },
+              { value: 'qualified', label: t('leadStatus.qualified') },
+              { value: 'won', label: t('leadStatus.won') },
+              { value: 'lost', label: t('leadStatus.lost') },
+            ]}
+          />
+          <FilterSelect
             value={clientFilter}
             onChange={setClientFilter}
             options={[
@@ -1272,6 +1313,7 @@ function LeadsView({
               onClick={() => {
                 setDateRange('30d');
                 setSourceFilter('all');
+                setStatusFilter('all');
                 setClientFilter('');
               }}
             >
