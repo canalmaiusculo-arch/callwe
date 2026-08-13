@@ -282,6 +282,27 @@ export class CasesService {
     };
   }
 
+  /** Edita os dados de contato do caso (nome, telefone, e-mail, endereço). */
+  async updateContact(
+    user: Caller,
+    caseId: string,
+    input: { name?: string; phoneE164?: string; email?: string; address?: string },
+  ) {
+    await this.assertAccess(user, caseId);
+    const data: Prisma.LeadUpdateInput = {};
+    if (input.name !== undefined) data.name = input.name || null;
+    if (input.phoneE164 !== undefined) data.phoneE164 = input.phoneE164 || null;
+    if (input.email !== undefined) data.email = input.email || null;
+    if (input.address !== undefined) {
+      const lead = await this.prisma.lead.findUnique({ where: { id: caseId }, select: { customFields: true } });
+      const cf = { ...((lead?.customFields as Record<string, unknown>) ?? {}) };
+      if (input.address) cf.address = input.address;
+      else delete cf.address;
+      data.customFields = cf as Prisma.InputJsonValue;
+    }
+    return this.prisma.lead.update({ where: { id: caseId }, data });
+  }
+
   async addNote(user: Caller, caseId: string, body: string) {
     await this.assertAccess(user, caseId);
     const note = await this.prisma.leadNote.create({

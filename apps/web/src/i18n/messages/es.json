@@ -1126,6 +1126,8 @@
     "noteSaved": "Nota guardada",
     "agencySubtitle": "Casos de todos los clientes de tu agencia.",
     "allClients": "Todos los clientes",
-    "outcomeAll": "Todos los desenlaces"
+    "outcomeAll": "Todos los desenlaces",
+    "saveContact": "Guardar datos",
+    "contactSaved": "Datos actualizados"
   }
 }

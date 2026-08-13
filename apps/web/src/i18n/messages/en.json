@@ -1126,6 +1126,8 @@
     "noteSaved": "Note saved",
     "agencySubtitle": "Cases across all your agency clients.",
     "allClients": "All clients",
-    "outcomeAll": "All outcomes"
+    "outcomeAll": "All outcomes",
+    "saveContact": "Save details",
+    "contactSaved": "Details updated"
   }
 }

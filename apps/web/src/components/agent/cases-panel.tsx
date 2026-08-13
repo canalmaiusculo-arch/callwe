@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Briefcase,
@@ -658,6 +658,34 @@ function CaseDetailModal({ caseId, onClose, onChanged }: { caseId: string; onClo
     onError: (e: Error) => toast.error(e.message),
   });
 
+  // Edição dos dados de contato.
+  const [form, setForm] = useState({ name: '', phoneE164: '', email: '', address: '' });
+  const [dirty, setDirty] = useState(false);
+  useEffect(() => {
+    if (detail) {
+      setForm({
+        name: detail.name ?? '',
+        phoneE164: detail.phoneE164 ?? '',
+        email: detail.email ?? '',
+        address: detail.address ?? '',
+      });
+      setDirty(false);
+    }
+  }, [detail]);
+  const setField = (k: keyof typeof form, v: string) => { setForm((f) => ({ ...f, [k]: v })); setDirty(true); };
+
+  const saveContact = useMutation({
+    mutationFn: () => apiClient.patch(`/cases/${caseId}`, form),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['case', caseId] });
+      qc.invalidateQueries({ queryKey: ['cases'] });
+      onChanged();
+      setDirty(false);
+      toast.success(t('cases.contactSaved'));
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
       <div className="flex max-h-[92vh] w-full max-w-3xl flex-col overflow-hidden rounded-xl bg-card shadow-xl" onClick={(e) => e.stopPropagation()}>
@@ -671,10 +699,15 @@ function CaseDetailModal({ caseId, onClose, onChanged }: { caseId: string; onClo
           <div>
             <p className="mb-2 text-xs font-semibold uppercase text-muted-foreground">{t('cases.contactInfo')}</p>
             <div className="space-y-2">
-              <Field label={t('cases.fieldName')} value={detail?.name ?? null} />
-              <Field label={t('cases.fieldPhone')} value={detail?.phoneE164 ?? null} />
-              <Field label={t('cases.fieldEmail')} value={detail?.email ?? null} />
-              <Field label={t('cases.fieldAddress')} value={detail?.address ?? null} />
+              <LabeledInput label={t('cases.fieldName')} value={form.name} onChange={(v) => setField('name', v)} placeholder={t('cases.namePlaceholder')} />
+              <LabeledInput label={t('cases.fieldPhone')} value={form.phoneE164} onChange={(v) => setField('phoneE164', v)} placeholder="+1 555 123 4567" />
+              <LabeledInput label={t('cases.fieldEmail')} value={form.email} onChange={(v) => setField('email', v)} placeholder="email@exemplo.com" />
+              <LabeledInput label={t('cases.fieldAddress')} value={form.address} onChange={(v) => setField('address', v)} placeholder={t('cases.addressPlaceholder')} />
+              {dirty && (
+                <Button size="sm" className="w-full" disabled={saveContact.isPending} onClick={() => saveContact.mutate()}>
+                  {t('cases.saveContact')}
+                </Button>
+              )}
             </div>
             <p className="mb-2 mt-4 text-xs font-semibold uppercase text-muted-foreground">{t('cases.fullRecords')}</p>
             <div className="max-h-64 space-y-1.5 overflow-auto">

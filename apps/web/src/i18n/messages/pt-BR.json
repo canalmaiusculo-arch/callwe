@@ -1126,6 +1126,8 @@
     "noteSaved": "Nota salva",
     "agencySubtitle": "Casos de todos os clientes da sua agência.",
     "allClients": "Todos os clientes",
-    "outcomeAll": "Todos os desfechos"
+    "outcomeAll": "Todos os desfechos",
+    "saveContact": "Salvar dados",
+    "contactSaved": "Dados atualizados"
   }
 }

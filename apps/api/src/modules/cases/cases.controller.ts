@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { z } from 'zod';
 import { CasesService } from './cases.service.js';
@@ -6,6 +6,13 @@ import { ZodBody } from '../../common/pipes/zod.pipe.js';
 import { CurrentUser, AuthUser } from '../../common/decorators/current-user.decorator.js';
 
 const NoteDto = z.object({ body: z.string().min(1).max(4000) });
+
+const EditDto = z.object({
+  name: z.string().max(200).optional(),
+  phoneE164: z.string().max(40).optional(),
+  email: z.string().email().or(z.literal('')).optional(),
+  address: z.string().max(400).optional(),
+});
 
 const FollowUpDto = z.object({
   followUpAt: z.string().datetime(),
@@ -80,6 +87,15 @@ export class CasesController {
   @Post()
   create(@CurrentUser() user: AuthUser, @ZodBody(CreateDto) dto: z.infer<typeof CreateDto>) {
     return this.svc.createManual(user, dto);
+  }
+
+  @Patch(':id')
+  edit(
+    @CurrentUser() user: AuthUser,
+    @Param('id') id: string,
+    @ZodBody(EditDto) dto: z.infer<typeof EditDto>,
+  ) {
+    return this.svc.updateContact(user, id, dto);
   }
 
   @Post(':id/notes')
