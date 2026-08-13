@@ -222,6 +222,7 @@ function parseTimestamp(raw: unknown): Date {
 
 async function handleSms(subAccountId: string, body: Record<string, unknown>) {
   const eventType = String(body.event_type ?? '').trim();
+  const direction = eventType === 'sms.sent' ? 'outbound' : 'inbound';
 
   // SMS de saída = enviado por um atendente. Se o CloudTalk mandar o agent_id,
   // atribui ao atendente (SMS recebido não tem atendente por natureza).
@@ -230,18 +231,39 @@ async function handleSms(subAccountId: string, body: Record<string, unknown>) {
     agentUserId = await resolveUserIdByCloudtalkAgent(String(body.agent_id));
   }
 
+  // Todo SMS gera um caso: acha ou cria o lead pelo número do cliente (externo).
+  const fromNumber = normalizeE164(String(body.from_number ?? ''));
+  const toNumber = normalizeE164(String(body.to_number ?? ''));
+  const customerPhone = direction === 'inbound' ? fromNumber : toNumber;
+  let leadId: string | undefined;
+  if (customerPhone) {
+    const existing = await prisma.lead.findFirst({
+      where: { subAccountId, phoneE164: customerPhone, deletedAt: null },
+    });
+    if (existing) {
+      leadId = existing.id;
+    } else {
+      const created = await prisma.lead.create({
+        data: { subAccountId, source: 'sms', phoneE164: customerPhone },
+      });
+      leadId = created.id;
+    }
+  }
+
   await prisma.interaction.upsert({
     where: { cloudtalkSmsId: String(body.message_id) },
     update: {
       smsBody: String(body.body ?? ''),
       agentUserId: agentUserId ?? undefined,
+      leadId,
       metadata: body as object,
     },
     create: {
       subAccountId,
+      leadId,
       cloudtalkSmsId: String(body.message_id),
       type: 'sms',
-      direction: eventType === 'sms.sent' ? 'outbound' : 'inbound',
+      direction,
       status: 'completed',
       startedAt: parseTimestamp(body.received_at),
       fromNumber: String(body.from_number ?? ''),
