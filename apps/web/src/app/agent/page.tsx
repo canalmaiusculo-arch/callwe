@@ -156,6 +156,18 @@ export default function AgentPage() {
   const activeFilterIds = activeOnly && !filterSubAccountId ? Array.from(activeIds) : null;
   const agentId = selectedAgentId || undefined;
 
+  // Pendências (leads não trabalhados) por cliente e por canal — badges da sidebar/abas.
+  const { data: pending } = useQuery<{
+    byClient: Record<string, number>;
+    tabs: { leads: number; forms: number; calls: number; sms: number; messenger: number };
+  }>({
+    queryKey: ['pending-counts', agentId],
+    queryFn: () => apiClient.get(`/cases/pending-counts${agentId ? `?agentId=${agentId}` : ''}`),
+    refetchInterval: 30_000,
+  });
+  const pendingTabs = pending?.tabs;
+  const pendingByClient = pending?.byClient ?? {};
+
   const subTags = clients.map((c) => c.cloudtalkTag);
   const { activeCall, dismiss: dismissActiveCall } = useRealtimeCalls(subTags);
   const seenSms = useSeenIds('sms');
@@ -232,11 +244,11 @@ export default function AgentPage() {
 
         <nav className="mb-3 space-y-1">
           <TabButton active={tab === 'dashboard'} onClick={() => setTab('dashboard')} icon={Gauge} label={t('agentPanel.tabDashboard')} />
-          <TabButton active={tab === 'calls'} onClick={() => setTab('calls')} icon={Phone} label={t('agentPanel.tabCalls')} />
-          <TabButton active={tab === 'sms'} onClick={() => setTab('sms')} icon={MessageSquare} label={t('agentPanel.tabSms')} badge={smsBadge} />
-          <TabButton active={tab === 'leads'} onClick={() => setTab('leads')} icon={UserPlus} label={t('agentPanel.tabLeads')} badge={pendingLeads.length} pulse />
-          <TabButton active={tab === 'forms'} onClick={() => setTab('forms')} icon={FileText} label={t('agentPanel.tabForms')} />
-          <TabButton active={tab === 'messenger'} onClick={() => setTab('messenger')} icon={MessagesSquare} label={t('agentPanel.tabMessenger')} />
+          <TabButton active={tab === 'calls'} onClick={() => setTab('calls')} icon={Phone} label={t('agentPanel.tabCalls')} badge={pendingTabs?.calls} />
+          <TabButton active={tab === 'sms'} onClick={() => setTab('sms')} icon={MessageSquare} label={t('agentPanel.tabSms')} badge={Math.max(pendingTabs?.sms ?? 0, smsBadge)} />
+          <TabButton active={tab === 'leads'} onClick={() => setTab('leads')} icon={UserPlus} label={t('agentPanel.tabLeads')} badge={pendingTabs?.leads} pulse />
+          <TabButton active={tab === 'forms'} onClick={() => setTab('forms')} icon={FileText} label={t('agentPanel.tabForms')} badge={pendingTabs?.forms} />
+          <TabButton active={tab === 'messenger'} onClick={() => setTab('messenger')} icon={MessagesSquare} label={t('agentPanel.tabMessenger')} badge={pendingTabs?.messenger} />
           <TabButton active={tab === 'briefings'} onClick={() => setTab('briefings')} icon={BookOpen} label={t('agentPanel.tabBriefings')} />
         </nav>
 
@@ -283,7 +295,12 @@ export default function AgentPage() {
                   className={`h-2 w-2 shrink-0 rounded-full ${c.status === 'paused' ? 'bg-white/30' : 'bg-emerald-400'}`}
                   title={c.status === 'paused' ? t('agentPanel.statusPaused') : t('agentPanel.statusActive')}
                 />
-                <span className="truncate">{c.name}</span>
+                <span className="flex-1 truncate">{c.name}</span>
+                {(pendingByClient[c.id] ?? 0) > 0 && (
+                  <span className="shrink-0 rounded-full bg-white/25 px-1.5 py-0.5 text-[10px] font-bold text-white">
+                    {(pendingByClient[c.id] ?? 0) > 99 ? '99+' : pendingByClient[c.id]}
+                  </span>
+                )}
               </button>
             ))}
           </div>

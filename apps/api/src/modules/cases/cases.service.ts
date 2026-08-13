@@ -142,6 +142,35 @@ export class CasesService {
     return { open, follow_up, resolved, overdue };
   }
 
+  /**
+   * Contadores de pendências (leads ainda não trabalhados: status='new') por
+   * cliente e por canal — usado nos badges da sidebar e das abas do atendente.
+   */
+  async pendingCounts(user: Caller, agentId?: string) {
+    const subIds = await this.scopeSubIds(user, agentId);
+    const empty = { byClient: {} as Record<string, number>, tabs: { leads: 0, forms: 0, calls: 0, sms: 0, messenger: 0 } };
+    if (subIds.length === 0) return empty;
+
+    const rows = await this.prisma.lead.groupBy({
+      by: ['subAccountId', 'source'],
+      where: { deletedAt: null, subAccountId: { in: subIds }, status: 'new' },
+      _count: { _all: true },
+    });
+
+    const byClient: Record<string, number> = {};
+    const tabs = { leads: 0, forms: 0, calls: 0, sms: 0, messenger: 0 };
+    for (const r of rows) {
+      const n = r._count._all;
+      byClient[r.subAccountId] = (byClient[r.subAccountId] ?? 0) + n;
+      tabs.leads += n;
+      if (r.source === 'form') tabs.forms += n;
+      else if (r.source === 'inbound_call' || r.source === 'outbound_call') tabs.calls += n;
+      else if (r.source === 'sms') tabs.sms += n;
+      else if (r.source === 'messenger') tabs.messenger += n;
+    }
+    return { byClient, tabs };
+  }
+
   private async assertAccess(user: Caller, caseId: string, agentId?: string) {
     const lead = await this.prisma.lead.findUnique({ where: { id: caseId } });
     if (!lead || lead.deletedAt) throw new NotFoundException('Caso não encontrado');

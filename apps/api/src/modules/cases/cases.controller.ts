@@ -56,6 +56,12 @@ export class CasesController {
     return this.svc.counts(user, agentId);
   }
 
+  /** Pendências (leads status='new') por cliente e por canal — badges da sidebar. */
+  @Get('pending-counts')
+  pendingCounts(@CurrentUser() user: AuthUser, @Query('agentId') agentId?: string) {
+    return this.svc.pendingCounts(user, agentId);
+  }
+
   @Get(':id')
   detail(@CurrentUser() user: AuthUser, @Param('id') id: string) {
     return this.svc.detail(user, id);
