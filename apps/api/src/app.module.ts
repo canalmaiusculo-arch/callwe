@@ -23,6 +23,7 @@ import { ZapierWebhookModule } from './modules/zapier-webhook/zapier-webhook.mod
 import { ConversationsModule } from './modules/conversations/conversations.module.js';
 import { NotificationsModule } from './modules/notifications/notifications.module.js';
 import { MessengerModule } from './modules/messenger/messenger.module.js';
+import { CasesModule } from './modules/cases/cases.module.js';
 
 @Module({
   imports: [
@@ -49,6 +50,7 @@ import { MessengerModule } from './modules/messenger/messenger.module.js';
     ConversationsModule,
     NotificationsModule,
     MessengerModule,
+    CasesModule,
   ],
   controllers: [HealthController],
 })

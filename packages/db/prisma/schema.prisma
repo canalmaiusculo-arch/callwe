@@ -71,6 +71,20 @@ enum LeadStatus {
   lost
 }
 
+// Estágio operacional do "caso" (ficha) do lead — separado do status comercial.
+enum CaseStatus {
+  open
+  follow_up
+  resolved
+}
+
+// Desfecho ao resolver o caso.
+enum CaseOutcome {
+  booked // Cliente marcado (visita/reunião)
+  won    // Fechado (serviço vendido)
+  lost   // Caso perdido
+}
+
 enum InteractionType {
   call
   sms
@@ -221,6 +235,8 @@ model User {
   sessions        Session[]
   cloudtalkAgents CloudtalkAgent[]
   ownedLeads      Lead[]            @relation("LeadOwner")
+  followUpCases   Lead[]            @relation("CaseFollowUpUser")
+  resolvedCases   Lead[]            @relation("CaseResolvedBy")
   handledInteractions Interaction[] @relation("InteractionAgent")
   leadNotes       LeadNote[]
   recordingAccess RecordingAccessLog[]
@@ -289,18 +305,32 @@ model Lead {
   lastContactAt  DateTime?    @map("last_contact_at") @db.Timestamptz
   // Estimativa/orçamento agendado com o lead (data/hora marcada pelo atendente).
   scheduledEstimateAt DateTime? @map("scheduled_estimate_at") @db.Timestamptz
+  // --- Gestão operacional (ficha/caso do lead) ---
+  caseStatus       CaseStatus   @default(open) @map("case_status")
+  followUpAt       DateTime?    @map("follow_up_at") @db.Timestamptz
+  followUpReason   String?      @map("follow_up_reason")
+  followUpUserId   String?      @map("follow_up_user_id") @db.Uuid
+  resolvedAt       DateTime?    @map("resolved_at") @db.Timestamptz
+  resolvedByUserId String?      @map("resolved_by_user_id") @db.Uuid
+  caseOutcome      CaseOutcome? @map("case_outcome")
+  resolutionNote   String?      @map("resolution_note")
+  visitAt          DateTime?    @map("visit_at") @db.Timestamptz
+  visitConfirmed   Boolean      @default(false) @map("visit_confirmed")
   createdAt      DateTime     @default(now()) @map("created_at") @db.Timestamptz
   updatedAt      DateTime     @updatedAt @map("updated_at") @db.Timestamptz
   deletedAt      DateTime?    @map("deleted_at") @db.Timestamptz
 
   subAccount     SubAccount   @relation(fields: [subAccountId], references: [id], onDelete: Cascade)
   owner          User?        @relation("LeadOwner", fields: [ownerUserId], references: [id])
+  followUpUser   User?        @relation("CaseFollowUpUser", fields: [followUpUserId], references: [id])
+  resolvedBy     User?        @relation("CaseResolvedBy", fields: [resolvedByUserId], references: [id])
   interactions   Interaction[]
   notes          LeadNote[]
   messengerConversations MessengerConversation[]
 
   @@index([subAccountId, phoneE164])
   @@index([subAccountId, status])
+  @@index([subAccountId, caseStatus])
   @@index([subAccountId, createdAt(sort: Desc)])
   @@map("leads")
 }
