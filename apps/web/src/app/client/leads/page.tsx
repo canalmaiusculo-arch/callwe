@@ -9,7 +9,7 @@ import { HelpHint } from '@/components/help-hint';
 import { useTranslate } from '@/i18n/provider';
 
 type LeadStatus = 'new' | 'contacted' | 'qualified' | 'won' | 'lost';
-type LeadSource = 'inbound_call' | 'outbound_call' | 'meta_ads' | 'sms' | 'manual' | 'import' | 'api' | 'form';
+type LeadSource = 'inbound_call' | 'outbound_call' | 'meta_ads' | 'sms' | 'manual' | 'import' | 'api' | 'form' | 'messenger';
 
 interface Lead {
   id: string;
@@ -44,6 +44,7 @@ const SOURCE_LABEL_KEY: Record<LeadSource, string> = {
   import: 'clientLeads.sourceImport',
   api: 'clientLeads.sourceApi',
   form: 'clientLeads.sourceForm',
+  messenger: 'clientLeads.sourceMessenger',
 };
 
 export default function ClientLeadsPage() {

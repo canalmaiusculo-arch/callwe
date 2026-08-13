@@ -532,7 +532,8 @@
     "messengerEnable": "Habilitar",
     "messengerEnabled": "Página habilitada en Messenger",
     "messengerDisabled": "Página deshabilitada",
-    "messengerDisable": "Deshabilitar"
+    "messengerDisable": "Deshabilitar",
+    "messengerConnectMeta": "Conecta Meta primero para elegir una página."
   },
   "metaForms": {
     "title": "Meta Ads — formularios",
@@ -599,7 +600,8 @@
     "sourceManual": "Manual",
     "sourceImport": "Importación",
     "sourceApi": "API",
-    "sourceForm": "Formulario"
+    "sourceForm": "Formulario",
+    "sourceMessenger": "Messenger"
   },
   "clientLeadDetail": {
     "statusNew": "Nuevo",
@@ -1008,7 +1010,8 @@
     "conversion7d": "Conversión (7d)",
     "wonShort": "ganados",
     "leadsShort": "leads",
-    "estimatesUpcoming": "Estimaciones agendadas"
+    "estimatesUpcoming": "Estimaciones agendadas",
+    "sourceMessenger": "Messenger"
   },
   "leadDrawer": {
     "formAnswers": "Respuestas del formulario",

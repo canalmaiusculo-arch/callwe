@@ -13,6 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { HelpHint } from '@/components/help-hint';
 import { useTenantStore } from '@/stores/tenant-store';
+import { MessengerEnableCard } from '@/components/messenger-enable-card';
 import { useTranslate } from '@/i18n/provider';
 
 interface ClientDetail {
@@ -199,6 +200,8 @@ export default function ClientDetailPage({ params }: { params: Promise<{ clientI
       )}
 
       <WhatsappGroupCard clientId={clientId} currentGroupId={(client.settings?.whatsappGroupId as string | undefined) ?? null} />
+
+      <MessengerEnableCard subAccountId={clientId} className="mt-6" />
 
       <ZapierWebhookCard clientId={clientId} />
     </div>

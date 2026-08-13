@@ -532,7 +532,8 @@
     "messengerEnable": "Enable",
     "messengerEnabled": "Page enabled for Messenger",
     "messengerDisabled": "Page disabled",
-    "messengerDisable": "Disable"
+    "messengerDisable": "Disable",
+    "messengerConnectMeta": "Connect Meta first to choose a page."
   },
   "metaForms": {
     "title": "Meta Ads — Forms",
@@ -599,7 +600,8 @@
     "sourceManual": "Manual",
     "sourceImport": "Import",
     "sourceApi": "API",
-    "sourceForm": "Form"
+    "sourceForm": "Form",
+    "sourceMessenger": "Messenger"
   },
   "clientLeadDetail": {
     "statusNew": "New",
@@ -1008,7 +1010,8 @@
     "conversion7d": "Conversion (7d)",
     "wonShort": "won",
     "leadsShort": "leads",
-    "estimatesUpcoming": "Scheduled estimates"
+    "estimatesUpcoming": "Scheduled estimates",
+    "sourceMessenger": "Messenger"
   },
   "leadDrawer": {
     "formAnswers": "Form answers",

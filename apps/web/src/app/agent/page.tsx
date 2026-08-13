@@ -1224,6 +1224,7 @@ const SOURCE_LABEL_KEYS: Record<string, string> = {
   api: 'agentPanel.sourceApiShort',
   import: 'agentPanel.sourceImport',
   form: 'agentPanel.sourceForm',
+  messenger: 'agentPanel.sourceMessenger',
 };
 
 function LeadRow({ lead, onOpen }: { lead: AgentLead; onOpen: (lead: LeadDrawerTarget) => void }) {
