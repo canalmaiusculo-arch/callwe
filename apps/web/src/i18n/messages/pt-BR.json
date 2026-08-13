@@ -1018,7 +1018,8 @@
     "statusActive": "Ativo",
     "statusPaused": "Pausado",
     "minimize": "Minimizar",
-    "expand": "Expandir"
+    "expand": "Expandir",
+    "loadMore": "Ver mais"
   },
   "leadDrawer": {
     "formAnswers": "Respostas do formulário",

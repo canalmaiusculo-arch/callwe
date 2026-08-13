@@ -65,9 +65,10 @@ export class InteractionsService {
 
   list(
     subAccountIds: string[] | string,
-    filters?: { type?: string; from?: Date; to?: Date; agentUserId?: string },
+    filters?: { type?: string; from?: Date; to?: Date; agentUserId?: string; limit?: number },
   ) {
     const subAccountId = Array.isArray(subAccountIds) ? { in: subAccountIds } : subAccountIds;
+    const take = Math.min(Math.max(filters?.limit ?? 200, 1), 2000);
     return this.prisma.interaction.findMany({
       where: {
         subAccountId,
@@ -78,7 +79,7 @@ export class InteractionsService {
           : {}),
       },
       orderBy: { startedAt: 'desc' },
-      take: 200,
+      take,
       include: {
         lead: true,
         agent: { select: { id: true, fullName: true } },

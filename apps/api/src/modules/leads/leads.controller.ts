@@ -80,6 +80,13 @@ export class LeadsController {
       subAccountIds = user.memberships.map((m) => m.subAccountId).filter((v): v is string => !!v);
     }
     if (subAccountIds.length === 0) return [];
+    // Não lista leads de clientes arquivados (ex.: números internos de SDR).
+    const active = await this.prisma.subAccount.findMany({
+      where: { id: { in: subAccountIds }, status: { not: 'archived' } },
+      select: { id: true },
+    });
+    subAccountIds = active.map((s) => s.id);
+    if (subAccountIds.length === 0) return [];
     return this.svc.listMany(subAccountIds, parseFilters(q));
   }
 

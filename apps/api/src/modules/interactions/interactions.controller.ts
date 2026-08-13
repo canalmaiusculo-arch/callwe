@@ -38,20 +38,28 @@ export class InteractionsController {
     user: AuthUser,
     agentId?: string,
   ): Promise<{ subAccountIds: string[]; forcedAgentId: string | null }> {
+    let subAccountIds: string[];
+    let forcedAgentId: string | null;
     if (agentId && this.isAdmin(user)) {
       const subs = await this.prisma.membership.findMany({
         where: { userId: agentId, role: 'agent' },
         select: { subAccountId: true },
       });
-      return {
-        subAccountIds: subs.map((s) => s.subAccountId).filter((v): v is string => !!v),
-        forcedAgentId: agentId,
-      };
+      subAccountIds = subs.map((s) => s.subAccountId).filter((v): v is string => !!v);
+      forcedAgentId = agentId;
+    } else {
+      subAccountIds = user.memberships.map((m) => m.subAccountId).filter((v): v is string => !!v);
+      forcedAgentId = null;
     }
-    return {
-      subAccountIds: user.memberships.map((m) => m.subAccountId).filter((v): v is string => !!v),
-      forcedAgentId: null,
-    };
+    // Não mostra dados de clientes arquivados no painel do atendente.
+    if (subAccountIds.length) {
+      const active = await this.prisma.subAccount.findMany({
+        where: { id: { in: subAccountIds }, status: { not: 'archived' } },
+        select: { id: true },
+      });
+      subAccountIds = active.map((s) => s.id);
+    }
+    return { subAccountIds, forcedAgentId };
   }
 
   /** Atendentes que o usuário pode supervisionar (pro seletor do painel). */
@@ -89,12 +97,15 @@ export class InteractionsController {
     @Query('type') type?: string,
     @Query('onlyMine') onlyMine?: string,
     @Query('agentId') agentId?: string,
+    @Query('limit') limit?: string,
   ) {
     const { subAccountIds, forcedAgentId } = await this.resolveScope(user, agentId);
     if (subAccountIds.length === 0) return [];
+    const parsedLimit = limit ? Number(limit) : undefined;
     return this.svc.list(subAccountIds, {
       type,
       agentUserId: forcedAgentId ?? (onlyMine === 'true' ? user.id : undefined),
+      limit: Number.isFinite(parsedLimit) ? parsedLimit : undefined,
     });
   }
 

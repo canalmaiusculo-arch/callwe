@@ -43,14 +43,23 @@ export class CasesService {
   /** Sub-accounts que o atendente atende (ou, para admin, as de um atendente supervisionado). */
   private async scopeSubIds(user: Caller, agentId?: string): Promise<string[]> {
     const isAdmin = user.memberships.some((m) => m.role === 'super_admin' || m.role === 'agency_admin');
+    let ids: string[];
     if (agentId && isAdmin) {
       const subs = await this.prisma.membership.findMany({
         where: { userId: agentId, role: 'agent' },
         select: { subAccountId: true },
       });
-      return subs.map((s) => s.subAccountId).filter((v): v is string => !!v);
+      ids = subs.map((s) => s.subAccountId).filter((v): v is string => !!v);
+    } else {
+      ids = user.memberships.map((m) => m.subAccountId).filter((v): v is string => !!v);
     }
-    return user.memberships.map((m) => m.subAccountId).filter((v): v is string => !!v);
+    if (ids.length === 0) return ids;
+    // Ignora clientes arquivados (ex.: números internos de SDR) no painel.
+    const active = await this.prisma.subAccount.findMany({
+      where: { id: { in: ids }, status: { not: 'archived' } },
+      select: { id: true },
+    });
+    return active.map((s) => s.id);
   }
 
   private isOverdue(row: { caseStatus: string; createdAt: Date }): boolean {

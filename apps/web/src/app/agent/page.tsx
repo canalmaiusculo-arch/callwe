@@ -590,16 +590,19 @@ function CallsView({
   agentId?: string;
 }) {
   const { t } = useTranslate();
+  const [limit, setLimit] = useState(100);
   const { data: calls = [] } = useQuery<Interaction[]>({
-    queryKey: ['my-calls', onlyMine, agentId],
-    queryFn: () => apiClient.get(`/interactions/mine?type=call&onlyMine=${onlyMine}${agentId ? `&agentId=${agentId}` : ''}`),
+    queryKey: ['my-calls', onlyMine, agentId, limit],
+    queryFn: () => apiClient.get(`/interactions/mine?type=call&limit=${limit}&onlyMine=${onlyMine}${agentId ? `&agentId=${agentId}` : ''}`),
     refetchInterval: 15_000,
+    placeholderData: (prev) => prev,
   });
 
   const filtered = useMemo(
     () => filterInteractions(calls, { filterSubAccountId, activeSubAccountIds, search }),
     [calls, filterSubAccountId, activeSubAccountIds, search],
   );
+  const canLoadMore = calls.length >= limit && limit < 2000;
 
   return (
     <Card>
@@ -624,6 +627,11 @@ function CallsView({
         {filtered.map((c) => (
           <CallRow key={c.id} call={c} onClick={() => onOpen(c.id)} unread={!isSeen(c.id) && needsAttention(c)} />
         ))}
+        {canLoadMore && (
+          <Button variant="outline" className="w-full" onClick={() => setLimit((l) => l + 200)}>
+            {t('agentPanel.loadMore')}
+          </Button>
+        )}
       </CardContent>
     </Card>
   );
@@ -788,16 +796,19 @@ function SmsView({
   agentId?: string;
 }) {
   const { t } = useTranslate();
+  const [limit, setLimit] = useState(100);
   const { data: messages = [] } = useQuery<Interaction[]>({
-    queryKey: ['my-sms', onlyMine, agentId],
-    queryFn: () => apiClient.get(`/interactions/mine?type=sms&onlyMine=${onlyMine}${agentId ? `&agentId=${agentId}` : ''}`),
+    queryKey: ['my-sms', onlyMine, agentId, limit],
+    queryFn: () => apiClient.get(`/interactions/mine?type=sms&limit=${limit}&onlyMine=${onlyMine}${agentId ? `&agentId=${agentId}` : ''}`),
     refetchInterval: 15_000,
+    placeholderData: (prev) => prev,
   });
 
   const filtered = useMemo(
     () => filterInteractions(messages, { filterSubAccountId, activeSubAccountIds, search }),
     [messages, filterSubAccountId, activeSubAccountIds, search],
   );
+  const canLoadMore = messages.length >= limit && limit < 2000;
 
   return (
     <Card>
@@ -826,6 +837,11 @@ function SmsView({
             unread={m.direction === 'inbound' && !isSeen(m.id)}
           />
         ))}
+        {canLoadMore && (
+          <Button variant="outline" className="w-full" onClick={() => setLimit((l) => l + 200)}>
+            {t('agentPanel.loadMore')}
+          </Button>
+        )}
       </CardContent>
     </Card>
   );
