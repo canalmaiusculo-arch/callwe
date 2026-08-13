@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Building2, Users, LayoutDashboard, LogOut, HelpCircle, Settings, Menu, X } from 'lucide-react';
+import { Building2, Users, LayoutDashboard, LogOut, HelpCircle, Settings, Menu, X, Briefcase } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores/auth-store';
 import { useTenantStore } from '@/stores/tenant-store';
@@ -15,6 +15,7 @@ import { useTranslate } from '@/i18n/provider';
 const items = [
   { href: '/agency' as const, icon: LayoutDashboard, key: 'agency.overview' },
   { href: '/agency/clients' as const, icon: Building2, key: 'agency.clients' },
+  { href: '/agency/cases' as const, icon: Briefcase, key: 'agency.cases' },
   { href: '/agency/team' as const, icon: Users, key: 'agency.team' },
   { href: '/agency/settings' as const, icon: Settings, key: 'agency.settings' },
 ];

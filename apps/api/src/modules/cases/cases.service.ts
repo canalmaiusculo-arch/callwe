@@ -40,19 +40,47 @@ export class CasesService {
     });
   }
 
-  /** Sub-accounts que o atendente atende (ou, para admin, as de um atendente supervisionado). */
-  private async scopeSubIds(user: Caller, agentId?: string): Promise<string[]> {
-    const isAdmin = user.memberships.some((m) => m.role === 'super_admin' || m.role === 'agency_admin');
+  /**
+   * Sub-accounts no escopo do chamador:
+   * - agentId (supervisão): as sub-accounts daquele atendente
+   * - super_admin: todas (ou de uma agência, se agencyId vier)
+   * - agency_admin: as sub-accounts da sua agência
+   * - atendente: as que ele atende
+   */
+  private async scopeSubIds(
+    user: Caller,
+    opts: { agentId?: string; agencyId?: string } = {},
+  ): Promise<string[]> {
+    const isSuper = user.memberships.some((m) => m.role === 'super_admin');
+    const isAgencyAdmin = user.memberships.some((m) => m.role === 'agency_admin');
     let ids: string[];
-    if (agentId && isAdmin) {
+
+    if (opts.agentId && (isSuper || isAgencyAdmin)) {
       const subs = await this.prisma.membership.findMany({
-        where: { userId: agentId, role: 'agent' },
+        where: { userId: opts.agentId, role: 'agent' },
         select: { subAccountId: true },
       });
       ids = subs.map((s) => s.subAccountId).filter((v): v is string => !!v);
+    } else if (isSuper) {
+      const subs = await this.prisma.subAccount.findMany({
+        where: opts.agencyId ? { agencyId: opts.agencyId } : {},
+        select: { id: true },
+      });
+      ids = subs.map((s) => s.id);
+    } else if (isAgencyAdmin) {
+      const agencyIds = user.memberships
+        .filter((m) => m.role === 'agency_admin')
+        .map((m) => m.agencyId)
+        .filter((v): v is string => !!v);
+      const subs = await this.prisma.subAccount.findMany({
+        where: { agencyId: { in: agencyIds } },
+        select: { id: true },
+      });
+      ids = subs.map((s) => s.id);
     } else {
       ids = user.memberships.map((m) => m.subAccountId).filter((v): v is string => !!v);
     }
+
     if (ids.length === 0) return ids;
     // Ignora clientes arquivados (ex.: números internos de SDR) no painel.
     const active = await this.prisma.subAccount.findMany({
@@ -97,8 +125,8 @@ export class CasesService {
   }
 
   /** Lista casos das sub-accounts acessíveis, filtrando por aba/origem/cliente/data. */
-  async listMine(user: Caller, filters: CaseFilters, agentId?: string) {
-    const subIds = await this.scopeSubIds(user, agentId);
+  async listMine(user: Caller, filters: CaseFilters, agentId?: string, agencyId?: string) {
+    const subIds = await this.scopeSubIds(user, { agentId, agencyId });
     if (subIds.length === 0) return [];
 
     const where: Prisma.LeadWhereInput = {
@@ -141,8 +169,8 @@ export class CasesService {
   }
 
   /** Contadores por aba (para os badges) + quantos estão vencidos (SLA). */
-  async counts(user: Caller, agentId?: string) {
-    const subIds = await this.scopeSubIds(user, agentId);
+  async counts(user: Caller, agentId?: string, agencyId?: string) {
+    const subIds = await this.scopeSubIds(user, { agentId, agencyId });
     if (subIds.length === 0) return { open: 0, follow_up: 0, resolved: 0, overdue: 0 };
     const base: Prisma.LeadWhereInput = { deletedAt: null, subAccountId: { in: subIds } };
     // Um caso está vencido quando max(createdAt, grandfather) < cutoff. Como o
@@ -166,8 +194,8 @@ export class CasesService {
    * Contadores de pendências (leads ainda não trabalhados: status='new') por
    * cliente e por canal — usado nos badges da sidebar e das abas do atendente.
    */
-  async pendingCounts(user: Caller, agentId?: string) {
-    const subIds = await this.scopeSubIds(user, agentId);
+  async pendingCounts(user: Caller, agentId?: string, agencyId?: string) {
+    const subIds = await this.scopeSubIds(user, { agentId, agencyId });
     const empty = { byClient: {} as Record<string, number>, tabs: { leads: 0, forms: 0, calls: 0, sms: 0, messenger: 0 } };
     if (subIds.length === 0) return empty;
 
@@ -194,7 +222,7 @@ export class CasesService {
   private async assertAccess(user: Caller, caseId: string, agentId?: string) {
     const lead = await this.prisma.lead.findUnique({ where: { id: caseId } });
     if (!lead || lead.deletedAt) throw new NotFoundException('Caso não encontrado');
-    const subIds = await this.scopeSubIds(user, agentId);
+    const subIds = await this.scopeSubIds(user, { agentId });
     if (!subIds.includes(lead.subAccountId)) throw new ForbiddenException('Sem acesso a este caso');
     return lead;
   }

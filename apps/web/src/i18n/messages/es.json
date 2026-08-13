@@ -45,7 +45,8 @@
     "overview": "Resumen",
     "clients": "Clientes",
     "team": "Agentes",
-    "settings": "Configuración"
+    "settings": "Configuración",
+    "cases": "Casos"
   },
   "client": {
     "title": "Cliente"
@@ -1118,6 +1119,8 @@
     "noNotes": "Sin notas aún.",
     "addNotePlaceholder": "Agrega una nota sobre la gestión…",
     "saveNote": "Guardar Nota",
-    "noteSaved": "Nota guardada"
+    "noteSaved": "Nota guardada",
+    "agencySubtitle": "Casos de todos los clientes de tu agencia.",
+    "allClients": "Todos los clientes"
   }
 }

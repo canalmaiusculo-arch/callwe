@@ -45,7 +45,8 @@
     "overview": "Overview",
     "clients": "Clients",
     "team": "Agents",
-    "settings": "Settings"
+    "settings": "Settings",
+    "cases": "Cases"
   },
   "client": {
     "title": "Client"
@@ -1118,6 +1119,8 @@
     "noNotes": "No notes yet.",
     "addNotePlaceholder": "Add a note about this case…",
     "saveNote": "Save Note",
-    "noteSaved": "Note saved"
+    "noteSaved": "Note saved",
+    "agencySubtitle": "Cases across all your agency clients.",
+    "allClients": "All clients"
   }
 }

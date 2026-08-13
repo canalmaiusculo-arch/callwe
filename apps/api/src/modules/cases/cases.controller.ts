@@ -48,18 +48,27 @@ export class CasesController {
         search: q.search,
       },
       q.agentId,
+      q.agencyId,
     );
   }
 
   @Get('counts')
-  counts(@CurrentUser() user: AuthUser, @Query('agentId') agentId?: string) {
-    return this.svc.counts(user, agentId);
+  counts(
+    @CurrentUser() user: AuthUser,
+    @Query('agentId') agentId?: string,
+    @Query('agencyId') agencyId?: string,
+  ) {
+    return this.svc.counts(user, agentId, agencyId);
   }
 
   /** Pendências (leads status='new') por cliente e por canal — badges da sidebar. */
   @Get('pending-counts')
-  pendingCounts(@CurrentUser() user: AuthUser, @Query('agentId') agentId?: string) {
-    return this.svc.pendingCounts(user, agentId);
+  pendingCounts(
+    @CurrentUser() user: AuthUser,
+    @Query('agentId') agentId?: string,
+    @Query('agencyId') agencyId?: string,
+  ) {
+    return this.svc.pendingCounts(user, agentId, agencyId);
   }
 
   @Get(':id')

@@ -68,15 +68,19 @@ const ORIGINS = ['all', 'calls', 'sms', 'meta', 'organic'] as const;
 
 export function CasesPanel({
   agentId,
+  agencyId,
   filterSubAccountId,
   activeSubAccountIds,
   clients,
 }: {
   agentId?: string;
+  agencyId?: string;
   filterSubAccountId: string | null;
   activeSubAccountIds?: string[] | null;
   clients: AssignedClient[];
 }) {
+  // Parâmetro de escopo repassado aos endpoints (atendente supervisionado ou agência).
+  const scopeParam = agentId ? `agentId=${agentId}` : agencyId ? `agencyId=${agencyId}` : '';
   const { t } = useTranslate();
   const [tab, setTab] = useState<CaseTab>('open');
   const [date, setDate] = useState('');
@@ -94,13 +98,13 @@ export function CasesPanel({
   };
 
   const { data: counts } = useQuery<Counts>({
-    queryKey: ['case-counts', agentId],
-    queryFn: () => apiClient.get(`/cases/counts${agentId ? `?agentId=${agentId}` : ''}`),
+    queryKey: ['case-counts', scopeParam],
+    queryFn: () => apiClient.get(`/cases/counts${scopeParam ? `?${scopeParam}` : ''}`),
     refetchInterval: 60_000,
   });
 
   const { data: cases = [], isLoading } = useQuery<CaseItem[]>({
-    queryKey: ['cases', tab, origin, date, search, filterSubAccountId, agentId],
+    queryKey: ['cases', tab, origin, date, search, filterSubAccountId, scopeParam],
     queryFn: () => {
       const p = new URLSearchParams({ tab });
       if (origin !== 'all') p.set('origin', origin);
@@ -108,6 +112,7 @@ export function CasesPanel({
       if (search) p.set('search', search);
       if (filterSubAccountId) p.set('subAccountId', filterSubAccountId);
       if (agentId) p.set('agentId', agentId);
+      if (agencyId) p.set('agencyId', agencyId);
       return apiClient.get(`/cases/mine?${p.toString()}`);
     },
     refetchInterval: 45_000,
