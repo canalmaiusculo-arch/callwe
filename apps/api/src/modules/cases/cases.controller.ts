@@ -4,6 +4,9 @@ import { z } from 'zod';
 import { CasesService } from './cases.service.js';
 import { ZodBody } from '../../common/pipes/zod.pipe.js';
 import { CurrentUser, AuthUser } from '../../common/decorators/current-user.decorator.js';
+import { RolesGuard } from '../../common/guards/roles.guard.js';
+import { Roles } from '../../common/decorators/roles.decorator.js';
+import { ROLES } from '@callwe/shared';
 
 const NoteDto = z.object({ body: z.string().min(1).max(4000) });
 
@@ -25,6 +28,11 @@ const ResolveDto = z.object({
   note: z.string().min(1).max(4000),
   visitAt: z.string().datetime().optional(),
   visitConfirmed: z.boolean().optional(),
+});
+
+const CleanupDto = z.object({
+  before: z.string().datetime(),
+  agencyId: z.string().uuid().optional(),
 });
 
 const CreateDto = z.object({
@@ -87,6 +95,14 @@ export class CasesController {
   @Post()
   create(@CurrentUser() user: AuthUser, @ZodBody(CreateDto) dto: z.infer<typeof CreateDto>) {
     return this.svc.createManual(user, dto);
+  }
+
+  /** Limpeza de casos antigos (soft-delete) — só super_admin/agency_admin. */
+  @Post('cleanup')
+  @UseGuards(RolesGuard)
+  @Roles(ROLES.SUPER_ADMIN, ROLES.AGENCY_ADMIN)
+  cleanup(@CurrentUser() user: AuthUser, @ZodBody(CleanupDto) dto: z.infer<typeof CleanupDto>) {
+    return this.svc.cleanup(user, new Date(dto.before), dto.agencyId);
   }
 
   @Patch(':id')

@@ -16,6 +16,7 @@ import {
   X,
   Clock,
   AlertTriangle,
+  Trash2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { apiClient } from '@/lib/api-client';
@@ -72,12 +73,14 @@ export function CasesPanel({
   filterSubAccountId,
   activeSubAccountIds,
   clients,
+  canCleanup,
 }: {
   agentId?: string;
   agencyId?: string;
   filterSubAccountId: string | null;
   activeSubAccountIds?: string[] | null;
   clients: AssignedClient[];
+  canCleanup?: boolean;
 }) {
   // Parâmetro de escopo repassado aos endpoints (atendente supervisionado ou agência).
   const scopeParam = agentId ? `agentId=${agentId}` : agencyId ? `agencyId=${agencyId}` : '';
@@ -88,6 +91,7 @@ export function CasesPanel({
   const [outcome, setOutcome] = useState<'all' | 'booked' | 'won' | 'lost'>('all');
   const [search, setSearch] = useState('');
   const [showNew, setShowNew] = useState(false);
+  const [showCleanup, setShowCleanup] = useState(false);
   const [followUpFor, setFollowUpFor] = useState<CaseItem | null>(null);
   const [resolveFor, setResolveFor] = useState<CaseItem | null>(null);
   const [detailId, setDetailId] = useState<string | null>(null);
@@ -143,9 +147,16 @@ export function CasesPanel({
             </Badge>
           )}
         </div>
-        <Button size="sm" onClick={() => setShowNew(true)}>
-          <Plus className="h-4 w-4" /> {t('cases.newCase')}
-        </Button>
+        <div className="flex items-center gap-2">
+          {canCleanup && (
+            <Button size="sm" variant="outline" className="text-red-600 hover:bg-red-50 hover:text-red-700" onClick={() => setShowCleanup(true)}>
+              <Trash2 className="h-4 w-4" /> {t('cases.cleanup')}
+            </Button>
+          )}
+          <Button size="sm" onClick={() => setShowNew(true)}>
+            <Plus className="h-4 w-4" /> {t('cases.newCase')}
+          </Button>
+        </div>
       </div>
 
       {/* Sub-abas */}
@@ -229,6 +240,7 @@ export function CasesPanel({
       )}
 
       {showNew && <NewCaseModal clients={clients} onClose={() => setShowNew(false)} onDone={invalidate} />}
+      {showCleanup && <CleanupModal agencyId={agencyId} onClose={() => setShowCleanup(false)} onDone={invalidate} />}
       {followUpFor && (
         <FollowUpModal caseItem={followUpFor} onClose={() => setFollowUpFor(null)} onDone={invalidate} />
       )}
@@ -635,6 +647,55 @@ function LabeledInput({ label, value, onChange, placeholder }: { label: string; 
       <label className="text-xs font-medium text-muted-foreground">{label}</label>
       <Input value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} className="mt-1 h-9 text-sm" />
     </div>
+  );
+}
+
+function firstOfThisMonth(): string {
+  // Sem Date.now direto: usa o ano/mês atuais via toISOString do relógio do browser.
+  const iso = new Date().toISOString(); // YYYY-MM-DDT...
+  return `${iso.slice(0, 7)}-01`;
+}
+
+function CleanupModal({ agencyId, onClose, onDone }: { agencyId?: string; onClose: () => void; onDone: () => void }) {
+  const { t } = useTranslate();
+  const [before, setBefore] = useState(firstOfThisMonth());
+  const [confirmText, setConfirmText] = useState('');
+
+  const run = useMutation({
+    mutationFn: () =>
+      apiClient.post<{ deleted: number }>('/cases/cleanup', {
+        before: new Date(`${before}T00:00:00`).toISOString(),
+        agencyId,
+      }),
+    onSuccess: (r) => {
+      toast.success(t('cases.cleanupDone').replace('{n}', String(r.deleted)));
+      onDone();
+      onClose();
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  return (
+    <ModalShell title={t('cases.cleanupTitle')} color="bg-red-600" onClose={onClose}>
+      <div className="space-y-3">
+        <p className="rounded-md border border-red-200 bg-red-50 p-2 text-xs text-red-800">{t('cases.cleanupWarning')}</p>
+        <div>
+          <label className="text-xs font-medium text-muted-foreground">{t('cases.cleanupBefore')}</label>
+          <input type="date" value={before} onChange={(e) => setBefore(e.target.value)} className="mt-1 h-9 w-full rounded-md border bg-background px-2 text-sm" />
+        </div>
+        <div>
+          <label className="text-xs font-medium text-muted-foreground">{t('cases.cleanupConfirmLabel')}</label>
+          <Input value={confirmText} onChange={(e) => setConfirmText(e.target.value)} placeholder="LIMPAR" className="mt-1 h-9 text-sm" />
+        </div>
+        <Button
+          className="w-full bg-red-600 hover:bg-red-700"
+          disabled={confirmText.trim().toUpperCase() !== 'LIMPAR' || !before || run.isPending}
+          onClick={() => run.mutate()}
+        >
+          {t('cases.cleanupConfirm')}
+        </Button>
+      </div>
+    </ModalShell>
   );
 }
 

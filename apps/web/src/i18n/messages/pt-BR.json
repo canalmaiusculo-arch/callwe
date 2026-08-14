@@ -1128,6 +1128,13 @@
     "allClients": "Todos os clientes",
     "outcomeAll": "Todos os desfechos",
     "saveContact": "Salvar dados",
-    "contactSaved": "Dados atualizados"
+    "contactSaved": "Dados atualizados",
+    "cleanup": "Limpar antigos",
+    "cleanupTitle": "Limpar casos antigos",
+    "cleanupWarning": "Isso arquiva (soft-delete) todos os casos criados ANTES da data escolhida. Recuperável, e o histórico de ligações/SMS é mantido.",
+    "cleanupBefore": "Apagar casos criados antes de",
+    "cleanupConfirmLabel": "Digite LIMPAR para confirmar",
+    "cleanupConfirm": "Limpar casos",
+    "cleanupDone": "{n} casos limpos"
   }
 }

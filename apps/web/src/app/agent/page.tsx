@@ -128,7 +128,7 @@ export default function AgentPage() {
   const queryClient = useQueryClient();
 
   // Usuário logado (para exibir quem está no painel).
-  const { data: me } = useQuery<{ id: string; fullName: string; email: string; avatarUrl: string | null }>({
+  const { data: me } = useQuery<{ id: string; fullName: string; email: string; avatarUrl: string | null; isAdmin?: boolean }>({
     queryKey: ['me'],
     queryFn: () => apiClient.get('/auth/me'),
     staleTime: 5 * 60_000,
@@ -402,7 +402,7 @@ export default function AgentPage() {
         ) : tab === 'messenger' ? (
           <MessengerInbox filterSubAccountId={filterSubAccountId} />
         ) : tab === 'cases' ? (
-          <CasesPanel agentId={agentId} filterSubAccountId={filterSubAccountId} activeSubAccountIds={activeFilterIds} clients={visibleClients} />
+          <CasesPanel agentId={agentId} filterSubAccountId={filterSubAccountId} activeSubAccountIds={activeFilterIds} clients={visibleClients} canCleanup={me?.isAdmin} />
         ) : (
           <BriefingsView clients={clients} initialSelectedId={filterSubAccountId} />
         )}

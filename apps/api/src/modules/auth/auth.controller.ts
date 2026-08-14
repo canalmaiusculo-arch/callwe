@@ -30,8 +30,12 @@ export class AuthController {
   /** Perfil do usuário logado. */
   @Get('me')
   @UseGuards(AuthGuard('jwt'))
-  me(@CurrentUser() user: AuthUser) {
-    return this.auth.me(user.id);
+  async me(@CurrentUser() user: AuthUser) {
+    const profile = await this.auth.me(user.id);
+    const isAdmin = user.memberships.some(
+      (m) => m.role === 'super_admin' || m.role === 'agency_admin',
+    );
+    return { ...profile, isAdmin };
   }
 
   @Post('refresh')

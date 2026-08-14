@@ -1128,6 +1128,13 @@
     "allClients": "All clients",
     "outcomeAll": "All outcomes",
     "saveContact": "Save details",
-    "contactSaved": "Details updated"
+    "contactSaved": "Details updated",
+    "cleanup": "Clean old",
+    "cleanupTitle": "Clean old cases",
+    "cleanupWarning": "This archives (soft-delete) all cases created BEFORE the chosen date. Recoverable, and call/SMS history is kept.",
+    "cleanupBefore": "Delete cases created before",
+    "cleanupConfirmLabel": "Type LIMPAR to confirm",
+    "cleanupConfirm": "Clean cases",
+    "cleanupDone": "{n} cases cleaned"
   }
 }

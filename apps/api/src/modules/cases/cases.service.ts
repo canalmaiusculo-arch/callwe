@@ -381,6 +381,20 @@ export class CasesService {
     return lead;
   }
 
+  /**
+   * Limpeza: soft-delete (marca deletedAt) dos casos criados antes de `before`,
+   * no escopo do usuário. Recuperável; mantém o histórico de ligações/SMS.
+   */
+  async cleanup(user: Caller, before: Date, agencyId?: string) {
+    const subIds = await this.scopeSubIds(user, { agencyId });
+    if (subIds.length === 0) return { deleted: 0 };
+    const res = await this.prisma.lead.updateMany({
+      where: { deletedAt: null, subAccountId: { in: subIds }, createdAt: { lt: before } },
+      data: { deletedAt: new Date() },
+    });
+    return { deleted: res.count };
+  }
+
   /** Reabre um caso resolvido. */
   async reopen(user: Caller, caseId: string) {
     await this.assertAccess(user, caseId);

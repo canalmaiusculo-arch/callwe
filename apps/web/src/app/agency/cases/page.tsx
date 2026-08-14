@@ -49,6 +49,7 @@ export default function AgencyCasesPage() {
         agencyId={viewAsAgencyId ?? undefined}
         filterSubAccountId={clientFilter || null}
         clients={clients}
+        canCleanup
       />
     </div>
   );
