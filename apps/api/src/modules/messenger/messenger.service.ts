@@ -148,6 +148,58 @@ export class MessengerService {
     return { conversation: conv, messages, windowOpen };
   }
 
+  /**
+   * Resolve um Page Access Token válido: usa o salvo se não estiver vazio; senão
+   * deriva um fresco do user token e cacheia. Evita o bug de token vazio/expirado.
+   */
+  private async resolvePageToken(subAccountId: string, pageId: string): Promise<string> {
+    const creds = await this.integrations.getDecrypted<{
+      pageAccessToken?: string;
+      userAccessToken?: string;
+      pageId?: string;
+    }>(subAccountId, 'meta_ads');
+    if (creds?.pageAccessToken && creds.pageAccessToken.length > 20) return creds.pageAccessToken;
+    if (!creds?.userAccessToken) throw new BadRequestException('Meta não conectado nesta conta');
+
+    const client = new MetaGraphClient({
+      accessToken: creds.userAccessToken,
+      graphVersion: env.META_GRAPH_VERSION,
+    });
+    let pageToken: string | null = null;
+    try {
+      pageToken = await client.getPageToken(pageId);
+    } catch {
+      throw new BadRequestException('Reconecte a Meta desta conta (token expirado)');
+    }
+    if (!pageToken) throw new BadRequestException('Sem acesso à página — reconecte a Meta');
+
+    // Cacheia o page token pra próximos envios.
+    await this.integrations.upsertCredentials(subAccountId, 'meta_ads', {
+      ...creds,
+      pageAccessToken: pageToken,
+      pageId,
+    });
+    return pageToken;
+  }
+
+  /** Converte o erro cru da Send API do Facebook numa mensagem útil. */
+  private mapSendError(err: unknown): BadRequestException {
+    const fb = (err as { response?: { data?: { error?: { message?: string; code?: number; error_subcode?: number } } } })
+      ?.response?.data?.error;
+    if (fb?.code === 551 || fb?.error_subcode === 1545041) {
+      return new BadRequestException(
+        'Não foi possível enviar: em modo de desenvolvimento o Facebook só permite responder testadores do app. Para responder clientes reais é preciso o App Review do pages_messaging + app em Live.',
+      );
+    }
+    if (fb?.code === 190) {
+      return new BadRequestException('Token da página inválido — reconecte a Meta desta conta.');
+    }
+    if (fb?.code === 10 || fb?.error_subcode === 2018278) {
+      return new BadRequestException('Fora da janela de 24h do Messenger — o cliente precisa enviar uma nova mensagem.');
+    }
+    return new BadRequestException(fb?.message ? `Facebook recusou o envio: ${fb.message}` : 'Falha ao enviar a mensagem.');
+  }
+
   private async markLeadContacted(leadId: string) {
     await this.prisma.lead.updateMany({
       where: { id: leadId, status: 'new' },
@@ -166,15 +218,15 @@ export class MessengerService {
       throw new BadRequestException('messaging_window_closed');
     }
 
-    const creds = await this.integrations.getDecrypted<{ pageAccessToken?: string; userAccessToken?: string }>(
-      conv.subAccountId,
-      'meta_ads',
-    );
-    const token = creds?.pageAccessToken ?? creds?.userAccessToken;
-    if (!token) throw new BadRequestException('Sem token da página para enviar');
+    const pageToken = await this.resolvePageToken(conv.subAccountId, conv.pageId);
+    const client = new MetaGraphClient({ accessToken: pageToken, graphVersion: env.META_GRAPH_VERSION });
 
-    const client = new MetaGraphClient({ accessToken: token, graphVersion: env.META_GRAPH_VERSION });
-    const res = await client.sendMessengerText(conv.pageId, token, conv.psid, text);
+    let res: { message_id?: string };
+    try {
+      res = await client.sendMessengerText(conv.pageId, pageToken, conv.psid, text);
+    } catch (err) {
+      throw this.mapSendError(err);
+    }
 
     const now = new Date();
     const message = await this.prisma.messengerMessage.create({

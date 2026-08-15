@@ -147,6 +147,12 @@ export class MetaGraphClient {
     }
   }
 
+  /** Obtém um Page Access Token fresco a partir do user token (evita token vazio/expirado). */
+  async getPageToken(pageId: string): Promise<string | null> {
+    const res = await this.http.get(`/${pageId}`, { params: { fields: 'access_token' } });
+    return (res.data?.access_token as string | undefined) ?? null;
+  }
+
   /** Envia uma mensagem de texto via Send API (Messenger). */
   async sendMessengerText(
     pageId: string,
