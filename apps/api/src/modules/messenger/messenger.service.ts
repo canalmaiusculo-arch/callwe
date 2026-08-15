@@ -158,28 +158,30 @@ export class MessengerService {
       userAccessToken?: string;
       pageId?: string;
     }>(subAccountId, 'meta_ads');
-    if (creds?.pageAccessToken && creds.pageAccessToken.length > 20) return creds.pageAccessToken;
-    if (!creds?.userAccessToken) throw new BadRequestException('Meta não conectado nesta conta');
 
-    const client = new MetaGraphClient({
-      accessToken: creds.userAccessToken,
-      graphVersion: env.META_GRAPH_VERSION,
-    });
-    let pageToken: string | null = null;
-    try {
-      pageToken = await client.getPageToken(pageId);
-    } catch {
-      throw new BadRequestException('Reconecte a Meta desta conta (token expirado)');
+    // Sempre tenta derivar um page token FRESCO do user token — evita token vazio
+    // (apagado numa reconexão) ou stale. Cacheia pro próximo envio.
+    if (creds?.userAccessToken) {
+      try {
+        const client = new MetaGraphClient({
+          accessToken: creds.userAccessToken,
+          graphVersion: env.META_GRAPH_VERSION,
+        });
+        const fresh = await client.getPageToken(pageId);
+        if (fresh) {
+          await this.integrations.upsertCredentials(subAccountId, 'meta_ads', {
+            ...creds,
+            pageAccessToken: fresh,
+            pageId,
+          });
+          return fresh;
+        }
+      } catch {
+        // cai pro fallback abaixo
+      }
     }
-    if (!pageToken) throw new BadRequestException('Sem acesso à página — reconecte a Meta');
-
-    // Cacheia o page token pra próximos envios.
-    await this.integrations.upsertCredentials(subAccountId, 'meta_ads', {
-      ...creds,
-      pageAccessToken: pageToken,
-      pageId,
-    });
-    return pageToken;
+    if (creds?.pageAccessToken && creds.pageAccessToken.length > 20) return creds.pageAccessToken;
+    throw new BadRequestException('Sem token da página — reconecte a Meta desta conta.');
   }
 
   /** Converte o erro cru da Send API do Facebook numa mensagem útil. */

@@ -61,7 +61,12 @@ export class MetaAdsService {
     const short = await exchangeCodeForToken(this.oauthConfig, code);
     const long = await exchangeForLongLivedToken(this.oauthConfig, short.access_token);
 
+    // Preserva credenciais já existentes (ex.: pageAccessToken/pageId do Messenger)
+    // — reconectar só atualiza o user token, sem apagar o resto.
+    const existing =
+      (await this.integrations.getDecrypted<Record<string, unknown>>(parsed.subAccountId, 'meta_ads')) ?? {};
     await this.integrations.upsertCredentials(parsed.subAccountId, 'meta_ads', {
+      ...existing,
       userAccessToken: long.access_token,
       tokenType: long.token_type,
       expiresIn: long.expires_in,
