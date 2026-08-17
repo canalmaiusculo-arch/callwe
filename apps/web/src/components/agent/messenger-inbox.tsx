@@ -12,6 +12,7 @@ import { useTranslate } from '@/i18n/provider';
 interface Conversation {
   id: string;
   channel: 'messenger' | 'instagram';
+  psid: string;
   contactName: string | null;
   contactAvatar: string | null;
   lastMessageText: string | null;
@@ -27,6 +28,11 @@ interface Message {
   text: string | null;
   createdAt: string;
   senderUser: { id: string; fullName: string } | null;
+}
+
+// Sem nome (Meta bloqueia até o App Review), mostra um sufixo do ID pra distinguir.
+function contactLabel(c: { contactName: string | null; psid: string }, fallback: string): string {
+  return c.contactName ?? `${fallback} ·${c.psid.slice(-4)}`;
 }
 
 function fmtTime(iso: string | null) {
@@ -106,7 +112,7 @@ export function MessengerInbox({ filterSubAccountId }: { filterSubAccountId: str
                 <Icon className={`mt-0.5 h-4 w-4 shrink-0 ${c.channel === 'instagram' ? 'text-pink-600' : 'text-blue-600'}`} />
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center justify-between gap-2">
-                    <p className="truncate text-sm font-medium">{c.contactName ?? t('messengerInbox.contact')}</p>
+                    <p className="truncate text-sm font-medium">{contactLabel(c, t('messengerInbox.contact'))}</p>
                     <span className="shrink-0 text-[10px] text-muted-foreground">{fmtTime(c.lastMessageAt)}</span>
                   </div>
                   <p className="truncate text-xs text-muted-foreground">{c.lastMessageText ?? '—'}</p>
@@ -133,7 +139,7 @@ export function MessengerInbox({ filterSubAccountId }: { filterSubAccountId: str
                 <Facebook className="h-4 w-4 text-blue-600" />
               )}
               <div className="min-w-0">
-                <p className="truncate text-sm font-medium">{selected.contactName ?? t('messengerInbox.contact')}</p>
+                <p className="truncate text-sm font-medium">{contactLabel(selected, t('messengerInbox.contact'))}</p>
                 {selected.subAccount && <p className="truncate text-xs text-muted-foreground">{selected.subAccount.name}</p>}
               </div>
             </div>
