@@ -17,12 +17,44 @@ interface MessengerJob {
   timestamp: number;
 }
 
-function resolveToken(credentials: unknown): string | undefined {
+type MetaCreds = { pageAccessToken?: string; userAccessToken?: string };
+
+function decryptCreds(credentials: unknown): MetaCreds {
   const raw = credentials as Record<string, unknown>;
-  const creds = isEncryptedPayload(raw)
-    ? decryptJson<{ pageAccessToken?: string; userAccessToken?: string }>(raw)
-    : (raw as { pageAccessToken?: string; userAccessToken?: string });
-  return creds.pageAccessToken ?? creds.userAccessToken ?? env.META_SYSTEM_USER_TOKEN;
+  return isEncryptedPayload(raw) ? decryptJson<MetaCreds>(raw) : (raw as MetaCreds);
+}
+
+/** Deriva um page access token a partir do user token (o page token pode estar vazio). */
+async function getPageToken(pageId: string, userToken: string): Promise<string | undefined> {
+  try {
+    const res = await axios.get(`https://graph.facebook.com/${env.META_GRAPH_VERSION}/${pageId}`, {
+      params: { access_token: userToken, fields: 'access_token' },
+      timeout: 10_000,
+    });
+    return res.data?.access_token as string | undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Resolve o nome do contato pela API de Conversas da página (como o inbox nativo).
+ * Funciona mesmo em modo dev, ao contrário do fetch direto do PSID (bloqueado).
+ */
+async function resolveContactName(pageId: string, pageToken: string, psid: string): Promise<string | undefined> {
+  try {
+    const res = await axios.get(`https://graph.facebook.com/${env.META_GRAPH_VERSION}/${pageId}/conversations`, {
+      params: { access_token: pageToken, fields: 'participants', limit: 25 },
+      timeout: 10_000,
+    });
+    for (const conv of (res.data?.data ?? []) as Array<{ participants?: { data?: Array<{ id: string; name?: string }> } }>) {
+      const u = (conv.participants?.data ?? []).find((x) => x.id === psid);
+      if (u?.name) return u.name;
+    }
+  } catch {
+    // segue sem nome
+  }
+  return undefined;
 }
 
 /**
@@ -50,7 +82,6 @@ export function startMetaMessengerWorker() {
         if (exists) return;
       }
 
-      const token = resolveToken(page.integration.credentials);
       const receivedAt = timestamp ? new Date(timestamp) : new Date();
 
       // Acha ou cria a conversa (única por página+psid).
@@ -59,20 +90,13 @@ export function startMetaMessengerWorker() {
       });
 
       if (!conversation) {
-        // Primeira mensagem: busca perfil e cria um lead pra entrar no funil.
+        // Primeira mensagem: resolve o nome do contato (via API de Conversas) e cria o lead.
         let contactName: string | undefined;
-        let contactAvatar: string | undefined;
-        if (token) {
-          try {
-            const res = await axios.get(
-              `https://graph.facebook.com/${env.META_GRAPH_VERSION}/${psid}`,
-              { params: { access_token: token, fields: 'name,first_name,profile_pic' }, timeout: 10_000 },
-            );
-            contactName = res.data?.name ?? res.data?.first_name;
-            contactAvatar = res.data?.profile_pic;
-          } catch {
-            // perfil pode não estar acessível — segue sem nome
-          }
+        const contactAvatar: string | undefined = undefined;
+        const creds = decryptCreds(page.integration.credentials);
+        const pageToken = creds.pageAccessToken || (creds.userAccessToken ? await getPageToken(pageId, creds.userAccessToken) : undefined);
+        if (pageToken) {
+          contactName = await resolveContactName(pageId, pageToken, psid);
         }
 
         const lead = await prisma.lead.create({
