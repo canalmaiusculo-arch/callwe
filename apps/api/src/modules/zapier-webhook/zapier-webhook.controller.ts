@@ -140,7 +140,62 @@ export class ZapierWebhookController {
   @Post('thumbtack/:key')
   @HttpCode(202)
   receiveThumbtack(@Param('key') key: string, @Body() rawBody: Record<string, unknown>) {
-    return this.ingestLead(key, rawBody, 'thumbtack' as LeadSource, 'thumbtack');
+    return this.ingestThumbtack(key, rawBody);
+  }
+
+  /** Parser dedicado do payload (aninhado) do Thumbtack → lead com source `thumbtack`. */
+  private async ingestThumbtack(apiKey: string | undefined, body: Record<string, unknown>) {
+    if (!apiKey || apiKey.length < 16) throw new UnauthorizedException('API key required');
+    const sub = await this.prisma.subAccount.findFirst({
+      where: { settings: { path: ['zapierApiKey'], equals: apiKey } },
+      select: { id: true, name: true },
+    });
+    if (!sub) {
+      this.logger.warn(`Thumbtack webhook with invalid key (prefix=${apiKey.slice(0, 6)}...)`);
+      throw new UnauthorizedException('Invalid API key');
+    }
+
+    const b = body ?? {};
+    const customer = (b.customer ?? {}) as Record<string, unknown>;
+    const request = (b.request ?? {}) as Record<string, unknown>;
+    const loc = (request.location ?? {}) as Record<string, unknown>;
+    const category = (request.category ?? {}) as Record<string, unknown>;
+
+    const name =
+      [customer.firstName, customer.lastName].filter(Boolean).map(String).join(' ').trim() || undefined;
+    const phoneE164 = normalizeUsPhone(customer.phone as string | undefined);
+    const email = (customer.email as string | undefined) || undefined;
+    const address =
+      [loc.address1, loc.address2, [loc.city, loc.state].filter(Boolean).join(', '), loc.zipCode]
+        .filter(Boolean)
+        .map(String)
+        .join(', ') || undefined;
+    const sourceRef = (b.negotiationID as string | undefined) ?? (request.requestID as string | undefined);
+
+    const customFields: Prisma.InputJsonValue = {
+      ...(address ? { address } : {}),
+      thumbtack: {
+        negotiationID: b.negotiationID ?? null,
+        requestID: request.requestID ?? null,
+        eventType: b.eventType ?? null,
+        category: (category.name as string | undefined) ?? null,
+        description: request.description ?? null,
+        estimate: (b.estimate as unknown) ?? null,
+        leadPrice: b.leadPrice ?? null,
+        zipCode: loc.zipCode ?? null,
+        proposedTimes: request.proposedTimes ?? null,
+        details: request.details ?? null,
+      },
+      acquisitionChannel: 'thumbtack',
+      receivedVia: 'thumbtack',
+    };
+
+    const payload = { source: 'thumbtack' as LeadSource, sourceRef, name, email, customFields };
+    const lead = phoneE164
+      ? await this.leadsService.upsertByPhone(sub.id, phoneE164, payload)
+      : await this.leadsService.create(sub.id, payload);
+    this.logger.log(`Lead Thumbtack pra ${sub.name}: ${name ?? phoneE164 ?? 'sem contato'} → lead ${lead.id}`);
+    return { received: true, leadId: lead.id, subAccount: sub.name };
   }
 
   /**
@@ -216,6 +271,21 @@ export class ZapierWebhookController {
     this.logger.log(`Lead via ${receivedVia} sem phone pra ${sub.name}: lead ${lead.id}`);
     return { received: true, leadId: lead.id, subAccount: sub.name };
   }
+}
+
+/** Normalização de telefone dos EUA (Thumbtack é mercado US): 10 dígitos → +1XXXXXXXXXX. */
+function normalizeUsPhone(raw: string | undefined): string | undefined {
+  if (!raw) return undefined;
+  const s = String(raw).trim();
+  if (s.startsWith('+')) {
+    const cleaned = s.replace(/[^\d+]/g, '');
+    return /^\+[1-9]\d{6,14}$/.test(cleaned) ? cleaned : undefined;
+  }
+  const d = s.replace(/\D/g, '');
+  if (d.length === 10) return `+1${d}`;
+  if (d.length === 11 && d.startsWith('1')) return `+${d}`;
+  if (d.length >= 7 && d.length <= 15) return `+${d}`;
+  return undefined;
 }
 
 function normalizePhoneToE164(raw: string | undefined): string | undefined {
