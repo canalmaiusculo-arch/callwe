@@ -163,6 +163,7 @@ export class ZapierWebhookController {
     const request = (data.request ?? {}) as Record<string, unknown>;
     const loc = (request.location ?? {}) as Record<string, unknown>;
     const category = (request.category ?? {}) as Record<string, unknown>;
+    const business = (data.business ?? {}) as Record<string, unknown>;
 
     const name =
       [customer.firstName, customer.lastName].filter(Boolean).map(String).join(' ').trim() || undefined;
@@ -184,6 +185,7 @@ export class ZapierWebhookController {
         eventType: event.eventType ?? null,
         category: (category.name as string | undefined) ?? null,
         description: request.description ?? null,
+        business: (business.name as string | undefined) ?? null,
         estimate: (data.estimate as unknown) ?? null,
         leadPrice: data.leadPrice ?? null,
         zipCode: loc.zipCode ?? null,

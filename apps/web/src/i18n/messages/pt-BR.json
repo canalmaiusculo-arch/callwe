@@ -1034,7 +1034,8 @@
     "formAnswers": "Respostas do formulário",
     "scheduledEstimate": "Estimativa agendada:",
     "estimateSaved": "Estimativa agendada salva",
-    "estimateClear": "Remover"
+    "estimateClear": "Remover",
+    "thumbtackDetails": "Detalhes do Thumbtack"
   },
   "messengerInbox": {
     "title": "Messenger",
@@ -1142,5 +1143,13 @@
     "cleanupDone": "{n} casos limpos",
     "origin_thumbtack": "Thumbtack",
     "newOrigin_thumbtack": "Thumbtack"
+  },
+  "thumbtack": {
+    "service": "Serviço",
+    "request": "Pedido",
+    "details": "Detalhes",
+    "leadPrice": "Preço do lead",
+    "estimate": "Estimativa",
+    "business": "Negócio"
   }
 }

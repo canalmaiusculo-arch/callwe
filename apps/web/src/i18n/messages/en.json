@@ -1034,7 +1034,8 @@
     "formAnswers": "Form answers",
     "scheduledEstimate": "Scheduled estimate:",
     "estimateSaved": "Estimate scheduled",
-    "estimateClear": "Clear"
+    "estimateClear": "Clear",
+    "thumbtackDetails": "Thumbtack details"
   },
   "messengerInbox": {
     "title": "Messenger",
@@ -1142,5 +1143,13 @@
     "cleanupDone": "{n} cases cleaned",
     "origin_thumbtack": "Thumbtack",
     "newOrigin_thumbtack": "Thumbtack"
+  },
+  "thumbtack": {
+    "service": "Service",
+    "request": "Request",
+    "details": "Details",
+    "leadPrice": "Lead price",
+    "estimate": "Estimate",
+    "business": "Business"
   }
 }

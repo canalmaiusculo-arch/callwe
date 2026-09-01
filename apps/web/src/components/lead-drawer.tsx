@@ -23,6 +23,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useTenantStore } from '@/stores/tenant-store';
 import { useTranslate } from '@/i18n/provider';
 import { LeadCustomFields, leadHasCustomFields } from '@/components/lead-custom-fields';
+import { ThumbtackDetails, thumbtackHasData } from '@/components/thumbtack-lead';
 import {
   LEAD_STATUS_COLOR,
   LEAD_STATUS_LABELS,
@@ -338,14 +339,23 @@ export function LeadDrawer({
             )}
           </section>
 
-          {/* Respostas do quiz/formulário */}
-          {leadHasCustomFields(detail?.customFields) && (
+          {/* Detalhes do Thumbtack (exibição dedicada) ou respostas de quiz/formulário */}
+          {detail?.source === 'thumbtack' && thumbtackHasData(detail?.customFields) ? (
             <section className="rounded-md border p-3">
               <p className="mb-2 text-xs font-medium uppercase text-muted-foreground">
-                {t('leadDrawer.formAnswers')}
+                {t('leadDrawer.thumbtackDetails')}
               </p>
-              <LeadCustomFields customFields={detail?.customFields} compact />
+              <ThumbtackDetails customFields={detail?.customFields} />
             </section>
+          ) : (
+            leadHasCustomFields(detail?.customFields) && (
+              <section className="rounded-md border p-3">
+                <p className="mb-2 text-xs font-medium uppercase text-muted-foreground">
+                  {t('leadDrawer.formAnswers')}
+                </p>
+                <LeadCustomFields customFields={detail?.customFields} compact />
+              </section>
+            )
           )}
 
           {/* Histórico de interações */}
