@@ -25,6 +25,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { useTranslate } from '@/i18n/provider';
+import { ThumbtackDetails, thumbtackHasData } from '@/components/thumbtack-lead';
 
 type CaseTab = 'open' | 'follow_up' | 'resolved';
 
@@ -453,6 +454,7 @@ interface CaseNote {
 interface CaseDetail extends CaseItem {
   interactions: CaseInteraction[];
   notes: CaseNote[];
+  customFields?: Record<string, unknown> | null;
 }
 
 function ModalShell({ title, color, onClose, children }: { title: string; color: string; onClose: () => void; children: React.ReactNode }) {
@@ -770,6 +772,12 @@ function CaseDetailModal({ caseId, onClose, onChanged }: { caseId: string; onClo
                 </Button>
               )}
             </div>
+            {thumbtackHasData(detail?.customFields) && (
+              <div className="mt-4">
+                <p className="mb-2 text-xs font-semibold uppercase text-muted-foreground">{t('leadDrawer.thumbtackDetails')}</p>
+                <ThumbtackDetails customFields={detail?.customFields} />
+              </div>
+            )}
             <p className="mb-2 mt-4 text-xs font-semibold uppercase text-muted-foreground">{t('cases.fullRecords')}</p>
             <div className="max-h-64 space-y-1.5 overflow-auto">
               {detail?.interactions.length === 0 && <p className="text-xs text-muted-foreground">{t('cases.noRecords')}</p>}

@@ -9,6 +9,7 @@ import { apiClient } from '@/lib/api-client';
 import { useTranslate } from '@/i18n/provider';
 import { RecordingPlayer } from '@/components/recording-player';
 import { LeadCustomFields, leadHasCustomFields } from '@/components/lead-custom-fields';
+import { ThumbtackDetails, thumbtackHasData } from '@/components/thumbtack-lead';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -155,11 +156,15 @@ export default function LeadDetailPage({ params }: { params: Promise<{ leadId: s
                 <span className="flex h-6 w-6 items-center justify-center rounded-md bg-primary/10 text-primary">
                   <FormInput className="h-4 w-4" />
                 </span>
-                {t('leadDrawer.formAnswers')}
+                {thumbtackHasData(lead.customFields) ? t('leadDrawer.thumbtackDetails') : t('leadDrawer.formAnswers')}
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <LeadCustomFields customFields={lead.customFields} />
+              {thumbtackHasData(lead.customFields) ? (
+                <ThumbtackDetails customFields={lead.customFields} />
+              ) : (
+                <LeadCustomFields customFields={lead.customFields} />
+              )}
             </CardContent>
           </Card>
         )}

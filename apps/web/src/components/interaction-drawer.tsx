@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { RecordingPlayer } from '@/components/recording-player';
 import { LeadCustomFields, leadHasCustomFields } from '@/components/lead-custom-fields';
+import { ThumbtackDetails, thumbtackHasData } from '@/components/thumbtack-lead';
 import { useTenantStore } from '@/stores/tenant-store';
 import { useTranslate } from '@/i18n/provider';
 
@@ -400,13 +401,22 @@ export function InteractionDrawer({
                     ))}
                   </select>
                 </div>
-                {leadHasCustomFields(interaction.lead.customFields) && (
+                {thumbtackHasData(interaction.lead.customFields) ? (
                   <div className="mt-3 border-t pt-3">
                     <p className="mb-2 text-[11px] font-semibold uppercase text-muted-foreground">
-                      {t('leadDrawer.formAnswers')}
+                      {t('leadDrawer.thumbtackDetails')}
                     </p>
-                    <LeadCustomFields customFields={interaction.lead.customFields} compact />
+                    <ThumbtackDetails customFields={interaction.lead.customFields} />
                   </div>
+                ) : (
+                  leadHasCustomFields(interaction.lead.customFields) && (
+                    <div className="mt-3 border-t pt-3">
+                      <p className="mb-2 text-[11px] font-semibold uppercase text-muted-foreground">
+                        {t('leadDrawer.formAnswers')}
+                      </p>
+                      <LeadCustomFields customFields={interaction.lead.customFields} compact />
+                    </div>
+                  )
                 )}
                 <button
                   onClick={openFullLead}

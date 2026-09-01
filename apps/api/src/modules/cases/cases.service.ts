@@ -272,6 +272,7 @@ export class CasesService {
     return {
       ...this.shapeListItem(lead as unknown as LeadRow),
       address: (cf.address as string | undefined) ?? (cf.lsaId as string | undefined) ?? null,
+      customFields: cf,
       interactions: lead.interactions,
       notes: lead.notes.map((n) => ({
         id: n.id,

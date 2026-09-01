@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { RecordingPlayer } from '@/components/recording-player';
 import { LeadCustomFields, leadHasCustomFields } from '@/components/lead-custom-fields';
+import { ThumbtackDetails, thumbtackHasData } from '@/components/thumbtack-lead';
 import { useTenantStore } from '@/stores/tenant-store';
 import { useTranslate } from '@/i18n/provider';
 
@@ -111,7 +112,11 @@ export default function ClientLeadDetailPage({ params }: { params: Promise<{ lea
                   {lead.tags.map((t) => <Badge key={t} variant="outline">{t}</Badge>)}
                 </div>
               )}
-              <LeadCustomFields customFields={lead.customFields} />
+              {thumbtackHasData(lead.customFields) ? (
+                <ThumbtackDetails customFields={lead.customFields} />
+              ) : (
+                <LeadCustomFields customFields={lead.customFields} />
+              )}
             </CardContent>
           </Card>
         )}
