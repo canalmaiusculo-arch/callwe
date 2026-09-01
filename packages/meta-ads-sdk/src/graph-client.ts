@@ -153,6 +153,33 @@ export class MetaGraphClient {
     return (res.data?.access_token as string | undefined) ?? null;
   }
 
+  /**
+   * Busca o thread completo de uma conversa (como o inbox nativo), incluindo
+   * respostas automáticas e mensagens enviadas por fora do painel. Filtra a
+   * conversa pelo PSID do cliente via `user_id`.
+   */
+  async getConversationMessages(
+    pageId: string,
+    pageAccessToken: string,
+    psid: string,
+    limit = 100,
+  ): Promise<Array<{ id: string; message?: string; created_time?: string; from?: { id: string; name?: string } }>> {
+    const res = await this.http.get(`/${pageId}/conversations`, {
+      params: {
+        access_token: pageAccessToken,
+        user_id: psid,
+        fields: `messages.limit(${limit}){message,from,created_time}`,
+      },
+    });
+    const conv = res.data?.data?.[0];
+    return (conv?.messages?.data ?? []) as Array<{
+      id: string;
+      message?: string;
+      created_time?: string;
+      from?: { id: string; name?: string };
+    }>;
+  }
+
   /** Envia uma mensagem de texto via Send API (Messenger). */
   async sendMessengerText(
     pageId: string,

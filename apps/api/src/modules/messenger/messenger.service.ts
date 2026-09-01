@@ -136,6 +136,9 @@ export class MessengerService {
 
   async getMessages(user: Caller, conversationId: string) {
     const conv = await this.assertConversationAccess(user, conversationId);
+    // Puxa o thread completo da Graph API (respostas automáticas, histórico,
+    // mensagens enviadas por fora) — o webhook sozinho não traz tudo.
+    await this.syncThread(conv);
     const messages = await this.prisma.messengerMessage.findMany({
       where: { conversationId },
       orderBy: { createdAt: 'asc' },
@@ -200,6 +203,65 @@ export class MessengerService {
       return new BadRequestException('Fora da janela de 24h do Messenger — o cliente precisa enviar uma nova mensagem.');
     }
     return new BadRequestException(fb?.message ? `Facebook recusou o envio: ${fb.message}` : 'Falha ao enviar a mensagem.');
+  }
+
+  // Throttle do sync por conversa (evita chamar a Graph a cada refetch de 10s).
+  private readonly lastThreadSync = new Map<string, number>();
+
+  /** Sincroniza o thread completo da conversa a partir da API de Conversas da página. */
+  private async syncThread(conv: {
+    id: string;
+    subAccountId: string;
+    pageId: string;
+    psid: string;
+  }): Promise<void> {
+    const last = this.lastThreadSync.get(conv.id) ?? 0;
+    if (Date.now() - last < 20_000) return;
+    this.lastThreadSync.set(conv.id, Date.now());
+
+    let pageToken: string;
+    try {
+      pageToken = await this.resolvePageToken(conv.subAccountId, conv.pageId);
+    } catch {
+      return;
+    }
+
+    try {
+      const client = new MetaGraphClient({ accessToken: pageToken, graphVersion: env.META_GRAPH_VERSION });
+      const msgs = await client.getConversationMessages(conv.pageId, pageToken, conv.psid, 100);
+      if (!msgs.length) return;
+
+      let newest: { at: Date; text: string } | null = null;
+      let newestInbound: Date | null = null;
+      for (const m of msgs) {
+        if (!m.id) continue;
+        const direction = m.from?.id === conv.pageId ? 'outbound' : 'inbound';
+        const createdAt = m.created_time ? new Date(m.created_time) : new Date();
+        await this.prisma.messengerMessage.upsert({
+          where: { mid: m.id },
+          update: {}, // não sobrescreve (preserva senderUserId dos nossos envios)
+          create: {
+            conversationId: conv.id,
+            mid: m.id,
+            direction,
+            text: m.message ?? null,
+            createdAt,
+          },
+        });
+        if (!newest || createdAt > newest.at) newest = { at: createdAt, text: m.message ?? '[anexo]' };
+        if (direction === 'inbound' && (!newestInbound || createdAt > newestInbound)) newestInbound = createdAt;
+      }
+
+      await this.prisma.messengerConversation.update({
+        where: { id: conv.id },
+        data: {
+          ...(newest ? { lastMessageAt: newest.at, lastMessageText: newest.text.slice(0, 200) } : {}),
+          ...(newestInbound ? { lastInboundAt: newestInbound } : {}),
+        },
+      });
+    } catch {
+      // falha no sync não deve quebrar a abertura da conversa
+    }
   }
 
   private async markLeadContacted(leadId: string) {
