@@ -155,9 +155,12 @@ export class ZapierWebhookController {
       throw new UnauthorizedException('Invalid API key');
     }
 
+    // O Thumbtack envolve os campos em `data` (e metadados em `event`).
     const b = body ?? {};
-    const customer = (b.customer ?? {}) as Record<string, unknown>;
-    const request = (b.request ?? {}) as Record<string, unknown>;
+    const data = (b.data ?? b) as Record<string, unknown>;
+    const event = (b.event ?? {}) as Record<string, unknown>;
+    const customer = (data.customer ?? {}) as Record<string, unknown>;
+    const request = (data.request ?? {}) as Record<string, unknown>;
     const loc = (request.location ?? {}) as Record<string, unknown>;
     const category = (request.category ?? {}) as Record<string, unknown>;
 
@@ -170,18 +173,19 @@ export class ZapierWebhookController {
         .filter(Boolean)
         .map(String)
         .join(', ') || undefined;
-    const sourceRef = (b.negotiationID as string | undefined) ?? (request.requestID as string | undefined);
+    const sourceRef =
+      (data.negotiationID as string | undefined) ?? (request.requestID as string | undefined);
 
     const customFields: Prisma.InputJsonValue = {
       ...(address ? { address } : {}),
       thumbtack: {
-        negotiationID: b.negotiationID ?? null,
+        negotiationID: data.negotiationID ?? null,
         requestID: request.requestID ?? null,
-        eventType: b.eventType ?? null,
+        eventType: event.eventType ?? null,
         category: (category.name as string | undefined) ?? null,
         description: request.description ?? null,
-        estimate: (b.estimate as unknown) ?? null,
-        leadPrice: b.leadPrice ?? null,
+        estimate: (data.estimate as unknown) ?? null,
+        leadPrice: data.leadPrice ?? null,
         zipCode: loc.zipCode ?? null,
         proposedTimes: request.proposedTimes ?? null,
         details: request.details ?? null,
