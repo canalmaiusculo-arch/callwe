@@ -65,7 +65,7 @@ interface Counts {
   overdue: number;
 }
 
-const ORIGINS = ['all', 'calls', 'sms', 'meta', 'organic'] as const;
+const ORIGINS = ['all', 'calls', 'sms', 'meta', 'thumbtack', 'organic'] as const;
 
 export function CasesPanel({
   agentId,
@@ -573,7 +573,7 @@ function ResolveModal({ caseItem, onClose, onDone }: { caseItem: CaseItem; onClo
   );
 }
 
-const NEW_ORIGINS = ['inbound_call', 'outbound_call', 'sms', 'meta_ads', 'form', 'manual'] as const;
+const NEW_ORIGINS = ['inbound_call', 'outbound_call', 'sms', 'meta_ads', 'form', 'thumbtack', 'manual'] as const;
 
 function NewCaseModal({ clients, onClose, onDone }: { clients: AssignedClient[]; onClose: () => void; onDone: () => void }) {
   const { t } = useTranslate();

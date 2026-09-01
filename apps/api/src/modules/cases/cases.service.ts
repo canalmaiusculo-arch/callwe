@@ -454,6 +454,8 @@ function originToSources(origin: string): Prisma.LeadWhereInput['source'] {
       return { in: ['sms'] } as never;
     case 'meta':
       return { in: ['meta_ads', 'messenger', 'form'] } as never;
+    case 'thumbtack':
+      return { in: ['thumbtack'] } as never;
     case 'organic':
       return { in: ['manual', 'import', 'api'] } as never;
     default:

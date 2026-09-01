@@ -572,6 +572,7 @@ function WhatsappGroupCard({
 interface ZapierKeyResponse {
   apiKey: string;
   webhookUrl: string;
+  thumbtackUrl: string;
 }
 
 function ZapierWebhookCard({ clientId }: { clientId: string }) {
@@ -624,6 +625,19 @@ function ZapierWebhookCard({ clientId }: { clientId: string }) {
               {t('clientDetail.copy')}
             </Button>
           </div>
+        </div>
+
+        <div>
+          <p className="text-xs font-medium uppercase text-muted-foreground">{t('clientDetail.thumbtackUrlLabel')}</p>
+          <div className="mt-1 flex items-center gap-2">
+            <code className="flex-1 truncate rounded-md border bg-muted/50 px-2 py-1.5 font-mono text-xs">
+              {key.thumbtackUrl}
+            </code>
+            <Button size="sm" variant="outline" onClick={() => copy(key.thumbtackUrl, 'URL')}>
+              {t('clientDetail.copy')}
+            </Button>
+          </div>
+          <p className="mt-1 text-[11px] text-muted-foreground">{t('clientDetail.thumbtackHint')}</p>
         </div>
 
         <div>

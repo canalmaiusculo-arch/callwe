@@ -315,7 +315,9 @@
     "fieldCampaignName": "nome da campanha",
     "stepTest": "Testa o envio → confirma que aparece em /workspace/leads com origem \"Formulário\".",
     "rotateWarning": "⚠️ Rotacionar a chave invalida a anterior — você precisa atualizar a integração.",
-    "rotateKey": "Rotacionar chave"
+    "rotateKey": "Rotacionar chave",
+    "thumbtackUrlLabel": "URL do webhook Thumbtack",
+    "thumbtackHint": "Envie esta URL para o time de parcerias do Thumbtack (teampartnerships@thumbtack.com) junto com o seu Business ID. Os leads entram como origem Thumbtack."
   },
   "agencyTeam": {
     "title": "Time alocado",
@@ -602,7 +604,8 @@
     "sourceImport": "Importação",
     "sourceApi": "API",
     "sourceForm": "Formulário",
-    "sourceMessenger": "Messenger"
+    "sourceMessenger": "Messenger",
+    "sourceThumbtack": "Thumbtack"
   },
   "clientLeadDetail": {
     "statusNew": "Novo",
@@ -1024,7 +1027,8 @@
     "statusAll": "Todos os status",
     "smsDirAll": "Todas",
     "smsDirInbound": "Recebidas",
-    "smsDirOutbound": "Enviadas"
+    "smsDirOutbound": "Enviadas",
+    "sourceThumbtack": "Thumbtack"
   },
   "leadDrawer": {
     "formAnswers": "Respostas do formulário",
@@ -1135,6 +1139,8 @@
     "cleanupBefore": "Apagar casos criados antes de",
     "cleanupConfirmLabel": "Digite LIMPAR para confirmar",
     "cleanupConfirm": "Limpar casos",
-    "cleanupDone": "{n} casos limpos"
+    "cleanupDone": "{n} casos limpos",
+    "origin_thumbtack": "Thumbtack",
+    "newOrigin_thumbtack": "Thumbtack"
   }
 }

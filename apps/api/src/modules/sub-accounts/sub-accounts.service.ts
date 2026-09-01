@@ -115,7 +115,9 @@ export class SubAccountsService {
     }
   }
 
-  async getOrCreateZapierApiKey(id: string): Promise<{ apiKey: string; webhookUrl: string }> {
+  async getOrCreateZapierApiKey(
+    id: string,
+  ): Promise<{ apiKey: string; webhookUrl: string; thumbtackUrl: string }> {
     const sub = await this.prisma.subAccount.findUnique({ where: { id }, select: { settings: true } });
     if (!sub) throw new Error('Sub-account não encontrada');
     const settings = (sub.settings ?? {}) as Record<string, unknown>;
@@ -127,11 +129,12 @@ export class SubAccountsService {
         data: { settings: { ...settings, zapierApiKey: apiKey } as never },
       });
     }
-    const apiBase = process.env.API_URL ?? 'https://api.callwe.digital';
-    return { apiKey, webhookUrl: `${apiBase}/api/webhooks/leads` };
+    return this.webhookUrls(apiKey);
   }
 
-  async rotateZapierApiKey(id: string): Promise<{ apiKey: string; webhookUrl: string }> {
+  async rotateZapierApiKey(
+    id: string,
+  ): Promise<{ apiKey: string; webhookUrl: string; thumbtackUrl: string }> {
     const sub = await this.prisma.subAccount.findUnique({ where: { id }, select: { settings: true } });
     if (!sub) throw new Error('Sub-account não encontrada');
     const settings = (sub.settings ?? {}) as Record<string, unknown>;
@@ -140,8 +143,16 @@ export class SubAccountsService {
       where: { id },
       data: { settings: { ...settings, zapierApiKey: apiKey } as never },
     });
+    return this.webhookUrls(apiKey);
+  }
+
+  private webhookUrls(apiKey: string): { apiKey: string; webhookUrl: string; thumbtackUrl: string } {
     const apiBase = process.env.API_URL ?? 'https://api.callwe.digital';
-    return { apiKey, webhookUrl: `${apiBase}/api/webhooks/leads` };
+    return {
+      apiKey,
+      webhookUrl: `${apiBase}/api/webhooks/leads`,
+      thumbtackUrl: `${apiBase}/api/webhooks/thumbtack/${apiKey}`,
+    };
   }
 
   async setWhatsappGroup(id: string, whatsappGroupId: string | null) {

@@ -315,7 +315,9 @@
     "fieldCampaignName": "campaign name",
     "stepTest": "Test the submission → confirm it shows up in /workspace/leads with source \"Form\".",
     "rotateWarning": "⚠️ Rotating the key invalidates the previous one — you must update your integration.",
-    "rotateKey": "Rotate key"
+    "rotateKey": "Rotate key",
+    "thumbtackUrlLabel": "Thumbtack webhook URL",
+    "thumbtackHint": "Send this URL to Thumbtack partnerships (teampartnerships@thumbtack.com) with your Business ID. Leads arrive with Thumbtack as the source."
   },
   "agencyTeam": {
     "title": "Assigned team",
@@ -602,7 +604,8 @@
     "sourceImport": "Import",
     "sourceApi": "API",
     "sourceForm": "Form",
-    "sourceMessenger": "Messenger"
+    "sourceMessenger": "Messenger",
+    "sourceThumbtack": "Thumbtack"
   },
   "clientLeadDetail": {
     "statusNew": "New",
@@ -1024,7 +1027,8 @@
     "statusAll": "All statuses",
     "smsDirAll": "All",
     "smsDirInbound": "Inbound",
-    "smsDirOutbound": "Outbound"
+    "smsDirOutbound": "Outbound",
+    "sourceThumbtack": "Thumbtack"
   },
   "leadDrawer": {
     "formAnswers": "Form answers",
@@ -1135,6 +1139,8 @@
     "cleanupBefore": "Delete cases created before",
     "cleanupConfirmLabel": "Type LIMPAR to confirm",
     "cleanupConfirm": "Clean cases",
-    "cleanupDone": "{n} cases cleaned"
+    "cleanupDone": "{n} cases cleaned",
+    "origin_thumbtack": "Thumbtack",
+    "newOrigin_thumbtack": "Thumbtack"
   }
 }

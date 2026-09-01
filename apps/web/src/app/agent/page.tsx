@@ -1379,6 +1379,7 @@ const SOURCE_LABEL_KEYS: Record<string, string> = {
   import: 'agentPanel.sourceImport',
   form: 'agentPanel.sourceForm',
   messenger: 'agentPanel.sourceMessenger',
+  thumbtack: 'agentPanel.sourceThumbtack',
 };
 
 function LeadRow({ lead, onOpen }: { lead: AgentLead; onOpen: (lead: LeadDrawerTarget) => void }) {

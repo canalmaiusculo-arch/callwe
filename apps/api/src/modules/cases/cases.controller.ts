@@ -37,7 +37,7 @@ const CleanupDto = z.object({
 
 const CreateDto = z.object({
   subAccountId: z.string().uuid(),
-  source: z.enum(['inbound_call', 'outbound_call', 'meta_ads', 'sms', 'manual', 'form', 'messenger']),
+  source: z.enum(['inbound_call', 'outbound_call', 'meta_ads', 'sms', 'manual', 'form', 'messenger', 'thumbtack']),
   name: z.string().max(200).optional(),
   phoneE164: z.string().max(40).optional(),
   email: z.string().email().optional(),

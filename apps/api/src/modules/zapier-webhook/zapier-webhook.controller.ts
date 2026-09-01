@@ -5,6 +5,7 @@ import {
   Headers,
   HttpCode,
   Logger,
+  Param,
   Post,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -14,12 +15,19 @@ import { LeadsService } from '../leads/leads.service.js';
 
 // Mapa de aliases comuns que o Zapier envia → chave canônica do CallWe.
 // Case-insensitive e ignora espaços/underscores/hifens.
-const FIELD_ALIASES: Record<string, 'name' | 'phone' | 'email' | 'source' | 'sourceRef' | 'formName' | 'campaignName'> = {
+const FIELD_ALIASES: Record<string, 'name' | 'phone' | 'email' | 'address' | 'source' | 'sourceRef' | 'formName' | 'campaignName'> = {
   name: 'name',
   fullname: 'name',
   full_name: 'name',
   leadname: 'name',
   customername: 'name',
+
+  address: 'address',
+  streetaddress: 'address',
+  serviceaddress: 'address',
+  jobaddress: 'address',
+  location: 'address',
+  endereco: 'address',
 
   phone: 'phone',
   phonenumber: 'phone',
@@ -63,6 +71,7 @@ interface NormalizedBody {
   name?: string;
   phone?: string;
   email?: string;
+  address?: string;
   source?: LeadSource;
   sourceRef?: string;
   formName?: string;
@@ -124,6 +133,17 @@ export class ZapierWebhookController {
   }
 
   /**
+   * Webhook do Thumbtack (integração customizada de leads). A chave da conta vai
+   * na URL — a Thumbtack só permite configurar a URL, sem headers. Leads entram
+   * com source `thumbtack`.
+   */
+  @Post('thumbtack/:key')
+  @HttpCode(202)
+  receiveThumbtack(@Param('key') key: string, @Body() rawBody: Record<string, unknown>) {
+    return this.ingestLead(key, rawBody, 'thumbtack' as LeadSource, 'thumbtack');
+  }
+
+  /**
    * Alias legado — usado enquanto o app Meta estava em review (Zapier
    * disparando leads do Facebook). Mantido pra não quebrar integrações
    * existentes; default de fonte continua `meta_ads`.
@@ -167,6 +187,7 @@ export class ZapierWebhookController {
     // customFields preserva campos extras + adiciona metadata útil
     const customFields: Prisma.InputJsonValue = {
       ...body.customFields,
+      ...(body.address ? { address: body.address } : {}),
       ...(body.formName ? { formName: body.formName } : {}),
       ...(body.campaignName ? { campaignName: body.campaignName } : {}),
       acquisitionChannel: source,
