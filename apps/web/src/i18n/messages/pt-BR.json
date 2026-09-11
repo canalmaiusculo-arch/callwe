@@ -1028,7 +1028,8 @@
     "smsDirAll": "Todas",
     "smsDirInbound": "Recebidas",
     "smsDirOutbound": "Enviadas",
-    "sourceThumbtack": "Thumbtack"
+    "sourceThumbtack": "Thumbtack",
+    "tabThumbtack": "Thumbtack"
   },
   "leadDrawer": {
     "formAnswers": "Respostas do formulário",

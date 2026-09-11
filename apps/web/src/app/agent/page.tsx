@@ -26,6 +26,7 @@ import {
   Briefcase,
   ChevronDown,
   ChevronUp,
+  Pin,
 } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -111,7 +112,7 @@ interface AgentStats {
   recent: AgentRecent[];
 }
 
-type Tab = 'dashboard' | 'calls' | 'sms' | 'leads' | 'forms' | 'messenger' | 'briefings' | 'cases';
+type Tab = 'dashboard' | 'calls' | 'sms' | 'leads' | 'forms' | 'thumbtack' | 'messenger' | 'briefings' | 'cases';
 
 export default function AgentPage() {
   const { t } = useTranslate();
@@ -159,7 +160,7 @@ export default function AgentPage() {
   // Pendências (leads não trabalhados) por cliente e por canal — badges da sidebar/abas.
   const { data: pending } = useQuery<{
     byClient: Record<string, number>;
-    tabs: { leads: number; forms: number; calls: number; sms: number; messenger: number };
+    tabs: { leads: number; forms: number; calls: number; sms: number; messenger: number; thumbtack: number };
   }>({
     queryKey: ['pending-counts', agentId],
     queryFn: () => apiClient.get(`/cases/pending-counts${agentId ? `?agentId=${agentId}` : ''}`),
@@ -248,6 +249,7 @@ export default function AgentPage() {
           <TabButton active={tab === 'sms'} onClick={() => setTab('sms')} icon={MessageSquare} label={t('agentPanel.tabSms')} badge={Math.max(pendingTabs?.sms ?? 0, smsBadge)} />
           <TabButton active={tab === 'leads'} onClick={() => setTab('leads')} icon={UserPlus} label={t('agentPanel.tabLeads')} badge={pendingTabs?.leads} pulse />
           <TabButton active={tab === 'forms'} onClick={() => setTab('forms')} icon={FileText} label={t('agentPanel.tabForms')} badge={pendingTabs?.forms} />
+          <TabButton active={tab === 'thumbtack'} onClick={() => setTab('thumbtack')} icon={Pin} label={t('agentPanel.tabThumbtack')} badge={pendingTabs?.thumbtack} />
           <TabButton active={tab === 'messenger'} onClick={() => setTab('messenger')} icon={MessagesSquare} label={t('agentPanel.tabMessenger')} badge={pendingTabs?.messenger} />
           <TabButton active={tab === 'briefings'} onClick={() => setTab('briefings')} icon={BookOpen} label={t('agentPanel.tabBriefings')} />
         </nav>
@@ -343,7 +345,7 @@ export default function AgentPage() {
         {pendingLeads.length > 0 && (
           <NewLeadsHighlight leads={pendingLeads} onOpen={openLead} />
         )}
-        {(tab === 'calls' || tab === 'sms' || tab === 'leads' || tab === 'forms') && (
+        {(tab === 'calls' || tab === 'sms' || tab === 'leads' || tab === 'forms' || tab === 'thumbtack') && (
           <SearchBar
             value={search}
             onChange={setSearch}
@@ -397,6 +399,16 @@ export default function AgentPage() {
             clients={visibleClients}
             onOpenLead={openLead}
             lockedSource="form"
+            agentId={agentId}
+          />
+        ) : tab === 'thumbtack' ? (
+          <LeadsView
+            filterSubAccountId={filterSubAccountId}
+            activeSubAccountIds={activeFilterIds}
+            search={search}
+            clients={visibleClients}
+            onOpenLead={openLead}
+            lockedSource="thumbtack"
             agentId={agentId}
           />
         ) : tab === 'messenger' ? (
@@ -1068,7 +1080,7 @@ interface AgentLead {
 }
 
 type DateRange = 'today' | '7d' | '30d' | 'all';
-type SourceFilter = 'all' | 'meta_ads' | 'google_ads' | 'inbound_call' | 'outbound_call' | 'sms' | 'manual' | 'api' | 'form';
+type SourceFilter = 'all' | 'meta_ads' | 'google_ads' | 'inbound_call' | 'outbound_call' | 'sms' | 'manual' | 'api' | 'form' | 'thumbtack';
 
 const DATE_LABEL_KEYS: Record<DateRange, string> = {
   today: 'agentPanel.dateToday',
@@ -1087,6 +1099,7 @@ const SOURCE_FILTER_LABEL_KEYS: Record<SourceFilter, string> = {
   manual: 'agentPanel.sourceManual',
   api: 'agentPanel.sourceApi',
   form: 'agentPanel.sourceForm',
+  thumbtack: 'agentPanel.sourceThumbtack',
 };
 
 function NewLeadsHighlight({
@@ -1262,7 +1275,7 @@ function LeadsView({
       <CardHeader className="space-y-3">
         <div className="flex flex-row items-center justify-between">
           <CardTitle>
-            {lockedSource ? t('agentPanel.tabForms') : t('agentPanel.leads')}
+            {lockedSource === 'thumbtack' ? t('agentPanel.tabThumbtack') : lockedSource ? t('agentPanel.tabForms') : t('agentPanel.leads')}
             {hasActiveFilter && (
               <span className="ml-2 text-xs text-muted-foreground">{filtered.length}</span>
             )}

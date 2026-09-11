@@ -210,7 +210,7 @@ export class CasesService {
     });
 
     const byClient: Record<string, number> = {};
-    const tabs = { leads: 0, forms: 0, calls: 0, sms: 0, messenger: 0 };
+    const tabs = { leads: 0, forms: 0, calls: 0, sms: 0, messenger: 0, thumbtack: 0 };
     for (const r of rows) {
       const n = r._count._all;
       byClient[r.subAccountId] = (byClient[r.subAccountId] ?? 0) + n;
@@ -219,6 +219,7 @@ export class CasesService {
       else if (r.source === 'inbound_call' || r.source === 'outbound_call') tabs.calls += n;
       else if (r.source === 'sms') tabs.sms += n;
       else if (r.source === 'messenger') tabs.messenger += n;
+      else if (r.source === 'thumbtack') tabs.thumbtack += n;
     }
     return { byClient, tabs };
   }
