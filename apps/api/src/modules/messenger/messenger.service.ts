@@ -88,7 +88,15 @@ export class MessengerService {
 
     return this.prisma.messengerPage.upsert({
       where: { pageId: input.pageId },
-      update: { enabled: true, pageName: input.pageName, channel: input.channel ?? 'messenger' },
+      // Reatribui a página à sub-conta/integração atuais: uma página do Facebook
+      // pertence a um cliente só; habilitar em outro cliente deve movê-la pra cá.
+      update: {
+        enabled: true,
+        pageName: input.pageName,
+        channel: input.channel ?? 'messenger',
+        subAccountId,
+        integrationId: integration.id,
+      },
       create: {
         integrationId: integration.id,
         subAccountId,
