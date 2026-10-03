@@ -37,14 +37,22 @@ function dayKey(d: Date): string {
 
 export function EstimateCalendar({
   extraParams = '',
+  clients,
   onOpen,
 }: {
   extraParams?: string;
+  clients?: { id: string; name: string }[];
   onOpen: (e: Estimate) => void;
 }) {
   const { t } = useTranslate();
   const [view, setView] = useState<View>('week');
   const [anchor, setAnchor] = useState(() => startOfDay(new Date()));
+  const [filterSubId, setFilterSubId] = useState('');
+
+  const allParams = useMemo(() => {
+    const parts = [extraParams, filterSubId ? `subAccountId=${filterSubId}` : ''].filter(Boolean);
+    return parts.join('&');
+  }, [extraParams, filterSubId]);
 
   // Intervalo visível (semana começa no domingo; mês com spillover de 6 semanas).
   const range = useMemo(() => {
@@ -59,10 +67,10 @@ export function EstimateCalendar({
   }, [view, anchor]);
 
   const { data: estimates = [] } = useQuery<Estimate[]>({
-    queryKey: ['calendar-estimates', view, anchor.toISOString(), extraParams],
+    queryKey: ['calendar-estimates', view, anchor.toISOString(), allParams],
     queryFn: () => {
       const p = new URLSearchParams({ from: range.start.toISOString(), to: range.end.toISOString() });
-      const qs = extraParams ? `${p.toString()}&${extraParams}` : p.toString();
+      const qs = allParams ? `${p.toString()}&${allParams}` : p.toString();
       return apiClient.get(`/calendar/estimates?${qs}`);
     },
     refetchInterval: 60_000,
@@ -99,9 +107,23 @@ export function EstimateCalendar({
           <span className="ml-1 text-sm font-semibold capitalize">{title}</span>
           <span className="text-xs text-muted-foreground">({estimates.length})</span>
         </div>
-        <div className="flex rounded-md border p-0.5">
-          <button onClick={() => setView('week')} className={`rounded px-3 py-1 text-xs font-medium ${view === 'week' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground'}`}>{t('calendar.week')}</button>
-          <button onClick={() => setView('month')} className={`rounded px-3 py-1 text-xs font-medium ${view === 'month' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground'}`}>{t('calendar.month')}</button>
+        <div className="flex items-center gap-2">
+          {clients && clients.length > 0 && (
+            <select
+              value={filterSubId}
+              onChange={(e) => setFilterSubId(e.target.value)}
+              className="rounded-md border bg-background px-2 py-1 text-xs font-medium"
+            >
+              <option value="">{t('calendar.allClients')}</option>
+              {clients.map((c) => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
+          )}
+          <div className="flex rounded-md border p-0.5">
+            <button onClick={() => setView('week')} className={`rounded px-3 py-1 text-xs font-medium ${view === 'week' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground'}`}>{t('calendar.week')}</button>
+            <button onClick={() => setView('month')} className={`rounded px-3 py-1 text-xs font-medium ${view === 'month' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground'}`}>{t('calendar.month')}</button>
+          </div>
         </div>
       </div>
 

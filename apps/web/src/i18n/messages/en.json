@@ -319,7 +319,13 @@
     "rotateWarning": "⚠️ Rotating the key invalidates the previous one — you must update your integration.",
     "rotateKey": "Rotate key",
     "thumbtackUrlLabel": "Thumbtack webhook URL",
-    "thumbtackHint": "Send this URL to Thumbtack partnerships (teampartnerships@thumbtack.com) with your Business ID. Leads arrive with Thumbtack as the source."
+    "thumbtackHint": "Send this URL to Thumbtack partnerships (teampartnerships@thumbtack.com) with your Business ID. Leads arrive with Thumbtack as the source.",
+    "passwordReset": "New password generated",
+    "loginLabel": "Login",
+    "noAccessGenerated": "No access generated yet",
+    "resetPassword": "Reset password",
+    "generateAccess": "Generate access",
+    "additionalViewers": "Additional viewers"
   },
   "agencyTeam": {
     "title": "Assigned team",
@@ -783,7 +789,14 @@
     "toastStatusChanged": "Status changed",
     "toastAgencyArchived": "Agency archived",
     "toastClientArchived": "Client archived",
-    "toastCopied": "Copied"
+    "toastCopied": "Copied",
+    "passwordReset": "New password generated",
+    "agencyAccess": "Agency access",
+    "agencyAccessSubtitle": "Separate login for the agency. Only you (management) can see it and reset the password.",
+    "loginLabel": "Login",
+    "noAccessGenerated": "No access generated yet",
+    "resetPassword": "Reset password",
+    "generateAccess": "Generate access"
   },
   "adminNewClient": {
     "backToAgency": "Back to agency",
@@ -1171,6 +1184,7 @@
     "week": "Week",
     "month": "Month",
     "today": "Today",
+    "allClients": "All clients",
     "empty": "No estimates scheduled in this period.",
     "title": "Estimates Calendar",
     "subtitle": "Scheduled estimates",

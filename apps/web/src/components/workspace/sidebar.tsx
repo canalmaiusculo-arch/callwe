@@ -16,6 +16,7 @@ import {
   HelpCircle,
   Menu,
   X,
+  CalendarDays,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores/auth-store';
@@ -38,7 +39,10 @@ const navGroups = [
   },
   {
     label: 'nav.leads',
-    items: [{ href: '/workspace/leads' as const, icon: Users, key: 'workspace.leads' }],
+    items: [
+      { href: '/workspace/leads' as const, icon: Users, key: 'workspace.leads' },
+      { href: '/workspace/calendar' as const, icon: CalendarDays, key: 'client.calendar' },
+    ],
   },
   {
     label: 'nav.operations',

@@ -111,6 +111,40 @@ export class SubAccountsService {
     return { login, password };
   }
 
+  /** Retorna o login do acesso de cliente (client_viewer) desta subconta, se existir. */
+  async getClientAccess(
+    subId: string,
+  ): Promise<{ login: string | null; userId: string | null; status: string | null }> {
+    const membership = await this.prisma.membership.findFirst({
+      where: { subAccountId: subId, role: 'client_viewer' },
+      orderBy: { createdAt: 'asc' },
+      include: { user: { select: { id: true, email: true, status: true } } },
+    });
+    if (!membership?.user) return { login: null, userId: null, status: null };
+    return { login: membership.user.email, userId: membership.user.id, status: membership.user.status };
+  }
+
+  /** Gera uma nova senha pro acesso de cliente (cria o acesso se ainda não existir). Mostrada 1x. */
+  async resetClientPassword(subId: string): Promise<{ login: string; password: string }> {
+    const existing = await this.getClientAccess(subId);
+    if (existing.userId && existing.login) {
+      const password = genPassword(10);
+      const passwordHash = await argon2.hash(password, { type: argon2.argon2id });
+      await this.prisma.user.update({
+        where: { id: existing.userId },
+        data: { passwordHash, status: 'active' },
+      });
+      return { login: existing.login, password };
+    }
+    // Subconta antiga sem acesso: cria agora.
+    const sub = await this.prisma.subAccount.findUnique({
+      where: { id: subId },
+      select: { id: true, name: true, slug: true },
+    });
+    if (!sub) throw new ConflictException('Sub-account não encontrada');
+    return this.createClientAccess(sub);
+  }
+
   private async uniqueClientLogin(slug: string): Promise<string> {
     const base = (slug || 'cliente').replace(/[^a-z0-9-]/g, '') || 'cliente';
     for (let i = 0; i < 6; i++) {

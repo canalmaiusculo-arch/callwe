@@ -319,7 +319,13 @@
     "rotateWarning": "⚠️ Rotacionar a chave invalida a anterior — você precisa atualizar a integração.",
     "rotateKey": "Rotacionar chave",
     "thumbtackUrlLabel": "URL do webhook Thumbtack",
-    "thumbtackHint": "Envie esta URL para o time de parcerias do Thumbtack (teampartnerships@thumbtack.com) junto com o seu Business ID. Os leads entram como origem Thumbtack."
+    "thumbtackHint": "Envie esta URL para o time de parcerias do Thumbtack (teampartnerships@thumbtack.com) junto com o seu Business ID. Os leads entram como origem Thumbtack.",
+    "passwordReset": "Nova senha gerada",
+    "loginLabel": "Login",
+    "noAccessGenerated": "Nenhum acesso gerado ainda",
+    "resetPassword": "Trocar senha",
+    "generateAccess": "Gerar acesso",
+    "additionalViewers": "Acessos adicionais"
   },
   "agencyTeam": {
     "title": "Time alocado",
@@ -783,7 +789,14 @@
     "toastStatusChanged": "Status alterado",
     "toastAgencyArchived": "Agência arquivada",
     "toastClientArchived": "Cliente arquivado",
-    "toastCopied": "Copiado"
+    "toastCopied": "Copiado",
+    "passwordReset": "Nova senha gerada",
+    "agencyAccess": "Acesso da agência",
+    "agencyAccessSubtitle": "Login separado só da agência. Só você (management) consegue ver e trocar a senha.",
+    "loginLabel": "Login",
+    "noAccessGenerated": "Nenhum acesso gerado ainda",
+    "resetPassword": "Trocar senha",
+    "generateAccess": "Gerar acesso"
   },
   "adminNewClient": {
     "backToAgency": "Voltar para a agência",
@@ -1171,6 +1184,7 @@
     "week": "Semana",
     "month": "Mês",
     "today": "Hoje",
+    "allClients": "Todos os clientes",
     "empty": "Nenhuma estimativa agendada neste período.",
     "title": "Agenda de Estimativas",
     "subtitle": "Estimativas agendadas",

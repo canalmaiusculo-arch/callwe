@@ -93,6 +93,22 @@ export class SubAccountsController {
     return this.svc.setWhatsappGroup(id, dto.whatsappGroupId);
   }
 
+  /** Retorna o login do acesso de cliente (sem senha — senha só aparece ao resetar). */
+  @Get(':id/access')
+  @Roles(ROLES.SUPER_ADMIN, ROLES.AGENCY_ADMIN)
+  async getAccess(@CurrentUser() user: AuthUser, @Param('id') id: string) {
+    await this.svc.assertCanManage(user, id);
+    return this.svc.getClientAccess(id);
+  }
+
+  /** Gera nova senha pro acesso de cliente (cria se não existir). Retorna login + senha 1x. */
+  @Post(':id/access/reset-password')
+  @Roles(ROLES.SUPER_ADMIN, ROLES.AGENCY_ADMIN)
+  async resetPassword(@CurrentUser() user: AuthUser, @Param('id') id: string) {
+    await this.svc.assertCanManage(user, id);
+    return this.svc.resetClientPassword(id);
+  }
+
   /** Retorna (e gera se não existir) a API key pra integração Zapier. */
   @Get(':id/zapier-key')
   @Roles(ROLES.SUPER_ADMIN, ROLES.AGENCY_ADMIN)

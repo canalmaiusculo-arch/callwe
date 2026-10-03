@@ -14,6 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import { HelpHint } from '@/components/help-hint';
 import { useTenantStore } from '@/stores/tenant-store';
 import { MessengerEnableCard } from '@/components/messenger-enable-card';
+import { ClientAccessCreated } from '@/components/client-access-created';
 import { useTranslate } from '@/i18n/provider';
 
 interface ClientDetail {
@@ -360,12 +361,35 @@ interface TeamUser {
   memberships: Array<{ role: string; subAccountId: string | null }>;
 }
 
+interface AccessInfo {
+  login: string | null;
+  userId: string | null;
+  status: string | null;
+}
+
 function ClientAccessCard({ clientId }: { clientId: string }) {
   const { t } = useTranslate();
   const qc = useQueryClient();
   const [email, setEmail] = useState('');
   const [fullName, setFullName] = useState('');
   const [link, setLink] = useState<{ type: string; url: string } | null>(null);
+  const [newCreds, setNewCreds] = useState<{ login: string; password: string } | null>(null);
+
+  const { data: access } = useQuery<AccessInfo>({
+    queryKey: ['client-access', clientId],
+    queryFn: () => apiClient.get(`/sub-accounts/${clientId}/access`),
+  });
+
+  const resetPwd = useMutation({
+    mutationFn: () =>
+      apiClient.post<{ login: string; password: string }>(`/sub-accounts/${clientId}/access/reset-password`, {}),
+    onSuccess: (res) => {
+      setNewCreds(res);
+      qc.invalidateQueries({ queryKey: ['client-access', clientId] });
+      toast.success(t('clientDetail.passwordReset'));
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
 
   const { data: team = [] } = useQuery<TeamUser[]>({
     queryKey: ['team-for-client'],
@@ -414,6 +438,42 @@ function ClientAccessCard({ clientId }: { clientId: string }) {
         </p>
       </CardHeader>
       <CardContent className="space-y-3">
+        {/* Acesso direto (login + senha gerada). A agência gerencia e repassa ao cliente. */}
+        <div className="rounded-md border bg-muted/20 p-3">
+          <p className="text-xs font-medium uppercase text-muted-foreground">{t('clientDetail.loginLabel')}</p>
+          <div className="mt-1 flex flex-wrap items-center gap-2">
+            <code className="flex-1 truncate rounded-md border bg-background px-2 py-1.5 font-mono text-xs">
+              {access?.login ?? t('clientDetail.noAccessGenerated')}
+            </code>
+            {access?.login && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  navigator.clipboard.writeText(access.login!);
+                  toast.success(t('clientDetail.copied'));
+                }}
+              >
+                <Copy className="h-4 w-4" />
+              </Button>
+            )}
+            <Button size="sm" variant="outline" onClick={() => resetPwd.mutate()} disabled={resetPwd.isPending}>
+              <KeyRound className="h-4 w-4" /> {access?.login ? t('clientDetail.resetPassword') : t('clientDetail.generateAccess')}
+            </Button>
+          </div>
+          {newCreds && (
+            <div className="mt-3">
+              <ClientAccessCreated login={newCreds.login} password={newCreds.password} />
+              <Button size="sm" variant="ghost" className="mt-2" onClick={() => setNewCreds(null)}>
+                {t('clientDetail.close')}
+              </Button>
+            </div>
+          )}
+        </div>
+
+        <div className="border-t pt-3">
+          <p className="mb-2 text-xs font-medium uppercase text-muted-foreground">{t('clientDetail.additionalViewers')}</p>
+        </div>
         {clientUsers.length === 0 && (
           <p className="text-sm text-muted-foreground">{t('clientDetail.noClientAccessYet')}</p>
         )}

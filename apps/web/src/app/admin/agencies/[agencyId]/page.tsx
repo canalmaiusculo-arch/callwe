@@ -4,7 +4,7 @@ import { use, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Copy, Plus, UserPlus, Pencil, Trash2, ExternalLink, Check } from 'lucide-react';
+import { Copy, Plus, UserPlus, Pencil, Trash2, ExternalLink, Check, KeyRound } from 'lucide-react';
 import { toast } from 'sonner';
 import { apiClient } from '@/lib/api-client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { useTenantStore } from '@/stores/tenant-store';
+import { ClientAccessCreated } from '@/components/client-access-created';
 import { useTranslate } from '@/i18n/provider';
 
 interface AgencyDetail {
@@ -178,6 +179,8 @@ export default function AgencyDetailPage({ params }: { params: Promise<{ agencyI
         </div>
       </header>
 
+      <AgencyAccessCard agencyId={agencyId} />
+
       <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
@@ -288,5 +291,78 @@ export default function AgencyDetailPage({ params }: { params: Promise<{ agencyI
         </Card>
       </div>
     </div>
+  );
+}
+
+interface AgencyAccessInfo {
+  login: string | null;
+  userId: string | null;
+  status: string | null;
+}
+
+function AgencyAccessCard({ agencyId }: { agencyId: string }) {
+  const { t } = useTranslate();
+  const qc = useQueryClient();
+  const [creds, setCreds] = useState<{ login: string; password: string } | null>(null);
+
+  const { data: access } = useQuery<AgencyAccessInfo>({
+    queryKey: ['agency-access', agencyId],
+    queryFn: () => apiClient.get(`/agencies/${agencyId}/access`),
+  });
+
+  const reset = useMutation({
+    mutationFn: () =>
+      apiClient.post<{ login: string; password: string }>(`/agencies/${agencyId}/access/reset-password`, {}),
+    onSuccess: (res) => {
+      setCreds(res);
+      qc.invalidateQueries({ queryKey: ['agency-access', agencyId] });
+      qc.invalidateQueries({ queryKey: ['agency', agencyId] });
+      toast.success(t('adminAgencyDetail.passwordReset'));
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  return (
+    <Card className="mt-6">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-1.5 text-base">
+          <KeyRound className="h-4 w-4" /> {t('adminAgencyDetail.agencyAccess')}
+        </CardTitle>
+        <p className="mt-0.5 text-xs text-muted-foreground">{t('adminAgencyDetail.agencyAccessSubtitle')}</p>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <div>
+          <p className="text-xs font-medium uppercase text-muted-foreground">{t('adminAgencyDetail.loginLabel')}</p>
+          <div className="mt-1 flex flex-wrap items-center gap-2">
+            <code className="flex-1 truncate rounded-md border bg-muted/40 px-2 py-1.5 font-mono text-xs">
+              {access?.login ?? t('adminAgencyDetail.noAccessGenerated')}
+            </code>
+            {access?.login && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  navigator.clipboard.writeText(access.login!);
+                  toast.success(t('adminAgencyDetail.toastCopied'));
+                }}
+              >
+                <Copy className="h-4 w-4" />
+              </Button>
+            )}
+            <Button size="sm" variant="outline" onClick={() => reset.mutate()} disabled={reset.isPending}>
+              <KeyRound className="h-4 w-4" /> {access?.login ? t('adminAgencyDetail.resetPassword') : t('adminAgencyDetail.generateAccess')}
+            </Button>
+          </div>
+        </div>
+        {creds && (
+          <div>
+            <ClientAccessCreated login={creds.login} password={creds.password} />
+            <Button size="sm" variant="ghost" className="mt-2" onClick={() => setCreds(null)}>
+              {t('adminAgencyDetail.close')}
+            </Button>
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }

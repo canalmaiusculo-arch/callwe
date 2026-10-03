@@ -4,6 +4,15 @@ import * as argon2 from 'argon2';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { env } from '../../config/env.js';
 
+// Alfabeto sem caracteres ambíguos (0/O, 1/I/l) pra senha fácil de digitar.
+const PWD_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789';
+function genPassword(len = 10): string {
+  const bytes = randomBytes(len);
+  let out = '';
+  for (let i = 0; i < len; i++) out += PWD_ALPHABET[bytes[i]! % PWD_ALPHABET.length] ?? '';
+  return out;
+}
+
 @Injectable()
 export class AgenciesService {
   constructor(private readonly prisma: PrismaService) {}
@@ -88,6 +97,57 @@ export class AgenciesService {
       data: { status: 'archived' },
     });
     return this.prisma.agency.update({ where: { id }, data: { status: 'suspended' } });
+  }
+
+  /** Login de acesso direto da agência (agency_admin). Só management vê. Sem senha. */
+  async getAgencyAccess(
+    agencyId: string,
+  ): Promise<{ login: string | null; userId: string | null; status: string | null }> {
+    const membership = await this.prisma.membership.findFirst({
+      where: { agencyId, role: 'agency_admin' },
+      orderBy: { createdAt: 'asc' },
+      include: { user: { select: { id: true, email: true, status: true } } },
+    });
+    if (!membership?.user) return { login: null, userId: null, status: null };
+    return { login: membership.user.email, userId: membership.user.id, status: membership.user.status };
+  }
+
+  /** Gera nova senha pro acesso da agência (cria o acesso se não existir). Mostrada 1x. */
+  async resetAgencyPassword(agencyId: string): Promise<{ login: string; password: string }> {
+    const password = genPassword(10);
+    const passwordHash = await argon2.hash(password, { type: argon2.argon2id });
+    const existing = await this.getAgencyAccess(agencyId);
+    if (existing.userId && existing.login) {
+      await this.prisma.user.update({
+        where: { id: existing.userId },
+        data: { passwordHash, status: 'active' },
+      });
+      return { login: existing.login, password };
+    }
+    const agency = await this.prisma.agency.findUnique({
+      where: { id: agencyId },
+      select: { id: true, name: true, slug: true },
+    });
+    if (!agency) throw new NotFoundException();
+    const login = await this.uniqueAgencyLogin(agency.slug);
+    const user = await this.prisma.user.create({
+      data: { email: login, fullName: agency.name, passwordHash, status: 'active' },
+    });
+    await this.prisma.membership.create({
+      data: { userId: user.id, agencyId, role: 'agency_admin' },
+    });
+    return { login, password };
+  }
+
+  private async uniqueAgencyLogin(slug: string): Promise<string> {
+    const base = (slug || 'agencia').replace(/[^a-z0-9-]/g, '') || 'agencia';
+    for (let i = 0; i < 6; i++) {
+      const candidate =
+        i === 0 ? `${base}@agencia.callwe.app` : `${base}-${randomBytes(2).toString('hex')}@agencia.callwe.app`;
+      const exists = await this.prisma.user.findUnique({ where: { email: candidate } });
+      if (!exists) return candidate;
+    }
+    return `${base}-${randomBytes(4).toString('hex')}@agencia.callwe.app`;
   }
 
   async get(id: string) {

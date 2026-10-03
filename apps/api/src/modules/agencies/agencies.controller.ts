@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import { Controller, Delete, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { z } from 'zod';
 import { AgenciesService } from './agencies.service.js';
@@ -53,6 +53,18 @@ export class AgenciesController {
   @Post(':id/invite-admin')
   inviteAdmin(@Param('id') id: string, @ZodBody(InviteAdminDto) dto: z.infer<typeof InviteAdminDto>) {
     return this.svc.inviteAdmin(id, dto);
+  }
+
+  /** Login de acesso direto da agência (sem senha). Só super_admin. */
+  @Get(':id/access')
+  getAccess(@Param('id') id: string) {
+    return this.svc.getAgencyAccess(id);
+  }
+
+  /** Gera nova senha pro acesso da agência. Retorna login + senha 1x. */
+  @Post(':id/access/reset-password')
+  resetAccessPassword(@Param('id') id: string) {
+    return this.svc.resetAgencyPassword(id);
   }
 
   @Delete(':id')
