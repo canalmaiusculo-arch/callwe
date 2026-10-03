@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
-import { LayoutDashboard, Users, Phone, MessageSquare, Voicemail, LogOut, HelpCircle } from 'lucide-react';
+import { LayoutDashboard, Users, Phone, MessageSquare, Voicemail, LogOut, HelpCircle, CalendarDays } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { apiClient } from '@/lib/api-client';
 import { useAuthStore } from '@/stores/auth-store';
@@ -15,6 +15,7 @@ import { useTranslate } from '@/i18n/provider';
 
 const items = [
   { href: '/client' as const, icon: LayoutDashboard, key: 'workspace.dashboard' },
+  { href: '/client/calendar' as const, icon: CalendarDays, key: 'client.calendar' },
   { href: '/client/leads' as const, icon: Users, key: 'workspace.leads' },
   { href: '/client/calls' as const, icon: Phone, key: 'workspace.calls' },
   { href: '/client/sms' as const, icon: MessageSquare, key: 'workspace.sms' },

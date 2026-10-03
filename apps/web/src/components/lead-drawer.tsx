@@ -71,6 +71,7 @@ interface LeadDetail {
   source: string;
   customFields: Record<string, unknown> | null;
   scheduledEstimateAt: string | null;
+  estimateValue: string | null;
   createdAt: string;
   interactions: LeadInteraction[];
   notes: LeadNote[];
@@ -178,6 +179,13 @@ export function LeadDrawer({
       toast.success(t('leadDrawer.estimateSaved'));
       invalidate();
     },
+    onError: (err: Error) => toast.error(err.message),
+  });
+
+  const updateEstimateValue = useMutation({
+    mutationFn: (value: string) =>
+      apiClient.patch(`/leads/${leadId}`, { estimateValue: value || null }, { subAccountId }),
+    onSuccess: () => invalidate(),
     onError: (err: Error) => toast.error(err.message),
   });
 
@@ -329,6 +337,22 @@ export function LeadDrawer({
                 </button>
               )}
             </div>
+            {detail?.scheduledEstimateAt && (
+              <div className="mt-2 flex items-center gap-2">
+                <span className="w-4 shrink-0 text-center text-sm font-semibold text-primary">$</span>
+                <label className="text-xs text-muted-foreground">{t('leadDrawer.estimateValue')}</label>
+                <input
+                  key={detail.id}
+                  type="text"
+                  defaultValue={detail?.estimateValue ?? ''}
+                  onBlur={(e) => {
+                    if ((e.target.value || '') !== (detail?.estimateValue ?? '')) updateEstimateValue.mutate(e.target.value);
+                  }}
+                  placeholder={t('leadDrawer.estimateValuePlaceholder')}
+                  className="h-8 w-28 rounded-md border bg-background px-2 text-xs"
+                />
+              </div>
+            )}
             {subAccountId && (
               <button
                 onClick={openFullLead}

@@ -248,6 +248,7 @@ export class LeadsService {
       tags?: string[];
       ownerUserId?: string | null;
       scheduledEstimateAt?: string | null;
+      estimateValue?: string | null;
     },
   ) {
     const { scheduledEstimateAt, ...rest } = input;

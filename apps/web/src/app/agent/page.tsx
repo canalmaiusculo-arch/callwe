@@ -27,6 +27,7 @@ import {
   ChevronDown,
   ChevronUp,
   Pin,
+  CalendarDays,
 } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -42,6 +43,7 @@ import { ChatWidget } from '@/components/chat-widget';
 import { NotificationCenter } from '@/components/notification-center';
 import { MessengerInbox } from '@/components/agent/messenger-inbox';
 import { CasesPanel } from '@/components/agent/cases-panel';
+import { EstimateCalendar } from '@/components/estimate-calendar';
 import { useRealtimeCalls, useRealtimeSms } from '@/hooks/use-realtime-calls';
 import {
   LEAD_STATUS_COLOR,
@@ -112,7 +114,7 @@ interface AgentStats {
   recent: AgentRecent[];
 }
 
-type Tab = 'dashboard' | 'calls' | 'sms' | 'leads' | 'forms' | 'thumbtack' | 'messenger' | 'briefings' | 'cases';
+type Tab = 'dashboard' | 'calls' | 'sms' | 'leads' | 'forms' | 'thumbtack' | 'messenger' | 'briefings' | 'cases' | 'calendar';
 
 export default function AgentPage() {
   const { t } = useTranslate();
@@ -259,6 +261,7 @@ export default function AgentPage() {
             {t('agentPanel.operationalSection')}
           </p>
           <TabButton active={tab === 'cases'} onClick={() => setTab('cases')} icon={Briefcase} label={t('agentPanel.tabCases')} />
+          <TabButton active={tab === 'calendar'} onClick={() => setTab('calendar')} icon={CalendarDays} label={t('agentPanel.tabCalendar')} />
         </div>
 
         <div className="mt-2 flex min-h-0 flex-1 flex-col border-t border-white/15 pt-3">
@@ -415,6 +418,20 @@ export default function AgentPage() {
           <MessengerInbox filterSubAccountId={filterSubAccountId} />
         ) : tab === 'cases' ? (
           <CasesPanel agentId={agentId} filterSubAccountId={filterSubAccountId} activeSubAccountIds={activeFilterIds} clients={visibleClients} canCleanup={me?.isAdmin} />
+        ) : tab === 'calendar' ? (
+          <EstimateCalendar
+            extraParams={[agentId ? `agentId=${agentId}` : '', filterSubAccountId ? `subAccountId=${filterSubAccountId}` : ''].filter(Boolean).join('&')}
+            onOpen={(e) =>
+              openLead({
+                id: e.id,
+                subAccountId: e.subAccount?.id,
+                subAccountName: e.subAccount?.name,
+                name: e.name,
+                phoneE164: e.phoneE164,
+                email: e.email,
+              })
+            }
+          />
         ) : (
           <BriefingsView clients={clients} initialSelectedId={filterSubAccountId} />
         )}

@@ -46,10 +46,12 @@
     "clients": "Clientes",
     "team": "Atendentes",
     "settings": "Configurações",
-    "cases": "Casos"
+    "cases": "Casos",
+    "calendar": "Agenda"
   },
   "client": {
-    "title": "Cliente"
+    "title": "Cliente",
+    "calendar": "Agenda"
   },
   "kpi": {
     "leadsToday": "Leads hoje",
@@ -1031,14 +1033,17 @@
     "smsDirInbound": "Recebidas",
     "smsDirOutbound": "Enviadas",
     "sourceThumbtack": "Thumbtack",
-    "tabThumbtack": "Thumbtack"
+    "tabThumbtack": "Thumbtack",
+    "tabCalendar": "Agenda"
   },
   "leadDrawer": {
     "formAnswers": "Respostas do formulário",
     "scheduledEstimate": "Estimativa agendada:",
     "estimateSaved": "Estimativa agendada salva",
     "estimateClear": "Remover",
-    "thumbtackDetails": "Detalhes do Thumbtack"
+    "thumbtackDetails": "Detalhes do Thumbtack",
+    "estimateValue": "Valor",
+    "estimateValuePlaceholder": "Ex: $1.500"
   },
   "messengerInbox": {
     "title": "Messenger",
@@ -1161,5 +1166,20 @@
     "login": "Login",
     "password": "Senha",
     "dismiss": "Fechar"
+  },
+  "calendar": {
+    "week": "Semana",
+    "month": "Mês",
+    "today": "Hoje",
+    "empty": "Nenhuma estimativa agendada neste período.",
+    "title": "Agenda de Estimativas",
+    "subtitle": "Estimativas agendadas",
+    "sun": "Dom",
+    "mon": "Seg",
+    "tue": "Ter",
+    "wed": "Qua",
+    "thu": "Qui",
+    "fri": "Sex",
+    "sat": "Sáb"
   }
 }

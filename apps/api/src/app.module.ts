@@ -24,6 +24,7 @@ import { ConversationsModule } from './modules/conversations/conversations.modul
 import { NotificationsModule } from './modules/notifications/notifications.module.js';
 import { MessengerModule } from './modules/messenger/messenger.module.js';
 import { CasesModule } from './modules/cases/cases.module.js';
+import { CalendarModule } from './modules/calendar/calendar.module.js';
 
 @Module({
   imports: [
@@ -51,6 +52,7 @@ import { CasesModule } from './modules/cases/cases.module.js';
     NotificationsModule,
     MessengerModule,
     CasesModule,
+    CalendarModule,
   ],
   controllers: [HealthController],
 })

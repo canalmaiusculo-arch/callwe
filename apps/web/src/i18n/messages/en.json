@@ -46,10 +46,12 @@
     "clients": "Clients",
     "team": "Agents",
     "settings": "Settings",
-    "cases": "Cases"
+    "cases": "Cases",
+    "calendar": "Calendar"
   },
   "client": {
-    "title": "Client"
+    "title": "Client",
+    "calendar": "Calendar"
   },
   "kpi": {
     "leadsToday": "Leads today",
@@ -1031,14 +1033,17 @@
     "smsDirInbound": "Inbound",
     "smsDirOutbound": "Outbound",
     "sourceThumbtack": "Thumbtack",
-    "tabThumbtack": "Thumbtack"
+    "tabThumbtack": "Thumbtack",
+    "tabCalendar": "Calendar"
   },
   "leadDrawer": {
     "formAnswers": "Form answers",
     "scheduledEstimate": "Scheduled estimate:",
     "estimateSaved": "Estimate scheduled",
     "estimateClear": "Clear",
-    "thumbtackDetails": "Thumbtack details"
+    "thumbtackDetails": "Thumbtack details",
+    "estimateValue": "Value",
+    "estimateValuePlaceholder": "e.g. $1,500"
   },
   "messengerInbox": {
     "title": "Messenger",
@@ -1161,5 +1166,20 @@
     "login": "Login",
     "password": "Password",
     "dismiss": "Dismiss"
+  },
+  "calendar": {
+    "week": "Week",
+    "month": "Month",
+    "today": "Today",
+    "empty": "No estimates scheduled in this period.",
+    "title": "Estimates Calendar",
+    "subtitle": "Scheduled estimates",
+    "sun": "Sun",
+    "mon": "Mon",
+    "tue": "Tue",
+    "wed": "Wed",
+    "thu": "Thu",
+    "fri": "Fri",
+    "sat": "Sat"
   }
 }
