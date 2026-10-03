@@ -1,6 +1,16 @@
 import { ConflictException, ForbiddenException, Injectable } from '@nestjs/common';
-import { randomUUID } from 'node:crypto';
+import { randomUUID, randomBytes } from 'node:crypto';
+import * as argon2 from 'argon2';
 import { PrismaService } from '../prisma/prisma.service.js';
+
+// Alfabeto sem caracteres ambíguos (0/O, 1/I/l) pra senha fácil de digitar.
+const PWD_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789';
+function genPassword(len = 10): string {
+  const bytes = randomBytes(len);
+  let out = '';
+  for (let i = 0; i < len; i++) out += PWD_ALPHABET[bytes[i]! % PWD_ALPHABET.length] ?? '';
+  return out;
+}
 
 @Injectable()
 export class SubAccountsService {
@@ -74,7 +84,7 @@ export class SubAccountsService {
         `Já existe um cliente com slug "${input.slug}" nessa agência (status: ${existing.status}). Use um slug diferente.`,
       );
     }
-    return this.prisma.subAccount.create({
+    const sub = await this.prisma.subAccount.create({
       data: {
         agencyId,
         name: input.name,
@@ -82,6 +92,34 @@ export class SubAccountsService {
         cloudtalkTag: `sub:${randomUUID()}`,
       },
     });
+    // Gera já um acesso de cliente (login + senha) pronto pra usar.
+    const access = await this.createClientAccess(sub);
+    return { ...sub, access };
+  }
+
+  /** Cria um acesso client_viewer (login pseudo-email + senha aleatória, conta ativa). */
+  private async createClientAccess(sub: { id: string; name: string; slug: string }) {
+    const login = await this.uniqueClientLogin(sub.slug);
+    const password = genPassword(10);
+    const passwordHash = await argon2.hash(password, { type: argon2.argon2id });
+    const user = await this.prisma.user.create({
+      data: { email: login, fullName: sub.name, passwordHash, status: 'active' },
+    });
+    await this.prisma.membership.create({
+      data: { userId: user.id, subAccountId: sub.id, role: 'client_viewer' },
+    });
+    return { login, password };
+  }
+
+  private async uniqueClientLogin(slug: string): Promise<string> {
+    const base = (slug || 'cliente').replace(/[^a-z0-9-]/g, '') || 'cliente';
+    for (let i = 0; i < 6; i++) {
+      const candidate =
+        i === 0 ? `${base}@cliente.callwe.app` : `${base}-${randomBytes(2).toString('hex')}@cliente.callwe.app`;
+      const exists = await this.prisma.user.findUnique({ where: { email: candidate } });
+      if (!exists) return candidate;
+    }
+    return `${base}-${randomBytes(4).toString('hex')}@cliente.callwe.app`;
   }
 
   update(id: string, input: { name?: string; status?: 'active' | 'paused' | 'archived'; plan?: 'starter' | 'pro' | 'enterprise' }) {

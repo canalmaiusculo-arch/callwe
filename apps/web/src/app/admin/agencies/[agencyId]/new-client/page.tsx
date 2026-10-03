@@ -10,6 +10,7 @@ import { apiClient } from '@/lib/api-client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { ClientAccessCreated } from '@/components/client-access-created';
 import { useTranslate } from '@/i18n/provider';
 
 interface AvailableNumber {
@@ -37,6 +38,7 @@ export default function NewClientWizardPage({ params }: { params: Promise<{ agen
   const [slug, setSlug] = useState('');
   const [chosenNumberId, setChosenNumberId] = useState<string | null>(null);
   const [chosenAgentIds, setChosenAgentIds] = useState<string[]>([]);
+  const [createdAccess, setCreatedAccess] = useState<{ login: string; password: string } | null>(null);
 
   const { data: numbers = [] } = useQuery<AvailableNumber[]>({
     queryKey: ['available-numbers'],
@@ -58,7 +60,10 @@ export default function NewClientWizardPage({ params }: { params: Promise<{ agen
 
   const submit = useMutation({
     mutationFn: async () => {
-      const sub = await apiClient.post<{ id: string }>('/sub-accounts', { name, slug, agencyId });
+      const sub = await apiClient.post<{ id: string; access?: { login: string; password: string } }>(
+        '/sub-accounts',
+        { name, slug, agencyId },
+      );
       const num = numbers.find((n) => n.cloudtalkNumberId === chosenNumberId);
       if (num) {
         await apiClient.post('/phone-numbers', {
@@ -74,10 +79,11 @@ export default function NewClientWizardPage({ params }: { params: Promise<{ agen
       }
       return sub;
     },
-    onSuccess: () => {
+    onSuccess: (sub) => {
       toast.success(t('adminNewClient.toastCreated'));
       qc.invalidateQueries({ queryKey: ['agency', agencyId] });
-      router.push(`/admin/agencies/${agencyId}`);
+      if (sub.access) setCreatedAccess(sub.access);
+      else router.push(`/admin/agencies/${agencyId}`);
     },
     onError: (err: Error) => toast.error(err.message),
   });
@@ -91,8 +97,20 @@ export default function NewClientWizardPage({ params }: { params: Promise<{ agen
       <h1 className="mt-2 text-2xl font-bold md:text-3xl">{t('adminNewClient.title')}</h1>
       <p className="mt-1 text-muted-foreground">{t('adminNewClient.subtitle')}</p>
 
-      <Stepper current={step} />
+      {!createdAccess && <Stepper current={step} />}
 
+      {createdAccess && (
+        <Card className="mt-6">
+          <CardContent className="space-y-3 pt-6">
+            <ClientAccessCreated login={createdAccess.login} password={createdAccess.password} />
+            <Button className="w-full" onClick={() => router.push(`/admin/agencies/${agencyId}` as never)}>
+              {t('adminNewClient.done')}
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      {!createdAccess && (
       <Card className="mt-6">
         {step === 1 && (
           <>
@@ -153,8 +171,8 @@ export default function NewClientWizardPage({ params }: { params: Promise<{ agen
                 <Button variant="outline" onClick={() => setStep(1)}>
                   {t('adminNewClient.back')}
                 </Button>
-                <Button onClick={() => setStep(3)} disabled={!chosenNumberId}>
-                  {t('adminNewClient.next')} <ChevronRight className="h-4 w-4" />
+                <Button onClick={() => setStep(3)}>
+                  {chosenNumberId ? t('adminNewClient.next') : t('adminNewClient.skip')} <ChevronRight className="h-4 w-4" />
                 </Button>
               </div>
             </CardContent>
@@ -207,6 +225,7 @@ export default function NewClientWizardPage({ params }: { params: Promise<{ agen
           </>
         )}
       </Card>
+      )}
     </div>
   );
 }

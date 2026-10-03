@@ -806,7 +806,9 @@
     "toastCreated": "Client created",
     "stepperName": "Name",
     "stepperNumber": "Number",
-    "stepperAgents": "Agents"
+    "stepperAgents": "Agents",
+    "skip": "Skip",
+    "done": "Finish"
   },
   "acceptInvite": {
     "invalidToken": "Invalid invitation token.",
@@ -1152,5 +1154,12 @@
     "leadPrice": "Lead price",
     "estimate": "Estimate",
     "business": "Business"
+  },
+  "clientAccess": {
+    "createdTitle": "Client access created",
+    "createdHint": "Save it now — the password won't be shown again. Share it with the client to log in.",
+    "login": "Login",
+    "password": "Password",
+    "dismiss": "Dismiss"
   }
 }

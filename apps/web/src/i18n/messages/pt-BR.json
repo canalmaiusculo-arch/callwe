@@ -806,7 +806,9 @@
     "toastCreated": "Cliente cadastrado",
     "stepperName": "Nome",
     "stepperNumber": "Número",
-    "stepperAgents": "Atendentes"
+    "stepperAgents": "Atendentes",
+    "skip": "Pular",
+    "done": "Concluir"
   },
   "acceptInvite": {
     "invalidToken": "Token de convite inválido.",
@@ -1152,5 +1154,12 @@
     "leadPrice": "Preço do lead",
     "estimate": "Estimativa",
     "business": "Negócio"
+  },
+  "clientAccess": {
+    "createdTitle": "Acesso do cliente criado",
+    "createdHint": "Guarde agora — a senha não será exibida de novo. Repasse ao cliente pra ele logar.",
+    "login": "Login",
+    "password": "Senha",
+    "dismiss": "Fechar"
   }
 }

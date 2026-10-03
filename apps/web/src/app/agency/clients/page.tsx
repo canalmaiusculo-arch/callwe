@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { HelpHint } from '@/components/help-hint';
 import { useAdminViewStore } from '@/stores/admin-view-store';
+import { ClientAccessCreated } from '@/components/client-access-created';
 import { useTranslate } from '@/i18n/provider';
 
 interface Client {
@@ -28,6 +29,7 @@ export default function ClientsPage() {
   const [showForm, setShowForm] = useState(false);
   const [name, setName] = useState('');
   const [slug, setSlug] = useState('');
+  const [createdAccess, setCreatedAccess] = useState<{ login: string; password: string } | null>(null);
 
   const viewAsAgencyId = useAdminViewStore((s) => s.viewAsAgencyId);
   const { data: clients = [] } = useQuery<Client[]>({
@@ -37,13 +39,17 @@ export default function ClientsPage() {
 
   const create = useMutation({
     mutationFn: (input: { name: string; slug: string }) =>
-      apiClient.post('/sub-accounts', viewAsAgencyId ? { ...input, agencyId: viewAsAgencyId } : input),
-    onSuccess: () => {
+      apiClient.post<{ id: string; access?: { login: string; password: string } }>(
+        '/sub-accounts',
+        viewAsAgencyId ? { ...input, agencyId: viewAsAgencyId } : input,
+      ),
+    onSuccess: (res) => {
       toast.success(t('agencyClients.toastCreated'));
       qc.invalidateQueries({ queryKey: ['agency-clients'] });
       setShowForm(false);
       setName('');
       setSlug('');
+      if (res.access) setCreatedAccess(res.access);
     },
     onError: (err: Error) => toast.error(err.message),
   });
@@ -110,6 +116,18 @@ export default function ClientsPage() {
             </p>
           </CardContent>
         </Card>
+      )}
+
+      {createdAccess && (
+        <div className="mb-4">
+          <ClientAccessCreated login={createdAccess.login} password={createdAccess.password} />
+          <button
+            onClick={() => setCreatedAccess(null)}
+            className="mt-1 text-xs text-muted-foreground hover:underline"
+          >
+            {t('clientAccess.dismiss')}
+          </button>
+        </div>
       )}
 
       <div className="space-y-2">
