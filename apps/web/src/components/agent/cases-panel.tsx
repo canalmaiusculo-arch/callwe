@@ -75,6 +75,7 @@ export function CasesPanel({
   activeSubAccountIds,
   clients,
   canCleanup,
+  readOnly,
 }: {
   agentId?: string;
   agencyId?: string;
@@ -82,6 +83,8 @@ export function CasesPanel({
   activeSubAccountIds?: string[] | null;
   clients: AssignedClient[];
   canCleanup?: boolean;
+  /** Visão do cliente: só visualiza os próprios cards (sem criar/resolver/editar). */
+  readOnly?: boolean;
 }) {
   // Parâmetro de escopo repassado aos endpoints (atendente supervisionado ou agência).
   const scopeParam = agentId ? `agentId=${agentId}` : agencyId ? `agencyId=${agencyId}` : '';
@@ -148,16 +151,18 @@ export function CasesPanel({
             </Badge>
           )}
         </div>
-        <div className="flex items-center gap-2">
-          {canCleanup && (
-            <Button size="sm" variant="outline" className="text-red-600 hover:bg-red-50 hover:text-red-700" onClick={() => setShowCleanup(true)}>
-              <Trash2 className="h-4 w-4" /> {t('cases.cleanup')}
+        {!readOnly && (
+          <div className="flex items-center gap-2">
+            {canCleanup && (
+              <Button size="sm" variant="outline" className="text-red-600 hover:bg-red-50 hover:text-red-700" onClick={() => setShowCleanup(true)}>
+                <Trash2 className="h-4 w-4" /> {t('cases.cleanup')}
+              </Button>
+            )}
+            <Button size="sm" onClick={() => setShowNew(true)}>
+              <Plus className="h-4 w-4" /> {t('cases.newCase')}
             </Button>
-          )}
-          <Button size="sm" onClick={() => setShowNew(true)}>
-            <Plus className="h-4 w-4" /> {t('cases.newCase')}
-          </Button>
-        </div>
+          </div>
+        )}
       </div>
 
       {/* Sub-abas */}
@@ -227,6 +232,7 @@ export function CasesPanel({
             <CaseCard
               key={c.id}
               item={c}
+              readOnly={readOnly}
               onFollowUp={() => setFollowUpFor(c)}
               onResolve={() => setResolveFor(c)}
               onReopen={async () => {
@@ -248,7 +254,7 @@ export function CasesPanel({
       {resolveFor && (
         <ResolveModal caseItem={resolveFor} onClose={() => setResolveFor(null)} onDone={invalidate} />
       )}
-      {detailId && <CaseDetailModal caseId={detailId} onClose={() => setDetailId(null)} onChanged={invalidate} />}
+      {detailId && <CaseDetailModal caseId={detailId} readOnly={readOnly} onClose={() => setDetailId(null)} onChanged={invalidate} />}
     </div>
   );
 }
@@ -274,12 +280,14 @@ const OUTCOME_VARIANT: Record<string, 'success' | 'secondary' | 'destructive'> =
 
 function CaseCard({
   item,
+  readOnly,
   onFollowUp,
   onResolve,
   onReopen,
   onExpandFull,
 }: {
   item: CaseItem;
+  readOnly?: boolean;
   onFollowUp: () => void;
   onResolve: () => void;
   onReopen: () => void;
@@ -356,22 +364,24 @@ function CaseCard({
               <span className="text-xs text-muted-foreground">
                 {t('cases.interactions')}: {item.interactionsCount}
               </span>
-              <div className="flex gap-2">
-                {item.caseStatus === 'resolved' ? (
-                  <Button size="sm" variant="outline" onClick={onReopen}>
-                    {t('cases.reopen')}
-                  </Button>
-                ) : (
-                  <>
-                    <Button size="sm" variant="outline" onClick={onFollowUp}>
-                      <CalendarClock className="h-4 w-4" /> {t('cases.toFollowUp')}
+              {!readOnly && (
+                <div className="flex gap-2">
+                  {item.caseStatus === 'resolved' ? (
+                    <Button size="sm" variant="outline" onClick={onReopen}>
+                      {t('cases.reopen')}
                     </Button>
-                    <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700" onClick={onResolve}>
-                      <CheckCircle2 className="h-4 w-4" /> {t('cases.resolveCase')}
-                    </Button>
-                  </>
-                )}
-              </div>
+                  ) : (
+                    <>
+                      <Button size="sm" variant="outline" onClick={onFollowUp}>
+                        <CalendarClock className="h-4 w-4" /> {t('cases.toFollowUp')}
+                      </Button>
+                      <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700" onClick={onResolve}>
+                        <CheckCircle2 className="h-4 w-4" /> {t('cases.resolveCase')}
+                      </Button>
+                    </>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -701,7 +711,7 @@ function CleanupModal({ agencyId, onClose, onDone }: { agencyId?: string; onClos
   );
 }
 
-function CaseDetailModal({ caseId, onClose, onChanged }: { caseId: string; onClose: () => void; onChanged: () => void }) {
+function CaseDetailModal({ caseId, readOnly, onClose, onChanged }: { caseId: string; readOnly?: boolean; onClose: () => void; onChanged: () => void }) {
   const { t } = useTranslate();
   const qc = useQueryClient();
   const [note, setNote] = useState('');
@@ -761,17 +771,26 @@ function CaseDetailModal({ caseId, onClose, onChanged }: { caseId: string; onClo
         <div className="grid flex-1 grid-cols-1 gap-4 overflow-auto p-4 md:grid-cols-2">
           <div>
             <p className="mb-2 text-xs font-semibold uppercase text-muted-foreground">{t('cases.contactInfo')}</p>
-            <div className="space-y-2">
-              <LabeledInput label={t('cases.fieldName')} value={form.name} onChange={(v) => setField('name', v)} placeholder={t('cases.namePlaceholder')} />
-              <LabeledInput label={t('cases.fieldPhone')} value={form.phoneE164} onChange={(v) => setField('phoneE164', v)} placeholder="+1 555 123 4567" />
-              <LabeledInput label={t('cases.fieldEmail')} value={form.email} onChange={(v) => setField('email', v)} placeholder="email@exemplo.com" />
-              <LabeledInput label={t('cases.fieldAddress')} value={form.address} onChange={(v) => setField('address', v)} placeholder={t('cases.addressPlaceholder')} />
-              {dirty && (
-                <Button size="sm" className="w-full" disabled={saveContact.isPending} onClick={() => saveContact.mutate()}>
-                  {t('cases.saveContact')}
-                </Button>
-              )}
-            </div>
+            {readOnly ? (
+              <div className="grid grid-cols-2 gap-2">
+                <Field label={t('cases.fieldName')} value={form.name || null} />
+                <Field label={t('cases.fieldPhone')} value={form.phoneE164 || null} />
+                <Field label={t('cases.fieldEmail')} value={form.email || null} />
+                <Field label={t('cases.fieldAddress')} value={form.address || null} />
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <LabeledInput label={t('cases.fieldName')} value={form.name} onChange={(v) => setField('name', v)} placeholder={t('cases.namePlaceholder')} />
+                <LabeledInput label={t('cases.fieldPhone')} value={form.phoneE164} onChange={(v) => setField('phoneE164', v)} placeholder="+1 555 123 4567" />
+                <LabeledInput label={t('cases.fieldEmail')} value={form.email} onChange={(v) => setField('email', v)} placeholder="email@exemplo.com" />
+                <LabeledInput label={t('cases.fieldAddress')} value={form.address} onChange={(v) => setField('address', v)} placeholder={t('cases.addressPlaceholder')} />
+                {dirty && (
+                  <Button size="sm" className="w-full" disabled={saveContact.isPending} onClick={() => saveContact.mutate()}>
+                    {t('cases.saveContact')}
+                  </Button>
+                )}
+              </div>
+            )}
             {thumbtackHasData(detail?.customFields) && (
               <div className="mt-4">
                 <p className="mb-2 text-xs font-semibold uppercase text-muted-foreground">{t('leadDrawer.thumbtackDetails')}</p>
@@ -795,12 +814,14 @@ function CaseDetailModal({ caseId, onClose, onChanged }: { caseId: string; onClo
                 </div>
               ))}
             </div>
-            <div>
-              <textarea value={note} onChange={(e) => setNote(e.target.value)} rows={2} placeholder={t('cases.addNotePlaceholder')} className="w-full rounded-md border bg-background px-2 py-1.5 text-sm" />
-              <Button size="sm" className="mt-1 w-full" disabled={!note.trim() || addNote.isPending} onClick={() => addNote.mutate()}>
-                <Plus className="h-4 w-4" /> {t('cases.saveNote')}
-              </Button>
-            </div>
+            {!readOnly && (
+              <div>
+                <textarea value={note} onChange={(e) => setNote(e.target.value)} rows={2} placeholder={t('cases.addNotePlaceholder')} className="w-full rounded-md border bg-background px-2 py-1.5 text-sm" />
+                <Button size="sm" className="mt-1 w-full" disabled={!note.trim() || addNote.isPending} onClick={() => addNote.mutate()}>
+                  <Plus className="h-4 w-4" /> {t('cases.saveNote')}
+                </Button>
+              </div>
+            )}
           </div>
         </div>
       </div>

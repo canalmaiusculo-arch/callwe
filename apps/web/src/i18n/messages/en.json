@@ -51,7 +51,8 @@
   },
   "client": {
     "title": "Client",
-    "calendar": "Calendar"
+    "calendar": "Calendar",
+    "cases": "Cases"
   },
   "kpi": {
     "leadsToday": "Leads today",

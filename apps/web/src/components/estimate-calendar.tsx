@@ -16,6 +16,8 @@ export interface Estimate {
   estimateValue: string | null;
   scheduledEstimateAt: string | null;
   subAccount: { id: string; name: string } | null;
+  isVisit?: boolean;
+  visitConfirmed?: boolean;
 }
 
 type View = 'week' | 'month';
@@ -191,6 +193,14 @@ function EstimateChip({ e, onClick, compact }: { e: Estimate; onClick: () => voi
       <p className="truncate text-xs font-medium text-emerald-900">
         {time && <span className="mr-1 font-semibold">{time}</span>}
         {e.name ?? e.phoneE164 ?? '—'}
+        {e.isVisit && (
+          <span
+            className="ml-1 align-middle text-[10px]"
+            title={e.visitConfirmed ? 'Visita confirmada' : 'Visita agendada'}
+          >
+            {e.visitConfirmed ? '✅' : '📅'}
+          </span>
+        )}
       </p>
       {!compact && (
         <div className="mt-0.5 flex flex-wrap items-center gap-x-2 text-[11px] text-emerald-700">

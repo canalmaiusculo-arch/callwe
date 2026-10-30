@@ -49,7 +49,13 @@ export class CalendarService {
     return user.memberships.map((m) => m.subAccountId).filter((v): v is string => !!v);
   }
 
-  /** Estimativas agendadas no intervalo [from, to], no escopo do usuário. */
+  /**
+   * Estimativas/visitas agendadas no intervalo [from, to], no escopo do usuário.
+   *
+   * O evento do calendário é a data `scheduledEstimateAt` OU `visitAt` (visita marcada
+   * ao resolver um caso como "booked"). A operação real agenda pelos Casos (visitAt),
+   * então o calendário precisa considerar as duas datas; usa a que estiver preenchida.
+   */
   async listEstimates(
     user: Caller,
     input: { from: Date; to: Date; subAccountId?: string; agentId?: string; agencyId?: string },
@@ -57,16 +63,16 @@ export class CalendarService {
     const subIds = await this.scopeSubIds(user, { agentId: input.agentId, agencyId: input.agencyId });
     if (subIds.length === 0) return [];
 
+    const range = { gte: input.from, lte: input.to };
     const where: Prisma.LeadWhereInput = {
       deletedAt: null,
-      scheduledEstimateAt: { gte: input.from, lte: input.to },
+      OR: [{ scheduledEstimateAt: range }, { visitAt: range }],
       subAccountId:
         input.subAccountId && subIds.includes(input.subAccountId) ? input.subAccountId : { in: subIds },
     };
 
     const rows = await this.prisma.lead.findMany({
       where,
-      orderBy: { scheduledEstimateAt: 'asc' },
       take: 500,
       select: {
         id: true,
@@ -76,9 +82,25 @@ export class CalendarService {
         status: true,
         estimateValue: true,
         scheduledEstimateAt: true,
+        visitAt: true,
+        visitConfirmed: true,
+        caseOutcome: true,
         subAccount: { select: { id: true, name: true } },
       },
     });
-    return rows;
+
+    // Data efetiva do evento = estimativa explícita, senão a visita agendada do caso.
+    // Mantém o campo `scheduledEstimateAt` na resposta pra o frontend não mudar.
+    return rows
+      .map(({ visitAt, ...r }) => {
+        const effective = r.scheduledEstimateAt ?? visitAt;
+        return {
+          ...r,
+          scheduledEstimateAt: effective,
+          isVisit: !r.scheduledEstimateAt && !!visitAt,
+        };
+      })
+      .filter((r) => r.scheduledEstimateAt && r.scheduledEstimateAt >= input.from && r.scheduledEstimateAt <= input.to)
+      .sort((a, b) => (a.scheduledEstimateAt!.getTime() - b.scheduledEstimateAt!.getTime()));
   }
 }
